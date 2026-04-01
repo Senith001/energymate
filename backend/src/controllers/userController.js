@@ -23,8 +23,10 @@ const handleError = (err, res, next) => {
     message: err.message || "Server error",
   });
 };
-
+//==================================================
 // ================= REGISTER USER =================
+//==================================================
+
 export const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body || {};
@@ -94,7 +96,10 @@ export const registerUser = async (req, res, next) => {
   }
 };
 
-// ================= VERIFY OTP =================
+//==================================================
+// ================= VERIFY OTP ====================
+//==================================================
+
 export const verifyOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body || {};
@@ -155,7 +160,10 @@ export const verifyOtp = async (req, res, next) => {
   }
 };
 
+//===============================================================
 // ================= FORGOT PASSWORD (SEND OTP) =================
+//===============================================================
+
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body || {};
@@ -212,7 +220,10 @@ export const forgotPassword = async (req, res, next) => {
   }
 };
 
+//==================================================================================
 // ================= RESET PASSWORD (VERIFY OTP + UPDATE PASSWORD) =================
+//==================================================================================
+
 export const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body || {};
@@ -258,7 +269,11 @@ export const resetPassword = async (req, res, next) => {
   }
 };
 
+
+//==========================================
 // ================= LOGIN =================
+//==========================================
+
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body || {};
@@ -301,7 +316,10 @@ export const loginUser = async (req, res, next) => {
   }
 };
 
+//========================================================================
 // ================= CHANGE MY PASSWORD (Logged-in User) =================
+//========================================================================
+
 export const changeMyPassword = async (req, res, next) => {
   try {
     const { oldPassword, newPassword } = req.body || {};
@@ -344,7 +362,10 @@ export const changeMyPassword = async (req, res, next) => {
   }
 };
 
+//===========================================================
 // ================= ADMIN - VIEW ALL USERS =================
+//===========================================================
+
 export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find().select("-password");
@@ -358,7 +379,10 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
+//========================================================
 // ================= ADMIN - DELETE USER =================
+//========================================================
+
 export const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -379,7 +403,10 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
+//=================================================================
 // ================= ADMIN - CHANGE USER PASSWORD =================
+//=================================================================
+
 export const changeUserPassword = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -407,7 +434,10 @@ export const changeUserPassword = async (req, res, next) => {
   }
 };
 
+//===================================================
 // ================= ADMIN REGISTER =================
+//===================================================
+
 export const registerAdmin = async (req, res, next) => {
   try {
     const incoming = req.headers["x-admin-secret"];
@@ -452,7 +482,10 @@ export const registerAdmin = async (req, res, next) => {
   }
 };
 
+//====================================================================
 // ================= CREATE ADMIN (Super Admin-only) =================
+//====================================================================
+
 export const createAdmin = async (req, res, next) => {
   try {
     const { name, email, password } = req.body || {};
@@ -493,7 +526,9 @@ export const createAdmin = async (req, res, next) => {
   }
 };
 
+//====================================================================
 // ================= DELETE ADMIN (Super Admin-only) =================
+//====================================================================
 
 export const deleteAdmin = async (req, res, next) => {
   try {
@@ -513,7 +548,9 @@ export const deleteAdmin = async (req, res, next) => {
   }
 };
 
+//====================================================================
 // ================= UPDATE ADMIN (Super Admin-only) =================
+//====================================================================
 
 export const changeAdminPassword = async (req, res, next) => {
   try {
@@ -540,7 +577,10 @@ export const changeAdminPassword = async (req, res, next) => {
   }
 };
 
+//=======================================================================
 // ================= VIEW ALL ADMINS (Super Admin-only) =================
+//=======================================================================
+
 export const getAllAdmins = async (req, res, next) => {
   try {
     const admins = await User.find({ role: "admin" }).select("-password");
@@ -577,7 +617,10 @@ export const getMyProfile = async (req, res, next) => {
   }
 };
 
+//================================================================================
 // ================= UPDATE MY PROFILE (name/phone/address/city) =================
+//================================================================================
+
 export const updateMyProfile = async (req, res, next) => {
   try {
     const { name, phone, address, city } = req.body || {};
@@ -608,7 +651,10 @@ export const updateMyProfile = async (req, res, next) => {
   }
 };
 
+//============================================================
 // ================= UPLOAD/CHANGE MY AVATAR =================
+//============================================================
+
 export const uploadMyAvatar = async (req, res, next) => {
   try {
     const user = req.user;
@@ -638,7 +684,9 @@ export const uploadMyAvatar = async (req, res, next) => {
   }
 };
 
+//=====================================================
 // ================= DELETE MY AVATAR =================
+//=====================================================
 export const deleteMyAvatar = async (req, res, next) => {
   try {
     const user = req.user;

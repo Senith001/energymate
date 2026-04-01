@@ -1,5 +1,5 @@
 import { body, param } from "express-validator";
-import validate from "../middlewares/validate.js";
+import { validate } from "../middlewares/validate.middleware.js";
 import { idParamRule, monthlyQueryRules } from "./usageValidation.js";
 
 // Bill: create / generate

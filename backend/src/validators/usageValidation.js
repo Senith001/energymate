@@ -1,6 +1,5 @@
 import { body, param, query } from "express-validator";
-import validate from "../middlewares/validate.js";
-
+import { validate } from "../middlewares/validate.middleware.js";
 // Usage: create
 const createUsageRules = [
   body("householdId")
