@@ -387,12 +387,12 @@ export const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findById(id);
+    const user = await User.findOne({ userId: id });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // Prevent admin from deleting another admin (optional safety)
     if (user.role === "admin") {
-      return res.status(403).json({ message: "Cannot delete another admin" });
+      return res.status(403).json({ message: "This is an Admin ID. Please enter correct user ID" });
     }
 
     await user.deleteOne();
@@ -701,6 +701,56 @@ export const deleteMyAvatar = async (req, res, next) => {
 
     return res.status(200).json({
       message: "Profile picture deleted successfully",
+    });
+  } catch (err) {
+    return handleError(err, res, next);
+  }
+};
+
+
+
+//=======================================================================
+// ================= ADMIN/SUPER ADMIN - GET USER BY ID =================
+//=======================================================================
+
+export const getUserById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Enforce that the target account MUST have the role of "user"
+    const user = await User.findOne({ userId: id, role: "user" }).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
+
+    return res.status(200).json({
+      user,
+    });
+  } catch (err) {
+    return handleError(err, res, next);
+  }
+};
+
+//==================================================================
+// ================= SUPER ADMIN - GET ADMIN BY ID =================
+//==================================================================
+
+export const getAdminById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Search by custom userId AND ensure they are an admin
+    const admin = await User.findOne({ userId: id, role: "admin" }).select("-password");
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    return res.status(200).json({
+      admin,
     });
   } catch (err) {
     return handleError(err, res, next);
