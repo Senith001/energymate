@@ -1,7 +1,7 @@
 import Usage from "../models/usage.js";
 import { success, error } from "../utils/responseFormatter.js";
 import Household from "../models/Household.js";
-import { getMonthlyCostSummary } from "../services/usageService.js";
+import { getMonthlyCostSummary, getUsageByAppliances, getUsageByRooms } from "../services/usageService.js";
 import { getCurrentWeather } from "../services/openWeatherService.js";
 import { verifyHouseholdOwnership } from "../services/usageService.js";
 
@@ -219,6 +219,42 @@ async function getWeatherImpact(req, res) {
   }
 }
 
+// USAGE BY APPLIANCES
+async function getUsageByAppliancesController(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { month: queryMonth, year: queryYear } = req.query;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const breakdown = await getUsageByAppliances(householdId, Number(queryMonth), Number(queryYear));
+    return success(res, breakdown, "Usage by appliances fetched");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+// USAGE BY ROOMS
+async function getUsageByRoomsController(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { month: queryMonth, year: queryYear } = req.query;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const breakdown = await getUsageByRooms(householdId, Number(queryMonth), Number(queryYear));
+    return success(res, breakdown, "Usage by rooms fetched");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
 export {
   createUsage,
   getUsages,
@@ -228,4 +264,6 @@ export {
   getMonthlySummary,
   estimateCost,
   getWeatherImpact,
+  getUsageByAppliancesController,
+  getUsageByRoomsController,
 };

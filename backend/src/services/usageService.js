@@ -2,6 +2,8 @@ import Usage from "../models/usage.js";
 import mongoose from "mongoose";
 import { getTariff } from "./tarifService.js";
 import Household from "../models/Household.js";
+import Appliance from "../models/Appliance.js";
+import Room from "../models/Room.js";
 
 // Two tiers:
 //   Tier A  – Consumption of 0–60 kWh per month
@@ -112,6 +114,146 @@ async function getMonthlyCostSummary(householdId, month, year) {
  */
 export async function verifyHouseholdOwnership(householdId, userId) {
   return await Household.findOne({ _id: householdId, userId });
+}
+
+/**
+ * Calculate usage by appliance for a household in a given month/year.
+ * Allocates total units proportionally based on appliance wattage profiles.
+ * @param {string} householdId
+ * @param {number} month  1-12
+ * @param {number} year
+ * @returns {Promise<object>} breakdown with { householdId, month, year, totalUnits, breakdown[] }
+ */
+export async function getUsageByAppliances(householdId, month, year) {
+  const monthlyUsage = await getMonthlyTotalUnits(householdId, month, year);
+  const appliances = await Appliance.find({ householdId });
+
+  if (appliances.length === 0) {
+    return {
+      householdId,
+      month,
+      year,
+      totalUnits: monthlyUsage.totalUnits,
+      totalEstimatedUsage: 0,
+      allocationFactor: 0,
+      breakdown: [],
+    };
+  }
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  // Calculate estimated usage for each appliance
+  const applianceUsages = appliances.map((appliance) => {
+    const estimatedUsage =
+      (appliance.wattage *
+        appliance.quantity *
+        appliance.defaultHoursPerDay *
+        daysInMonth) /
+      1000;
+    return { appliance, estimatedUsage };
+  });
+
+  // Calculate total estimated usage
+  const totalEstimatedUsage = applianceUsages.reduce((sum, a) => sum + a.estimatedUsage, 0);
+
+  // Allocate actual usage proportionally
+  const allocationFactor = totalEstimatedUsage > 0 ? monthlyUsage.totalUnits / totalEstimatedUsage : 0;
+
+  const breakdown = applianceUsages.map((a) => ({
+    applianceId: a.appliance._id,
+    name: a.appliance.name,
+    wattage: a.appliance.wattage,
+    quantity: a.appliance.quantity,
+    defaultHoursPerDay: a.appliance.defaultHoursPerDay,
+    estimatedUsage: +a.estimatedUsage.toFixed(2),
+    allocatedUsage: +(a.estimatedUsage * allocationFactor).toFixed(2),
+  }));
+
+  return {
+    householdId,
+    month,
+    year,
+    totalUnits: monthlyUsage.totalUnits,
+    totalEstimatedUsage: +totalEstimatedUsage.toFixed(2),
+    allocationFactor: +allocationFactor.toFixed(4),
+    breakdown,
+  };
+}
+
+/**
+ * Calculate usage by room for a household in a given month/year.
+ * Aggregates appliance usage by room and allocates proportionally.
+ * @param {string} householdId
+ * @param {number} month  1-12
+ * @param {number} year
+ * @returns {Promise<object>} breakdown with { householdId, month, year, totalUnits, breakdown[] }
+ */
+export async function getUsageByRooms(householdId, month, year) {
+  const monthlyUsage = await getMonthlyTotalUnits(householdId, month, year);
+  const appliances = await Appliance.find({ householdId });
+  const rooms = await Room.find({ householdId });
+
+  if (rooms.length === 0) {
+    return {
+      householdId,
+      month,
+      year,
+      totalUnits: monthlyUsage.totalUnits,
+      totalEstimatedUsage: 0,
+      allocationFactor: 0,
+      breakdown: [],
+    };
+  }
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  // Group appliances by room and calculate estimated usage
+  const roomUsages = rooms.map((room) => {
+    const roomAppliances = appliances.filter(
+      (app) => app.roomId && app.roomId.toString() === room._id.toString()
+    );
+
+    const estimatedUsage = roomAppliances.reduce((sum, appliance) => {
+      return (
+        sum +
+        (appliance.wattage *
+          appliance.quantity *
+          appliance.defaultHoursPerDay *
+          daysInMonth) /
+          1000
+      );
+    }, 0);
+
+    return {
+      room,
+      estimatedUsage,
+      applianceCount: roomAppliances.length,
+    };
+  });
+
+  // Calculate total estimated usage
+  const totalEstimatedUsage = roomUsages.reduce((sum, r) => sum + r.estimatedUsage, 0);
+
+  // Allocate actual usage proportionally
+  const allocationFactor = totalEstimatedUsage > 0 ? monthlyUsage.totalUnits / totalEstimatedUsage : 0;
+
+  const breakdown = roomUsages.map((r) => ({
+    roomId: r.room._id,
+    roomName: r.room.name,
+    applianceCount: r.applianceCount,
+    estimatedUsage: +r.estimatedUsage.toFixed(2),
+    allocatedUsage: +(r.estimatedUsage * allocationFactor).toFixed(2),
+  }));
+
+  return {
+    householdId,
+    month,
+    year,
+    totalUnits: monthlyUsage.totalUnits,
+    totalEstimatedUsage: +totalEstimatedUsage.toFixed(2),
+    allocationFactor: +allocationFactor.toFixed(4),
+    breakdown,
+  };
 }
 
 export {

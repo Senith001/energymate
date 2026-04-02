@@ -8,6 +8,8 @@ import {
   getMonthlySummary,
   estimateCost,
   getWeatherImpact,
+  getUsageByAppliancesController,
+  getUsageByRoomsController,
 } from "../controllers/usageController.js";
 import {
   createUsageRules,
@@ -28,6 +30,8 @@ router.get("/",                           protect,                    getUsages)
 router.get("/:id",             protect, idParamRule,       getUsageById);
 router.get("/households/:householdId/monthly-summary", protect, monthlyQueryRules, getMonthlySummary);
 router.get("/households/:householdId/estimate",        protect, monthlyQueryRules, estimateCost);
+router.get("/households/:householdId/by-appliances",   protect, monthlyQueryRules, getUsageByAppliancesController);
+router.get("/households/:householdId/by-rooms",        protect, monthlyQueryRules, getUsageByRoomsController);
 router.get("/households/:householdId/weather-impact",  protect, weatherImpactRules, getWeatherImpact);
 
 //update
