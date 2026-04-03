@@ -12,7 +12,9 @@ import {
     deleteAdmin, 
     changeAdminPassword, 
     getAllAdmins, 
-    getAdminById  } from "../controllers/userController.js";
+    getAdminById, 
+    getAuditLogs 
+} from "../controllers/userController.js";
 
 import { getMyProfile, updateMyProfile, uploadMyAvatar, deleteMyAvatar } from "../controllers/userController.js";
 import { uploadAvatar } from "../middlewares/upload.middleware.js";
@@ -42,6 +44,8 @@ router.delete("/superadmin/admins/:id", protect, authorize("superadmin"), delete
 router.put("/superadmin/admins/:id/password", protect, authorize("superadmin"), changeAdminPassword);
 router.get("/superadmin/admins", protect, authorize("superadmin"), getAllAdmins);
 router.get("/superadmin/admins/:id", protect, authorize("superadmin"), getAdminById);
+
+router.get("/superadmin/audit-logs", protect, authorize("superadmin"), getAuditLogs);
 
 router.post("/admin/register", registerAdmin);  //This route is for bootstrap super admin
 
