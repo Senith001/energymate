@@ -8,6 +8,8 @@ import RoomsPage from "./pages/RoomsPage";
 import AppliancesPage from "./pages/AppliancesPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import SupportTicketsPage from "./pages/SupportTicketsPage";
+import UsagePage from "./pages/UsagePage";
+import BillingPage from "./pages/BillingPage";
 
 function App() {
   return (
@@ -21,6 +23,10 @@ function App() {
           <Route path="feedback" element={<FeedbackPage />} />
           <Route path="tickets" element={<SupportTicketsPage />} />
         </Route>
+
+        {/* Temporary routes usage and billing for testing. */}
+        <Route path="/usage" element={<UsagePage />} />
+        <Route path="/billing" element={<BillingPage />} />
       </Routes>
     </BrowserRouter>
   );
