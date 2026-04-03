@@ -10,7 +10,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 
 // Team Member's Pages (Kept in their original location)
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/user/Dashboard";
 import HouseholdPage from "./pages/HouseholdPage";
 import RoomsPage from "./pages/RoomsPage";
 import AppliancesPage from "./pages/AppliancesPage";
