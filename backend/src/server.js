@@ -26,7 +26,14 @@ const app = express();
 app.use(express.json());
 app.use(morgan("dev"));
 
-app.use(cors({origin: process.env.CLIENT_URL || "*", credentials: true,}));
+app.use(cors({
+  origin: [
+    "http://localhost:5173", 
+    "http://127.0.0.1:5173", 
+    process.env.CLIENT_URL // Keep this so it works when you host it online!
+  ],
+  credentials: true,
+}));
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
