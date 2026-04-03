@@ -4,7 +4,17 @@ import { registerAdmin } from "../controllers/userController.js";
 import { protect, authorize } from "../middlewares/auth.middleware.js";
 import { createAdmin } from "../controllers/userController.js";
 
-import { getAllUsers, deleteUser, changeUserPassword, deleteAdmin, changeAdminPassword, getAllAdmins  } from "../controllers/userController.js";
+import { 
+    getAllUsers, 
+    getUserById,
+    deleteUser, 
+    changeUserPassword, 
+    deleteAdmin, 
+    changeAdminPassword, 
+    getAllAdmins, 
+    getAdminById, 
+    getAuditLogs 
+} from "../controllers/userController.js";
 
 import { getMyProfile, updateMyProfile, uploadMyAvatar, deleteMyAvatar } from "../controllers/userController.js";
 import { uploadAvatar } from "../middlewares/upload.middleware.js";
@@ -16,22 +26,31 @@ const router = express.Router();
 
 router.post("/register", registerValidator, validate, registerUser);
 router.post("/verify-otp", verifyOtp);
-router.post("/login", loginUser);
-router.post("/admin/register", registerAdmin);
+
+router.post("/login", loginUser); //Common Login route for both users and admins, role is determined during authentication
+
+
+// ---  ADMIN ROUTES ---
 
 router.post("/admin/create", protect, authorize("admin"), createAdmin);
-
 router.get("/admin/users", protect, authorize("admin", "superadmin"), getAllUsers);
-
-
-router.delete("/admin/users/:id", protect, authorize("admin"), deleteUser);
-
+router.get("/admin/users/:id", protect, authorize("admin", "superadmin"), getUserById);
+router.delete("/admin/users/:id", protect, authorize("admin", "superadmin"), deleteUser);
 router.put( "/admin/users/:id/password", protect, authorize("admin"), adminChangeUserPasswordValidator, validate, changeUserPassword);
+
+// --- SUPER ADMIN ROUTES ---
 
 router.delete("/superadmin/admins/:id", protect, authorize("superadmin"), deleteAdmin);
 router.put("/superadmin/admins/:id/password", protect, authorize("superadmin"), changeAdminPassword);
-
 router.get("/superadmin/admins", protect, authorize("superadmin"), getAllAdmins);
+router.get("/superadmin/admins/:id", protect, authorize("superadmin"), getAdminById);
+
+router.get("/superadmin/audit-logs", protect, authorize("superadmin"), getAuditLogs);
+
+router.post("/admin/register", registerAdmin);  //This route is for bootstrap super admin
+
+
+// --- USER ROUTES ---
 
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPasswordValidator, validate, resetPassword);

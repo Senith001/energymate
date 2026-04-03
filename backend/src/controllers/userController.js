@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Otp from "../models/Otp.js";
 import { sendEmail } from "../utils/email.js";
+import AuditLog from "../models/AuditLog.js";
+import { logAdminAction } from "../services/audit.service.js";
 
 import fs from "fs";
 import path from "path";
@@ -23,6 +25,7 @@ const handleError = (err, res, next) => {
     message: err.message || "Server error",
   });
 };
+
 //==================================================
 // ================= REGISTER USER =================
 //==================================================
@@ -39,26 +42,46 @@ export const registerUser = async (req, res, next) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const existing = await User.findOne({ email: normalizedEmail });
-    if (existing) {
-      return res.status(409).json({ message: "Email already registered" });
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (user) {
+      // ✅ If the user exists AND is verified, stop them.
+      if (user.isVerified) {
+        return res.status(409).json({ message: "Email already registered" });
+      } 
+      // ✅ If the user exists but is NOT verified...
+      else {
+        // DELETE the old unverified record entirely. 
+        // This abandons their old sequential ID and clears their stale 'createdAt' timestamp.
+        await User.deleteOne({ _id: user._id });
+        
+        // CREATE a brand new record so the counter assigns them the latest sequential ID.
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user = await User.create({
+          name: name.trim(),
+          email: normalizedEmail,
+          password: hashedPassword,
+          role: "user",
+        });
+      }
+    } else {
+      // ✅ If the user does not exist at all, create a brand new one.
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user = await User.create({
+        name: name.trim(),
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: "user",
+      });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      name: name.trim(),
-      email: normalizedEmail,
-      password: hashedPassword,
-      role: "user",
-    });
 
     // 🔹 Generate OTP (6 digits)
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
-    // Optional cleanup: remove old unused VERIFY_EMAIL OTPs for this user
+    // Cleanup: remove old unused VERIFY_EMAIL OTPs for this user
+    // (Since we deleted the user above, this is mostly for brand new users, but good to keep)
     await Otp.deleteMany({
       userId: user._id,
       purpose: "VERIFY_EMAIL",
@@ -89,7 +112,7 @@ export const registerUser = async (req, res, next) => {
 
     return res.status(201).json({
       message: "User registered successfully. OTP sent to email.",
-      userId: user.userId,
+      userId: user.userId, // This will now be the properly updated, chronological ID!
     });
   } catch (err) {
     return handleError(err, res, next);
@@ -291,7 +314,8 @@ export const loginUser = async (req, res, next) => {
 
     if (!user.isVerified) {
       return res.status(403).json({
-        message: "Please verify your email before logging in",
+        //message: "Please verify your email before logging in",
+        message: "Invalid credentials",
       });
     }
 
@@ -368,7 +392,7 @@ export const changeMyPassword = async (req, res, next) => {
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select("-password");
+    const users = await User.find({ isVerified: true }).select("-password");
 
     return res.status(200).json({
       count: users.length,
@@ -387,15 +411,18 @@ export const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findById(id);
+    const user = await User.findOne({ userId: id });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // Prevent admin from deleting another admin (optional safety)
     if (user.role === "admin") {
-      return res.status(403).json({ message: "Cannot delete another admin" });
+      return res.status(403).json({ message: "This is an Admin ID. Please enter correct user ID" });
     }
 
     await user.deleteOne();
+
+    // Audit log
+    await logAdminAction(req.user.userId, "DELETE_USER", id, `Admin deleted user profile`);
 
     return res.status(200).json({ message: "User deleted successfully" });
   } catch (err) {
@@ -701,6 +728,74 @@ export const deleteMyAvatar = async (req, res, next) => {
 
     return res.status(200).json({
       message: "Profile picture deleted successfully",
+    });
+  } catch (err) {
+    return handleError(err, res, next);
+  }
+};
+
+
+
+//=======================================================================
+// ================= ADMIN/SUPER ADMIN - GET USER BY ID =================
+//=======================================================================
+
+export const getUserById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Enforce that the target account MUST have the role of "user"
+    const user = await User.findOne({ userId: id, role: "user", isVerified: true }).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
+
+    return res.status(200).json({
+      user,
+    });
+  } catch (err) {
+    return handleError(err, res, next);
+  }
+};
+
+//==================================================================
+// ================= SUPER ADMIN - GET ADMIN BY ID =================
+//==================================================================
+
+export const getAdminById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Search by custom userId AND ensure they are an admin
+    const admin = await User.findOne({ userId: id, role: "admin" }).select("-password");
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    return res.status(200).json({
+      admin,
+    });
+  } catch (err) {
+    return handleError(err, res, next);
+  }
+};
+
+//========================================================================
+// ================= SUPER ADMIN - VIEW AUDIT LOGS =======================
+//========================================================================
+
+export const getAuditLogs = async (req, res, next) => {
+  try {
+    // Fetch the latest 100 actions, sorted by newest first
+    const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(100);
+
+    return res.status(200).json({
+      count: logs.length,
+      logs,
     });
   } catch (err) {
     return handleError(err, res, next);
