@@ -1,8 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Sidebar() {
   const location = useLocation();
+  const { user } = useAuth(); // Grab the logged-in user
 
   const menuItems = [
     { name: "Dashboard", path: "/", icon: "⌂" },
@@ -38,7 +40,8 @@ function Sidebar() {
         }}
       >
         <h3>Welcome,</h3>
-        <h2>Silva Family</h2>
+        {/* Dynamically display the logged-in user's name */}
+        <h2>{user ? user.name : "Guest"}</h2>
       </div>
 
       {menuItems.map((item) => (

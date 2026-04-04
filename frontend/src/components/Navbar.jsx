@@ -1,6 +1,16 @@
 import React from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function Navbar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <div
       style={{
@@ -17,6 +27,7 @@ function Navbar() {
           gap: "18px",
         }}
       >
+        {/* Notification Bell */}
         <div
           style={{
             width: "62px",
@@ -53,6 +64,7 @@ function Navbar() {
           </div>
         </div>
 
+        {/* User Profile Area */}
         <div
           style={{
             display: "flex",
@@ -86,10 +98,24 @@ function Navbar() {
               color: "#111827",
             }}
           >
-            User: Silva Family
+            {/* Dynamically display the logged-in user's name */}
+            {user ? user.name : "Guest"}
           </div>
 
-          <div style={{ fontSize: "18px", color: "#374151" }}>▼</div>
+          {/* Logout Button */}
+          <button 
+            onClick={handleLogout}
+            style={{ 
+              fontSize: "14px", 
+              color: "#ef4444", 
+              background: "none", 
+              border: "none", 
+              cursor: "pointer",
+              fontWeight: "bold"
+            }}
+          >
+            Logout
+          </button>
         </div>
       </div>
     </div>
