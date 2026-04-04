@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { FaBolt, FaFileInvoiceDollar } from "react-icons/fa";
 
 function Sidebar() {
   const location = useLocation();
@@ -11,6 +12,8 @@ function Sidebar() {
     { name: "Household", path: "/households", icon: "⌂" },
     { name: "Rooms", path: "/rooms", icon: "✉" },
     { name: "Appliances", path: "/appliances", icon: "◫" },
+    { name: "Usage", path: "/usage", icon: <FaBolt /> },
+    { name: "Billing and Cost Analysis", path: "/billing", icon: <FaFileInvoiceDollar /> },
     { name: "Feedback", path: "/feedback", icon: "💬" },
     { name: "Support Tickets", path: "/tickets", icon: "🧾" },
   ];

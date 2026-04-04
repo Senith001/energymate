@@ -1,12 +1,90 @@
-import React from "react";
+import React, { useState } from "react";
 import { cardStyle, colors, Icon } from "../energy/dashboardTheme";
 
-function WeatherInsightCard({ city, weather, tip }) {
+function WeatherInsightCard({
+  city,
+  weather,
+  tip,
+  locationMode,
+  customCity,
+  onLocationModeChange,
+  onCustomCityChange,
+  onApplyCustomCity,
+}) {
   const details = weather || {};
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
-    <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>Weather Impact</h3>
+    <div style={{ ...cardStyle, padding: "24px", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "22px" }}>
+        <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Weather Impact</h3>
+        <div style={{ position: "relative" }}>
+          <button
+            type="button"
+            onClick={() => setShowSettings((current) => !current)}
+            style={settingsButtonStyle}
+            title="Weather settings"
+          >
+            ⚙
+          </button>
+          {showSettings ? (
+            <div style={settingsPanelStyle}>
+              <div style={{ color: colors.text, fontSize: "14px", fontWeight: "700", marginBottom: "10px" }}>Weather Location</div>
+              <div style={{ display: "grid", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onLocationModeChange("browser");
+                    setShowSettings(false);
+                  }}
+                  style={pillStyle(locationMode === "browser")}
+                >
+                  Current Location
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onLocationModeChange("household");
+                    setShowSettings(false);
+                  }}
+                  style={pillStyle(locationMode === "household")}
+                >
+                  Household City
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onLocationModeChange("custom")}
+                  style={pillStyle(locationMode === "custom")}
+                >
+                  Custom City
+                </button>
+              </div>
+              {locationMode === "custom" ? (
+                <div style={{ display: "grid", gap: "8px", marginTop: "10px" }}>
+                  <input
+                    type="text"
+                    value={customCity}
+                    onChange={(event) => onCustomCityChange(event.target.value)}
+                    placeholder="Enter city"
+                    style={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onApplyCustomCity();
+                      setShowSettings(false);
+                    }}
+                    style={applyButtonStyle}
+                  >
+                    Apply
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
         <div
           style={{
@@ -56,3 +134,60 @@ function WeatherInsightCard({ city, weather, tip }) {
 }
 
 export default WeatherInsightCard;
+
+function pillStyle(active) {
+  return {
+    padding: "9px 12px",
+    borderRadius: "999px",
+    border: `1px solid ${active ? colors.green : colors.border}`,
+    background: active ? colors.greenSoft : "#ffffff",
+    color: active ? colors.green : colors.text,
+    fontWeight: "700",
+    cursor: "pointer",
+  };
+}
+
+const inputStyle = {
+  flex: "1 1 160px",
+  minWidth: "0",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: `1px solid ${colors.border}`,
+  fontSize: "14px",
+  boxSizing: "border-box",
+};
+
+const applyButtonStyle = {
+  padding: "10px 14px",
+  borderRadius: "12px",
+  border: "none",
+  background: colors.green,
+  color: "#ffffff",
+  fontWeight: "700",
+  cursor: "pointer",
+};
+
+const settingsButtonStyle = {
+  width: "38px",
+  height: "38px",
+  borderRadius: "12px",
+  border: `1px solid ${colors.border}`,
+  background: "#ffffff",
+  color: colors.text,
+  cursor: "pointer",
+  fontSize: "18px",
+  lineHeight: 1,
+};
+
+const settingsPanelStyle = {
+  position: "absolute",
+  top: "46px",
+  right: 0,
+  width: "220px",
+  padding: "14px",
+  borderRadius: "16px",
+  border: `1px solid ${colors.border}`,
+  background: "#ffffff",
+  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.12)",
+  zIndex: 2,
+};

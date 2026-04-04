@@ -2,7 +2,20 @@ import React from "react";
 import { cardStyle, colors, formatDate, Icon } from "../energy/dashboardTheme";
 
 // Usage table actions are passed down from the page so state stays centralized.
-function UsageTableCard({ rows, onAdd, onView, onEdit, onDelete, busyId }) {
+function UsageTableCard({
+  rows,
+  onAdd,
+  onView,
+  onEdit,
+  onDelete,
+  busyId,
+  monthFilter,
+  yearFilter,
+  onMonthFilterChange,
+  onYearFilterChange,
+  monthOptions,
+  yearOptions,
+}) {
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
       <div
@@ -16,24 +29,41 @@ function UsageTableCard({ rows, onAdd, onView, onEdit, onDelete, busyId }) {
         }}
       >
         <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Usage Records</h3>
-        <button
-          onClick={onAdd}
-          style={{
-            border: "none",
-            background: colors.green,
-            color: "#ffffff",
-            padding: "12px 18px",
-            borderRadius: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            cursor: "pointer",
-            fontWeight: "700",
-          }}
-        >
-          <Icon name="plus" color="#ffffff" size={16} />
-          Add Entry
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          {/* Keep the records table open to all entries by default, with separate month and year filters. */}
+          <select value={monthFilter} onChange={(event) => onMonthFilterChange(event.target.value)} style={selectStyle}>
+            {monthOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select value={yearFilter} onChange={(event) => onYearFilterChange(event.target.value)} style={selectStyle}>
+            {yearOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={onAdd}
+            style={{
+              border: "none",
+              background: colors.green,
+              color: "#ffffff",
+              padding: "12px 18px",
+              borderRadius: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              fontWeight: "700",
+            }}
+          >
+            <Icon name="plus" color="#ffffff" size={16} />
+            Add Entry
+          </button>
+        </div>
       </div>
 
       <div style={{ overflowX: "auto" }}>
@@ -133,5 +163,16 @@ function ActionButton({ icon, danger = false, onClick, disabled = false, title }
     </button>
   );
 }
+
+const selectStyle = {
+  minWidth: "170px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: `1px solid ${colors.border}`,
+  background: "#ffffff",
+  color: colors.text,
+  fontSize: "14px",
+  outline: "none",
+};
 
 export default UsageTableCard;

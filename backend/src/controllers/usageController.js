@@ -2,7 +2,7 @@ import Usage from "../models/usage.js";
 import { success, error } from "../utils/responseFormatter.js";
 import Household from "../models/Household.js";
 import { getMonthlyCostSummary, getUsageByAppliances, getUsageByRooms } from "../services/usageService.js";
-import { getCurrentWeather } from "../services/openWeatherService.js";
+import { getCurrentWeather, getCurrentWeatherByCoords } from "../services/openWeatherService.js";
 import { verifyHouseholdOwnership } from "../services/usageService.js";
 
 // CREATE/ADD USAGE
@@ -190,16 +190,18 @@ async function estimateCost(req, res) {
 // WEATHER IMPACT (third-party API integration) 
 async function getWeatherImpact(req, res) {
   try {
-    const { householdId, month, year } = req.params;
-    const { city } = req.query;
+    const { householdId } = req.params;
+    const { city, lat, lon } = req.query;
 
     if (req.user && req.user.role === "user") {
       const household = await verifyHouseholdOwnership(householdId, req.user._id);
       if (!household) return error(res, "Household not found or access denied", 403);
     }
 
-    const summary = await getMonthlyCostSummary(householdId, Number(month), Number(year));
-    const weather = await getCurrentWeather(city || "Colombo");
+    const weather =
+      lat !== undefined && lon !== undefined
+        ? await getCurrentWeatherByCoords(Number(lat), Number(lon))
+        : await getCurrentWeather(city || "Colombo");
 
     let insight;
     if (weather.temperature > 30) {
@@ -210,7 +212,8 @@ async function getWeatherImpact(req, res) {
       insight = "Cool temperatures. Lower electricity usage expected from cooling appliances.";
     }
 
-    return success(res, { usage: summary, weather, insight }, "Weather impact analysis");
+    // Return only the weather details and the usage insight needed by the frontend card.
+    return success(res, { weather, insight }, "Weather impact analysis");
   } catch (err) {
     if (err.response && err.response.status === 404) {
       return error(res, "City not found. Please provide a valid city name.", 400);

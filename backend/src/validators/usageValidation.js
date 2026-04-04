@@ -97,6 +97,12 @@ const weatherImpactRules = [
   query("city")
     .optional()
     .isString().withMessage("city must be a string"),
+  query("lat")
+    .optional()
+    .isFloat({ min: -90, max: 90 }).withMessage("lat must be a valid latitude"),
+  query("lon")
+    .optional()
+    .isFloat({ min: -180, max: 180 }).withMessage("lon must be a valid longitude"),
   validate,
 ];
 

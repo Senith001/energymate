@@ -2,7 +2,22 @@ import React from "react";
 import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone, Icon } from "../energy/dashboardTheme";
 
 // Billing table actions are passed down from the page so data refresh logic stays centralized.
-function BillingTableCard({ rows, onCreate, onGenerate, generating, onView, onRegenerate, busyId }) {
+function BillingTableCard({
+  rows,
+  onCreate,
+  onGenerate,
+  generating,
+  onView,
+  onUpdate,
+  onRegenerate,
+  busyId,
+  monthFilter,
+  yearFilter,
+  onMonthFilterChange,
+  onYearFilterChange,
+  monthOptions,
+  yearOptions,
+}) {
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
       <div
@@ -16,7 +31,22 @@ function BillingTableCard({ rows, onCreate, onGenerate, generating, onView, onRe
         }}
       >
         <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Bill History</h3>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          {/* Keep the bill history open by default, with optional month and year filters. */}
+          <select value={monthFilter} onChange={(event) => onMonthFilterChange(event.target.value)} style={selectStyle}>
+            {monthOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select value={yearFilter} onChange={(event) => onYearFilterChange(event.target.value)} style={selectStyle}>
+            {yearOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
           <button onClick={onCreate} style={buttonStyle(colors.green, "#ffffff", "none")}>
             <Icon name="plus" color="#ffffff" size={16} />
             Create Bill
@@ -70,13 +100,13 @@ function BillingTableCard({ rows, onCreate, onGenerate, generating, onView, onRe
                     <td style={cellStyle()}>
                       <div style={{ display: "flex", gap: "8px" }}>
                         <ActionButton icon="eye" onClick={() => onView(row)} title="View bill details" />
+                        <ActionButton icon="edit" onClick={() => onUpdate(row)} title="Update bill" />
                         <ActionButton
                           icon="refresh"
                           onClick={() => onRegenerate(row)}
                           disabled={busyId === row._id}
                           title="Regenerate bill"
                         />
-                        <ActionButton icon="trash" danger disabled title="Admin-only delete" />
                       </div>
                     </td>
                   </tr>
@@ -145,5 +175,16 @@ function ActionButton({ icon, danger = false, onClick, disabled = false, title }
     </button>
   );
 }
+
+const selectStyle = {
+  minWidth: "150px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: `1px solid ${colors.border}`,
+  background: "#ffffff",
+  color: colors.text,
+  fontSize: "14px",
+  outline: "none",
+};
 
 export default BillingTableCard;

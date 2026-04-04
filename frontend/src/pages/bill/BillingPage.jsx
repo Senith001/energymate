@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from "react";
-import EnergyShell from "../components/energy/EnergyShell";
-import MetricCard from "../components/energy/MetricCard";
-import BillDetailsDialog from "../components/billing/BillDetailsDialog";
-import BillingTableCard from "../components/billing/BillingTableCard";
-import BillDialog from "../components/billing/BillDialog";
-import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone } from "../components/energy/dashboardTheme";
-import { createBill, generateBill, getBillById, getBillComparison, getBills, regenerateBill, updateBill } from "../utils/billingAPI";
-import { getUsages } from "../utils/usageAPI";
+import React, { useEffect, useMemo, useState } from "react";
+import MetricCard from "../../components/energy/MetricCard";
+import BillDetailsDialog from "../../components/billing/BillDetailsDialog";
+import BillUpdateDialog from "../../components/billing/BillUpdateDialog";
+import BillingTableCard from "../../components/billing/BillingTableCard";
+import BillDialog from "../../components/billing/BillDialog";
+import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone } from "../../components/energy/dashboardTheme";
+import { useAuth } from "../../context/AuthContext";
+import { createBill, generateBill, getBillById, getBillComparison, getBills, regenerateBill, updateBill } from "../../utils/billingAPI";
+import { getUsages } from "../../utils/usageAPI";
 
 function BillingPage() {
+  const { user } = useAuth();
   // Keep the selected household id locally for billing-related API calls.
   const [householdId, setHouseholdId] = useState(localStorage.getItem("selectedHouseholdId") || localStorage.getItem("householdId") || "");
   const [bills, setBills] = useState([]);
@@ -17,11 +19,14 @@ function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [busyBillId, setBusyBillId] = useState("");
   const [error, setError] = useState("");
+  const [tableMonthFilter, setTableMonthFilter] = useState("all");
+  const [tableYearFilter, setTableYearFilter] = useState("all");
 
   useEffect(() => {
     loadBillingPage();
@@ -126,7 +131,7 @@ function BillingPage() {
     }
   }
 
-  // Load one bill into the details dialog so the user can review and update its status.
+  // Load one bill into the read-only details dialog.
   async function handleViewBill(row) {
     try {
       setError("");
@@ -138,23 +143,47 @@ function BillingPage() {
     }
   }
 
-  // Save non-admin bill updates such as marking a bill as paid.
-  async function handleSaveBillDetails(form) {
+  // Load one bill into the update dialog so editing stays separate from viewing.
+  async function handleOpenUpdateBill(row) {
+    try {
+      setError("");
+      const payload = await getBillById(row._id);
+      setSelectedBill(payload.data || row);
+      setUpdateOpen(true);
+    } catch (err) {
+      setError(err.message || "Unable to load bill for update.");
+    }
+  }
+
+  // Save bill updates using the editable fields supported by the bill controller.
+  async function handleUpdateBill(form) {
     if (!selectedBill?._id) return;
 
     try {
       setSubmitting(true);
       setError("");
       const payload = {
+        month: Number(form.month),
+        year: Number(form.year),
         status: form.status,
       };
 
+      if (form.mode === "readings") {
+        payload.previousReading = Number(form.previousReading);
+        payload.currentReading = Number(form.currentReading);
+      } else if (form.totalUnits !== "") {
+        payload.totalUnits = Number(form.totalUnits);
+      }
+
       if (form.paidAt) {
         payload.paidAt = form.paidAt;
+      } else if (form.status === "unpaid") {
+        payload.paidAt = null;
       }
 
       await updateBill(selectedBill._id, payload);
-      setDetailsOpen(false);
+      setUpdateOpen(false);
+      setSelectedBill(null);
       await loadComparison(householdId, selectedPeriod.month, selectedPeriod.year);
     } catch (err) {
       setError(err.message || "Unable to update bill.");
@@ -178,6 +207,19 @@ function BillingPage() {
   }
 
   const latestBill = bills[0] || null;
+  const tableRows = useMemo(() => {
+    const sortedRows = [...bills].sort((a, b) => {
+      const aDate = new Date(a.year, a.month - 1, 1);
+      const bDate = new Date(b.year, b.month - 1, 1);
+      return bDate - aDate;
+    });
+
+    return sortedRows.filter((bill) => {
+      const monthMatches = tableMonthFilter === "all" || bill.month === Number(tableMonthFilter);
+      const yearMatches = tableYearFilter === "all" || bill.year === Number(tableYearFilter);
+      return monthMatches && yearMatches;
+    });
+  }, [bills, tableMonthFilter, tableYearFilter]);
   const paidBills = bills.filter((bill) => bill.status === "paid");
   const totalPaid = paidBills.reduce((sum, bill) => sum + Number(bill.totalCost || 0), 0);
   const openBills = bills.filter((bill) => getStatusTone(bill.status, bill.dueDate).label !== "paid");
@@ -185,12 +227,24 @@ function BillingPage() {
   const costDifference = comparison?.difference?.cost || 0;
   const percentageChange = comparison?.difference?.costChangePercent ?? 0;
   const activeBreakdown = latestBill?.breakdown || [];
+  const availableYears = useMemo(() => {
+    const years = new Set(bills.map((bill) => bill.year));
+    years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  }, [bills]);
+  // Use an existing stored household name when available so we do not expose the raw object id in the UI.
+  const householdName =
+    localStorage.getItem("selectedHouseholdName") ||
+    localStorage.getItem("householdName") ||
+    (user?.name ? `${user.name}'s Household` : "Household");
 
+  // This page now renders directly inside MainLayout, so the temporary shell is no longer needed.
   return (
-    <EnergyShell activeTab="billing">
+    <div style={{ minHeight: "100%", background: colors.background, padding: "10px" }}>
       <PageNotice loading={loading} error={error} householdId={householdId} period={selectedPeriod} />
 
-      <div style={responsiveGrid("260px", "18px")}>
+      {/* Use a slightly smaller minimum card width so all four summary cards fit in one row on common desktop widths. */}
+      <div style={responsiveGrid("220px", "18px")}>
         <MetricCard
           title="Current Bill"
           value={formatCurrency(latestBill?.totalCost)}
@@ -232,13 +286,20 @@ function BillingPage() {
 
       <div style={{ marginTop: "26px" }}>
         <BillingTableCard
-          rows={bills}
+          rows={tableRows}
           onCreate={() => setDialogOpen(true)}
           onGenerate={handleGenerateBill}
           generating={generating}
           onView={handleViewBill}
+          onUpdate={handleOpenUpdateBill}
           onRegenerate={handleRegenerateExistingBill}
           busyId={busyBillId}
+          monthFilter={tableMonthFilter}
+          yearFilter={tableYearFilter}
+          onMonthFilterChange={setTableMonthFilter}
+          onYearFilterChange={setTableYearFilter}
+          monthOptions={TABLE_MONTH_FILTERS}
+          yearOptions={TABLE_YEAR_FILTERS(availableYears)}
         />
       </div>
 
@@ -253,14 +314,23 @@ function BillingPage() {
       <BillDetailsDialog
         open={detailsOpen}
         bill={selectedBill}
+        householdName={householdName}
         onClose={() => {
           setDetailsOpen(false);
           setSelectedBill(null);
         }}
-        onSubmit={handleSaveBillDetails}
+      />
+      <BillUpdateDialog
+        open={updateOpen}
+        bill={selectedBill}
+        onClose={() => {
+          setUpdateOpen(false);
+          setSelectedBill(null);
+        }}
+        onSubmit={handleUpdateBill}
         submitting={submitting}
       />
-    </EnergyShell>
+    </div>
   );
 }
 
@@ -409,5 +479,26 @@ function responsiveGrid(minWidth, gap) {
     gap,
   };
 }
+
+const TABLE_MONTH_FILTERS = [
+  { value: "all", label: "None (Show All)" },
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+const TABLE_YEAR_FILTERS = (years) => [
+  { value: "all", label: "All Years" },
+  ...years.map((year) => ({ value: String(year), label: String(year) })),
+];
 
 export default BillingPage;

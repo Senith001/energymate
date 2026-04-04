@@ -16,8 +16,8 @@ import RoomsPage from "./pages/RoomsPage";
 import AppliancesPage from "./pages/AppliancesPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import SupportTicketsPage from "./pages/SupportTicketsPage";
-import UsagePage from "./pages/UsagePage";
-import BillingPage from "./pages/BillingPage";
+import UsagePage from "./pages/usage/UsagePage";
+import BillingPage from "./pages/bill/BillingPage";
 
 function App() {
   return (
@@ -35,6 +35,8 @@ function App() {
             <Route path="households" element={<HouseholdPage />} />
             <Route path="rooms" element={<RoomsPage />} />
             <Route path="appliances" element={<AppliancesPage />} />
+            <Route path="usage" element={<UsagePage />} />
+            <Route path="billing" element={<BillingPage />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="tickets" element={<SupportTicketsPage />} />
           </Route>

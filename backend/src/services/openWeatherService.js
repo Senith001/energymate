@@ -2,6 +2,18 @@ import axios from "axios";
 
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
 
+function mapCurrentWeather(data) {
+  return {
+    city: data.name,
+    country: data.sys.country,
+    temperature: data.main.temp,
+    feelsLike: data.main.feels_like,
+    humidity: data.main.humidity,
+    description: data.weather[0].description,
+    windSpeed: data.wind.speed,
+  };
+}
+
 /**
  * Fetch current weather for a city using OpenWeatherMap API (free tier).
  * @param {string} city - City name (e.g. "Colombo")
@@ -15,15 +27,24 @@ async function getCurrentWeather(city) {
     params: { q: city, appid: apiKey, units: "metric" },
   });
 
-  return {
-    city: data.name,
-    country: data.sys.country,
-    temperature: data.main.temp,
-    feelsLike: data.main.feels_like,
-    humidity: data.main.humidity,
-    description: data.weather[0].description,
-    windSpeed: data.wind.speed,
-  };
+  return mapCurrentWeather(data);
+}
+
+/**
+ * Fetch current weather for browser coordinates.
+ * @param {number|string} lat
+ * @param {number|string} lon
+ * @returns {Promise<Object>} Simplified weather data
+ */
+async function getCurrentWeatherByCoords(lat, lon) {
+  const apiKey = process.env.OPENWEATHER_API_KEY;
+  if (!apiKey) throw new Error("OPENWEATHER_API_KEY is not configured");
+
+  const { data } = await axios.get(`${BASE_URL}/weather`, {
+    params: { lat, lon, appid: apiKey, units: "metric" },
+  });
+
+  return mapCurrentWeather(data);
 }
 
 /**
@@ -57,4 +78,4 @@ async function getForecast(city) {
   return { city: data.city.name, country: data.city.country, forecast };
 }
 
-export { getCurrentWeather, getForecast };
+export { getCurrentWeather, getCurrentWeatherByCoords, getForecast };

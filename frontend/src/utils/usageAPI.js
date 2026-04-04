@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "http://localhost:5001/api";
 
 // Get token from localStorage (adjust as needed)
 const getToken = () => localStorage.getItem("token");
@@ -147,10 +147,24 @@ export async function getUsageByRooms(householdId, month, year) {
 }
 
 // Get weather impact
-export async function getWeatherImpact(householdId, month, year, city) {
+export async function getWeatherImpact(householdId, month, year, location = {}) {
   try {
+    const params = new URLSearchParams({
+      month: String(month),
+      year: String(year),
+    });
+
+    if (location.city) {
+      params.set("city", location.city);
+    }
+
+    if (location.lat != null && location.lon != null) {
+      params.set("lat", String(location.lat));
+      params.set("lon", String(location.lon));
+    }
+
     const res = await fetch(
-      `${API_BASE}/usage/households/${householdId}/weather-impact?month=${month}&year=${year}&city=${city}`,
+      `${API_BASE}/usage/households/${householdId}/weather-impact?${params.toString()}`,
       {
         headers: authHeaders(),
       }
@@ -158,6 +172,19 @@ export async function getWeatherImpact(householdId, month, year, city) {
     return await res.json();
   } catch (err) {
     console.error("Error fetching weather impact:", err);
+    throw err;
+  }
+}
+
+// Temporary household fetch kept here so usage can fall back to the saved household city.
+export async function getHouseholdDetails(householdId) {
+  try {
+    const res = await fetch(`${API_BASE}/households/${householdId}`, {
+      headers: authHeaders(),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching household details:", err);
     throw err;
   }
 }
