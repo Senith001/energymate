@@ -19,7 +19,7 @@ async function createUsage(req, res) {
     // Calculate unitsUsed if readings provided
     if (!unitsUsed && previousReading !== undefined && currentReading !== undefined) {
       unitsUsed = currentReading - previousReading;
-      
+
       if (unitsUsed < 0) {
         return error(res, "currentReading must be greater than previousReading", 400);
       }
@@ -28,7 +28,7 @@ async function createUsage(req, res) {
     const usage = new Usage({
       householdId,
       date,
-      entryType: entryType || "manual", 
+      entryType: entryType || "manual",
       unitsUsed,
       previousReading,
       currentReading,
@@ -44,7 +44,7 @@ async function createUsage(req, res) {
   }
 }
 
-// READ ALL 
+// READ ALL
 async function getUsages(req, res) {
   try {
     // Get all households owned by the user
@@ -96,9 +96,18 @@ async function updateUsage(req, res) {
       if (!household) return error(res, "Access denied", 403);
     }
 
-    const { currentReading, previousReading, unitsUsed } = req.body;
+    const { currentReading, previousReading, unitsUsed, date, entryType } = req.body;
 
-    // Update both readings if provided
+    if (date !== undefined) {
+      existingUsage.date = date;
+    }
+
+    if (entryType !== undefined) {
+      existingUsage.entryType = entryType;
+    }
+
+    const activeEntryType = existingUsage.entryType;
+
     if (previousReading !== undefined) {
       existingUsage.previousReading = previousReading;
     }
@@ -107,20 +116,28 @@ async function updateUsage(req, res) {
       existingUsage.currentReading = currentReading;
     }
 
-    // Recalculate unitsUsed from readings
-    if ((previousReading !== undefined || currentReading !== undefined) && 
-        existingUsage.previousReading !== undefined && 
-        existingUsage.currentReading !== undefined) {
+    // Meter entries always derive units from the stored readings.
+    if (
+      activeEntryType === "meter" &&
+      existingUsage.previousReading !== undefined &&
+      existingUsage.previousReading !== null &&
+      existingUsage.currentReading !== undefined &&
+      existingUsage.currentReading !== null
+    ) {
       const calculated = existingUsage.currentReading - existingUsage.previousReading;
-      
+
       if (calculated < 0) {
         return error(res, "currentReading must be greater than previousReading", 400);
       }
-      
+
       existingUsage.unitsUsed = calculated;
     } else if (unitsUsed !== undefined) {
-      // ✅ Or update unitsUsed directly
+      // Manual entries store units directly and do not keep meter readings.
       existingUsage.unitsUsed = unitsUsed;
+      if (activeEntryType === "manual") {
+        existingUsage.previousReading = null;
+        existingUsage.currentReading = null;
+      }
     }
 
     const updated = await existingUsage.save();
@@ -133,7 +150,7 @@ async function updateUsage(req, res) {
   }
 }
 
-// DELETE 
+// DELETE
 async function deleteUsage(req, res) {
   try {
     const usage = await Usage.findById(req.params.id);
@@ -151,10 +168,10 @@ async function deleteUsage(req, res) {
   }
 }
 
-// MONTHLY USAGE SUMMARY 
+// MONTHLY USAGE SUMMARY
 async function getMonthlySummary(req, res) {
   try {
-    const { householdId, month, year } = req.params;
+    const { householdId } = req.params;
     const { month: queryMonth, year: queryYear } = req.query;
 
     if (req.user && req.user.role === "user") {
@@ -172,7 +189,7 @@ async function getMonthlySummary(req, res) {
 // ESTIMATE COST
 async function estimateCost(req, res) {
   try {
-    const { householdId, month, year } = req.params;
+    const { householdId } = req.params;
     const { month: queryMonth, year: queryYear } = req.query;
 
     if (req.user && req.user.role === "user") {
@@ -187,7 +204,7 @@ async function estimateCost(req, res) {
   }
 }
 
-// WEATHER IMPACT (third-party API integration) 
+// WEATHER IMPACT (third-party API integration)
 async function getWeatherImpact(req, res) {
   try {
     const { householdId } = req.params;

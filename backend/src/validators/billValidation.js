@@ -28,6 +28,27 @@ const createBillRules = [
 // Bill: update (mark paid, change due date)
 const updateBillRules = [
   param("id").isMongoId().withMessage("Invalid bill ID"),
+  body("month")
+    .optional()
+    .isInt({ min: 1, max: 12 }).withMessage("month must be 1-12"),
+  body("year")
+    .optional()
+    .isInt({ min: 2000, max: 2100 }).withMessage("year must be between 2000 and 2100"),
+  body("totalUnits")
+    .optional()
+    .isFloat({ min: 0 }).withMessage("totalUnits must be a non-negative number"),
+  body("previousReading")
+    .optional()
+    .isFloat({ min: 0 }).withMessage("previousReading must be a non-negative number"),
+  body("currentReading")
+    .optional()
+    .isFloat({ min: 0 }).withMessage("currentReading must be a non-negative number")
+    .custom((value, { req }) => {
+      if (req.body.previousReading !== undefined && value !== undefined && Number(value) < Number(req.body.previousReading)) {
+        throw new Error("currentReading must be >= previousReading");
+      }
+      return true;
+    }),
   body("status")
     .optional()
     .isIn(["unpaid", "paid"]).withMessage("status must be 'unpaid' or 'paid'"),

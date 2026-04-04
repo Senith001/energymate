@@ -15,7 +15,7 @@ function WeatherInsightCard({
   const [showSettings, setShowSettings] = useState(false);
 
   return (
-    <div style={{ ...cardStyle, padding: "24px", position: "relative" }}>
+    <div style={{ ...cardStyle, padding: "24px", position: "relative", minHeight: "350px", width: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "22px" }}>
         <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Weather Impact</h3>
         <div style={{ position: "relative" }}>
@@ -25,7 +25,7 @@ function WeatherInsightCard({
             style={settingsButtonStyle}
             title="Weather settings"
           >
-            ⚙
+            <span aria-hidden="true">&#9881;</span>
           </button>
           {showSettings ? (
             <div style={settingsPanelStyle}>
@@ -85,7 +85,7 @@ function WeatherInsightCard({
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", flex: 1, justifyContent: "center" }}>
         <div
           style={{
             width: "68px",
@@ -101,14 +101,14 @@ function WeatherInsightCard({
           <Icon name="cloud" color={colors.amber} size={32} />
         </div>
         <div style={{ fontSize: "22px", fontWeight: "800", color: colors.text, marginBottom: "6px" }}>
-          {details.temperature != null ? `${details.temperature}°C` : "—"}
+          {details.temperature != null ? `${details.temperature}${String.fromCharCode(176)}C` : "-"}
         </div>
         <div style={{ color: colors.muted, marginBottom: "18px" }}>{details.description || "Current conditions unavailable"}</div>
 
         <div style={{ display: "flex", gap: "18px", flexWrap: "wrap", justifyContent: "center", color: colors.muted }}>
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Icon name="drop" color={colors.muted} size={16} />
-            {details.humidity != null ? `${details.humidity}%` : "—"}
+            {details.humidity != null ? `${details.humidity}%` : "-"}
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Icon name="thermo" color={colors.muted} size={16} />

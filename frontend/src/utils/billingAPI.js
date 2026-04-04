@@ -2,6 +2,7 @@ const API_BASE = "http://localhost:5001/api";
 
 const getToken = () => localStorage.getItem("token");
 
+// Centralize billing request handling so every call gets auth headers and throws the same frontend-friendly errors.
 async function requestJson(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {

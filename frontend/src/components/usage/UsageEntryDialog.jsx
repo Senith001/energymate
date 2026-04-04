@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { colors, cardStyle } from "../energy/dashboardTheme";
+import { validateUsageForm } from "../../utils/usageValidation";
 
 const overlayStyle = {
   position: "fixed",
@@ -29,6 +30,7 @@ function UsageEntryDialog({
   onClose,
   onSubmit,
   submitting,
+  submitError = "",
   initialValues = null,
   title = "Add Usage Entry",
   submitLabel = "Save Entry",
@@ -41,9 +43,11 @@ function UsageEntryDialog({
     currentReading: "",
   };
   const [form, setForm] = useState(defaultForm);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     if (open) {
+      setFormError("");
       // Fill the form with an existing record when the dialog is used for editing.
       setForm({
         date: initialValues?.date ? new Date(initialValues.date).toISOString().slice(0, 10) : defaultForm.date,
@@ -61,9 +65,13 @@ function UsageEntryDialog({
     <div style={overlayStyle} onClick={onClose}>
       <div style={{ ...cardStyle, width: "100%", maxWidth: "520px", padding: "24px" }} onClick={(event) => event.stopPropagation()}>
         <h3 style={{ margin: "0 0 18px 0", fontSize: "22px", color: colors.text }}>{title}</h3>
+        {formError || submitError ? <InlineError text={formError || submitError} /> : null}
         <form
           onSubmit={(event) => {
             event.preventDefault();
+            const nextError = validateUsageForm(form);
+            setFormError(nextError);
+            if (nextError) return;
             onSubmit(form);
           }}
           style={{ display: "grid", gap: "16px" }}
@@ -162,6 +170,23 @@ function buttonStyle(kind) {
     cursor: "pointer",
     fontWeight: "700",
   };
+}
+
+function InlineError({ text }) {
+  return (
+    <div
+      style={{
+        marginBottom: "16px",
+        padding: "12px 14px",
+        borderRadius: "12px",
+        background: colors.redSoft,
+        color: colors.red,
+        fontWeight: "600",
+      }}
+    >
+      {text}
+    </div>
+  );
 }
 
 export default UsageEntryDialog;

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { cardStyle, colors } from "../energy/dashboardTheme";
+import { validateBillForm } from "../../utils/billingValidation";
 
 const overlayStyle = {
   position: "fixed",
@@ -24,7 +25,7 @@ const inputStyle = {
 const labelStyle = { display: "grid", gap: "8px", color: colors.text, fontWeight: "600" };
 
 // This dialog updates editable bill fields from the bill controller.
-function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting }) {
+function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitError = "" }) {
   const [form, setForm] = useState({
     month: "",
     year: "",
@@ -35,9 +36,11 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting }) {
     status: "unpaid",
     paidAt: "",
   });
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     if (open && bill) {
+      setFormError("");
       setForm({
         month: bill.month ?? "",
         year: bill.year ?? "",
@@ -57,9 +60,13 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting }) {
     <div style={overlayStyle} onClick={onClose}>
       <div style={{ ...cardStyle, width: "100%", maxWidth: "620px", padding: "24px" }} onClick={(event) => event.stopPropagation()}>
         <h3 style={{ margin: "0 0 18px 0", fontSize: "22px", color: colors.text }}>Update Bill</h3>
+        {formError || submitError ? <InlineError text={formError || submitError} /> : null}
         <form
           onSubmit={(event) => {
             event.preventDefault();
+            const nextError = validateBillForm(form, { requirePaidDateConsistency: true });
+            setFormError(nextError);
+            if (nextError) return;
             onSubmit(form);
           }}
           style={{ display: "grid", gap: "16px" }}
@@ -204,6 +211,23 @@ function pillStyle(active) {
     fontWeight: "700",
     cursor: "pointer",
   };
+}
+
+function InlineError({ text }) {
+  return (
+    <div
+      style={{
+        marginBottom: "16px",
+        padding: "12px 14px",
+        borderRadius: "12px",
+        background: colors.redSoft,
+        color: colors.red,
+        fontWeight: "600",
+      }}
+    >
+      {text}
+    </div>
+  );
 }
 
 export default BillUpdateDialog;
