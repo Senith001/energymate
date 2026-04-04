@@ -1,49 +1,42 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 
-const LoginPage = () => {
-  // State for our form fields and UI feedback
+const AdminLoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Hooks for navigation and global auth state
   const navigate = useNavigate();
   const { login } = useAuth();
 
-const handleLogin = async (e) => {
-    e.preventDefault(); // Prevents the page from refreshing on submit
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setError(null);
     setIsLoading(true);
 
     try {
-      // 1. Send credentials to your secure backend
       const response = await api.post("/users/login", {
         email,
         password,
       });
 
-      // 2. Extract the data
       const { user, token } = response.data;
 
-      // 3. THE SECURITY GUARD: Stop admins from logging in here! 👇
-      if (user.role === "admin" || user.role === "superadmin") {
-        setError("Admins must log in through the secure admin portal.");
-        setIsLoading(false); // Stop the loading spinner
-        return; // Exit the function immediately!
+      if (user.role !== "admin" && user.role !== "superadmin") {
+        setError("Access Denied: You do not have administrator privileges.");
+        setIsLoading(false);
+        return; 
       }
 
-      // 4. If they pass the check (they are a normal user), save their data
       login(user, token);
 
-      // 5. Redirect the user to the Dashboard
-      navigate("/");
+      // Redirect specifically to the new admin layout path
+      navigate("/admin/dashboard");
       
     } catch (err) {
-      // If the backend sends a 401 (Invalid Credentials) or 404 (User not found)
       if (err.response && err.response.data) {
         setError(err.response.data.message || "Invalid email or password");
       } else {
@@ -57,22 +50,21 @@ const handleLogin = async (e) => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h2 style={styles.title}>Welcome Back to ENERGYMATE</h2>
-        <p style={styles.subtitle}>Log in to manage your electricity usage.</p>
+        <div style={styles.badge}>SECURE PORTAL</div>
+        <h2 style={styles.title}>ENERGYMATE Admin</h2>
+        <p style={styles.subtitle}>Authorized personnel only.</p>
 
-        {/* Display backend errors securely to the user */}
         {error && <div style={styles.errorBox}>{error}</div>}
 
         <form onSubmit={handleLogin} style={styles.form}>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
+            <label style={styles.label}>Admin ID or Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               style={styles.input}
-              placeholder="e.g., admin@energymate.com"
             />
           </div>
 
@@ -84,50 +76,52 @@ const handleLogin = async (e) => {
               onChange={(e) => setPassword(e.target.value)}
               required
               style={styles.input}
-              placeholder="••••••••"
             />
           </div>
 
           <button type="submit" disabled={isLoading} style={styles.button}>
-            {isLoading ? "Logging in..." : "Log In"}
+            {isLoading ? "Authenticating..." : "Secure Login"}
           </button>
         </form>
-
-        <p style={styles.footerText}>
-          Don't have an account? <Link to="/register" style={styles.link}>Register here</Link>
-        </p>
       </div>
     </div>
   );
 };
 
-// Basic inline styling to make it look clean immediately. 
-// You can move this to a CSS file or use Tailwind later!
 const styles = {
   container: {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     minHeight: "100vh",
-    backgroundColor: "#f4f7f6",
+    backgroundColor: "#111827", 
     fontFamily: "Arial, sans-serif",
   },
   card: {
-    backgroundColor: "white",
+    backgroundColor: "#1f2937",
     padding: "40px",
     borderRadius: "8px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
     width: "100%",
     maxWidth: "400px",
+    borderTop: "4px solid #ef4444", 
+  },
+  badge: {
+    backgroundColor: "#ef4444",
+    color: "white",
+    fontSize: "12px",
+    fontWeight: "bold",
+    padding: "4px 8px",
+    borderRadius: "4px",
+    display: "inline-block",
+    marginBottom: "16px",
   },
   title: {
     marginTop: 0,
-    color: "#333",
-    textAlign: "center",
+    color: "#f9fafb",
   },
   subtitle: {
-    color: "#666",
-    textAlign: "center",
+    color: "#9ca3af",
     marginBottom: "24px",
   },
   form: {
@@ -143,17 +137,19 @@ const styles = {
   label: {
     fontWeight: "bold",
     fontSize: "14px",
-    color: "#444",
+    color: "#d1d5db",
   },
   input: {
     padding: "10px",
     borderRadius: "4px",
-    border: "1px solid #ccc",
+    border: "1px solid #374151",
+    backgroundColor: "#374151",
+    color: "white",
     fontSize: "16px",
   },
   button: {
     padding: "12px",
-    backgroundColor: "#007bff",
+    backgroundColor: "#ef4444", 
     color: "white",
     border: "none",
     borderRadius: "4px",
@@ -164,25 +160,14 @@ const styles = {
   },
   errorBox: {
     padding: "10px",
-    backgroundColor: "#ffebee",
-    color: "#c62828",
-    border: "1px solid #ffcdd2",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    color: "#ef4444",
+    border: "1px solid #ef4444",
     borderRadius: "4px",
     marginBottom: "16px",
     textAlign: "center",
     fontSize: "14px",
   },
-  footerText: {
-    textAlign: "center",
-    marginTop: "24px",
-    fontSize: "14px",
-    color: "#666",
-  },
-  link: {
-    color: "#007bff",
-    textDecoration: "none",
-    fontWeight: "bold",
-  },
 };
 
-export default LoginPage;
+export default AdminLoginPage;

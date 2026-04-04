@@ -4,10 +4,17 @@ import { AuthProvider } from "./context/AuthContext";
 
 // Layouts
 import MainLayout from "./layouts/MainLayout";
+import AdminLayout from "./layouts/AdminLayout";
 
 // Auth Pages (Your new files in the subfolder)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+
+//Admin Pages
+import AdminLoginPage from "./pages/auth/AdminLoginPage";
+
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
 
 // Team Member's Pages (Kept in their original location)
 import Dashboard from "./pages/user/Dashboard";
@@ -26,6 +33,14 @@ function App() {
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+
+          {/* Admin Login Route */}
+          <Route path="/admin-portal" element={<AdminLoginPage />} />
+
+          {/* Protected Admin Layout Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+          </Route>
 
           {/* Protected Main Layout Routes */}
           <Route path="/" element={<MainLayout />}>

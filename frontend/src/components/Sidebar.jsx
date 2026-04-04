@@ -27,8 +27,8 @@ function Sidebar() {
       }}
     >
       <h1 style={{ marginBottom: "20px" }}>
-        <span style={{ color: "white" }}>Power</span>
-        <span style={{ color: "#22c55e" }}>Save</span>
+        <span style={{ color: "white" }}>ENERGY</span>
+        <span style={{ color: "#22c55e" }}>MATE</span>
       </h1>
 
       <div
