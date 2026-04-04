@@ -2,12 +2,23 @@ import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
-// Layouts
+// Layouts & Route Guards
 import MainLayout from "./layouts/MainLayout";
+import AdminLayout from "./layouts/AdminLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Auth Pages (Your new files in the subfolder)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+
+//Admin Pages
+import AdminLoginPage from "./pages/auth/AdminLoginPage";
+
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
+//User Pages
+import UserProfile from "./pages/user/UserProfile";
+
 
 // Team Member's Pages (Kept in their original location)
 import Dashboard from "./pages/user/Dashboard";
@@ -29,7 +40,22 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected Main Layout Routes */}
+          {/* Admin Login Route */}
+          <Route path="/admin-portal" element={<AdminLoginPage />} />
+
+          {/* Protected Admin Layout Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+          </Route>
+
+          {/* 🔵 SECURE USER ROUTES (Wrapped in ProtectedRoute) */}
+          <Route element={<ProtectedRoute />}>
+          
+            <Route path="/profile" element={<UserProfile />} />
+
+
+
+            {/* Protected Main Layout Routes */}
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="households" element={<HouseholdPage />} />
@@ -40,6 +66,15 @@ function App() {
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="tickets" element={<SupportTicketsPage />} />
           </Route>
+          
+          </Route>
+
+          
+
+          
+
+          
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

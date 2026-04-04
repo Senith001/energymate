@@ -5,11 +5,11 @@ export const registerValidator = [
   body("name")
     .trim()
     .notEmpty()
-    .withMessage("Username is required")
-    .isLength({ max: 10 })
-    .withMessage("Username must not exceed 10 characters")
-    .matches(/^[A-Za-z0-9]+$/)
-    .withMessage("Username can only contain letters and numbers"),
+    .withMessage("Name is required")
+    .isLength({ max: 20 })
+    .withMessage("Name must not exceed 20 characters")
+    .matches(/^[A-Za-z ]+$/)
+    .withMessage("Name can only contain English letters and spaces"),
 
   body("email").trim().isEmail().withMessage("Valid email is required"),
   passwordRule("password"),
@@ -34,8 +34,8 @@ export const updateProfileValidator = [
   body("name")
     .optional()
     .trim()
-    .isLength({ max: 10 })
-    .withMessage("Username must not exceed 10 characters")
-    .matches(/^[A-Za-z0-9]+$/)
-    .withMessage("Username can only contain letters and numbers"),
+    .isLength({ max: 20 })
+    .withMessage("Name must not exceed 20 characters")
+    .matches(/^[A-Za-z ]+$/)
+    .withMessage("Name can only contain English letters and spaces"),
 ];

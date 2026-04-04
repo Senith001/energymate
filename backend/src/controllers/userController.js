@@ -621,7 +621,9 @@ export const getAllAdmins = async (req, res, next) => {
   }
 };
 
+//===================================================
 // ================= GET MY PROFILE =================
+//===================================================
 export const getMyProfile = async (req, res, next) => {
   try {
     const u = req.user;
@@ -637,6 +639,7 @@ export const getMyProfile = async (req, res, next) => {
         city: u.city,
         avatar: u.avatar,
         isVerified: u.isVerified,
+        createdAt: u.createdAt,
       },
     });
   } catch (err) {
@@ -796,6 +799,100 @@ export const getAuditLogs = async (req, res, next) => {
     return res.status(200).json({
       count: logs.length,
       logs,
+    });
+  } catch (err) {
+    return handleError(err, res, next);
+  }
+};
+
+//========================================================================
+// ================= REQUEST ACCOUNT DELETION (SEND OTP) =================
+//========================================================================
+
+export const requestAccountDeletion = async (req, res, next) => {
+  try {
+    const user = req.user; // Provided by the protect middleware
+
+    // 1. Generate a 6-digit OTP
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // 2. Clear any old, unused deletion OTPs for this user to prevent clutter
+    await Otp.deleteMany({
+      userId: user._id,
+      purpose: "DELETE_ACCOUNT",
+    });
+
+    // 3. Save the new OTP
+    await Otp.create({
+      userId: user._id,
+      purpose: "DELETE_ACCOUNT",
+      otpHash,
+      expiresAt,
+    });
+
+    // 4. Send the email
+    await sendEmail({
+      to: user.email,
+      subject: "ENERGYMATE - Account Deletion Request",
+      html: `
+        <p>Hello ${user.name},</p>
+        <p>We received a request to permanently delete your EnergyMate account.</p>
+        <p>Your deletion confirmation code is: <b>${otp}</b></p>
+        <p>If you did not request this, please change your password immediately. This code expires in 10 minutes.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      message: "An OTP has been sent to your email to confirm account deletion.",
+    });
+  } catch (err) {
+    return handleError(err, res, next);
+  }
+};
+
+//=============================================================================
+// ================= CONFIRM ACCOUNT DELETION (VERIFY + DELETE) ===============
+//=============================================================================
+
+export const confirmAccountDeletion = async (req, res, next) => {
+  try {
+    const { otp } = req.body;
+    const user = req.user;
+
+    if (!otp) {
+      return res.status(400).json({ message: "OTP is required to delete your account." });
+    }
+
+    // 1. Find the latest deletion OTP for this user
+    const otpDoc = await Otp.findOne({
+      userId: user._id,
+      purpose: "DELETE_ACCOUNT",
+      usedAt: null,
+    }).sort({ createdAt: -1 });
+
+    if (!otpDoc) return res.status(400).json({ message: "No active deletion request found." });
+    if (otpDoc.expiresAt < new Date()) return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+
+    // 2. Verify the code
+    const isMatch = await bcrypt.compare(String(otp), otpDoc.otpHash);
+    if (!isMatch) return res.status(400).json({ message: "Invalid OTP." });
+
+    // 3. Mark OTP as used (Optional, since we are about to delete the user, but good practice)
+    otpDoc.usedAt = new Date();
+    await otpDoc.save();
+
+    // 4. DELETE THE USER
+    // Note: If you have related data (Households, Appliances, Logs), 
+    // you should ideally delete those here too, or rely on a Mongoose pre-remove hook on the User model.
+    await User.deleteOne({ _id: user._id });
+
+    // Clean up all their OTPs just to be safe
+    await Otp.deleteMany({ userId: user._id });
+
+    return res.status(200).json({
+      message: "Your account has been permanently deleted.",
     });
   } catch (err) {
     return handleError(err, res, next);
