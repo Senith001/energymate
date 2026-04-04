@@ -13,7 +13,9 @@ import {
     changeAdminPassword, 
     getAllAdmins, 
     getAdminById, 
-    getAuditLogs 
+    getAuditLogs,
+    requestAccountDeletion, 
+    confirmAccountDeletion
 } from "../controllers/userController.js";
 
 import { getMyProfile, updateMyProfile, uploadMyAvatar, deleteMyAvatar } from "../controllers/userController.js";
@@ -58,6 +60,9 @@ router.put("/me/change-password", protect, changeMyPasswordValidator, validate, 
 
 router.get("/me", protect, getMyProfile);
 router.put("/me", protect, updateProfileValidator, validate, updateMyProfile);
+
+router.post("/me/delete-request", protect, requestAccountDeletion);
+router.delete("/me/delete-confirm", protect, confirmAccountDeletion);
 
 // avatar upload uses multipart/form-data with field name: "avatar"
 router.put("/me/avatar", protect, uploadAvatar.single("avatar"), uploadMyAvatar);
