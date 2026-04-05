@@ -19,12 +19,14 @@ function BillingPage() {
   const [selectedPeriod, setSelectedPeriod] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [busyBillId, setBusyBillId] = useState("");
+  const [payingBillId, setPayingBillId] = useState("");
   const [error, setError] = useState("");
   const [createDialogError, setCreateDialogError] = useState("");
   const [updateDialogError, setUpdateDialogError] = useState("");
@@ -46,6 +48,7 @@ function BillingPage() {
     }
   }, [householdId, selectedPeriod.month, selectedPeriod.year]);
 
+  // Resolve the active household, fetch its bill history, and seed the visible billing period.
   async function loadBillingPage() {
     try {
       setLoading(true);
@@ -100,6 +103,7 @@ function BillingPage() {
     }
   }
 
+  // Reload both the history list and comparison summary for one billing period snapshot.
   async function loadComparison(activeHouseholdId, month, year) {
     try {
       setLoading(true);
@@ -114,6 +118,7 @@ function BillingPage() {
     }
   }
 
+  // Create one manual bill from entered units or meter readings.
   async function handleCreateBill(form) {
     if (!householdId) {
       setCreateDialogError("A household must be selected before creating a bill.");
@@ -155,6 +160,57 @@ function BillingPage() {
     }
   }
 
+  // Save a bill after the calculator preview step, using either manual data or current usage entries.
+  async function handleSaveCalculatedBill(form) {
+    if (!householdId) {
+      setCreateDialogError("A household must be selected before calculating a bill.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError("");
+      setCreateDialogError("");
+
+      const month = Number(form.month);
+      const year = Number(form.year);
+
+      if (form.source === "usage") {
+        await generateBill(householdId, month, year);
+      } else {
+        const payload = {
+          householdId,
+          month,
+          year,
+        };
+
+        const validationError = validateBillForm(form);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+
+        if (form.mode === "readings") {
+          payload.previousReading = Number(form.previousReading);
+          payload.currentReading = Number(form.currentReading);
+        } else {
+          payload.totalUnits = Number(form.totalUnits);
+        }
+
+        await createBill(payload);
+      }
+
+      setCalculatorOpen(false);
+      setSelectedPeriod({ month, year });
+      await loadComparison(householdId, month, year);
+    } catch (err) {
+      setCreateDialogError(err.message || "Unable to save bill.");
+      setError(err.message || "Unable to save bill.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Generate the selected period's bill directly from saved usage entries.
   async function handleGenerateBill() {
     if (!householdId) return;
 
@@ -185,6 +241,11 @@ function BillingPage() {
   // Load one bill into the update dialog so editing stays separate from viewing.
   async function handleOpenUpdateBill(row) {
     try {
+      if (getStatusTone(row.status, row.dueDate).label === "paid") {
+        setError("Paid bills cannot be edited.");
+        return;
+      }
+
       setError("");
       setUpdateDialogError("");
       const payload = await getBillById(row._id);
@@ -206,10 +267,9 @@ function BillingPage() {
       const payload = {
         month: Number(form.month),
         year: Number(form.year),
-        status: form.status,
       };
 
-      const validationError = validateBillForm(form, { requirePaidDateConsistency: true });
+      const validationError = validateBillForm(form);
       if (validationError) {
         throw new Error(validationError);
       }
@@ -219,12 +279,6 @@ function BillingPage() {
         payload.currentReading = Number(form.currentReading);
       } else if (form.totalUnits !== "") {
         payload.totalUnits = Number(form.totalUnits);
-      }
-
-      if (form.paidAt) {
-        payload.paidAt = form.paidAt;
-      } else if (form.status === "unpaid") {
-        payload.paidAt = null;
       }
 
       await updateBill(selectedBill._id, payload);
@@ -242,6 +296,11 @@ function BillingPage() {
   // Recalculate an existing bill from the latest usage data.
   async function handleRegenerateExistingBill(row) {
     try {
+      if (getStatusTone(row.status, row.dueDate).label === "paid") {
+        setError("Paid bills cannot be regenerated.");
+        return;
+      }
+
       setBusyBillId(row._id);
       setError("");
       await regenerateBill(row._id);
@@ -250,6 +309,40 @@ function BillingPage() {
       setError(err.message || "Unable to regenerate bill.");
     } finally {
       setBusyBillId("");
+    }
+  }
+
+  // Payment state is handled separately from bill edits so paid bills stay locked afterward.
+  async function handleMarkBillPaid(row) {
+    try {
+      setPayingBillId(row._id);
+      setError("");
+      await updateBill(row._id, {
+        status: "paid",
+        paidAt: new Date().toISOString(),
+      });
+      await loadComparison(householdId, selectedPeriod.month, selectedPeriod.year);
+    } catch (err) {
+      setError(err.message || "Unable to mark bill as paid.");
+    } finally {
+      setPayingBillId("");
+    }
+  }
+
+  // Reopen a paid bill when the payment state needs to be corrected.
+  async function handleMarkBillUnpaid(row) {
+    try {
+      setPayingBillId(row._id);
+      setError("");
+      await updateBill(row._id, {
+        status: "unpaid",
+        paidAt: null,
+      });
+      await loadComparison(householdId, selectedPeriod.month, selectedPeriod.year);
+    } catch (err) {
+      setError(err.message || "Unable to mark bill as unpaid.");
+    } finally {
+      setPayingBillId("");
     }
   }
 
@@ -308,7 +401,7 @@ function BillingPage() {
             type="button"
             onClick={() => {
               setCreateDialogError("");
-              setDialogOpen(true);
+              setCalculatorOpen(true);
             }}
             style={{
               border: "none",
@@ -323,7 +416,7 @@ function BillingPage() {
               fontWeight: "700",
             }}
           >
-            + Create Bill
+            + Calculate Bill
           </button>
         </div>
       ) : null}
@@ -331,7 +424,7 @@ function BillingPage() {
       {/* Use a slightly smaller minimum card width so all four summary cards fit in one row on common desktop widths. */}
       <div style={responsiveGrid("220px", "18px")}>
         <MetricCard
-          title="Current Bill"
+          title={`Current Bill${latestBill ? ` - ${formatMonthYear(latestBill.month, latestBill.year)}` : ""}`}
           value={formatCurrency(latestBill?.totalCost)}
           subtitle={latestBill ? `${Number(latestBill.totalUnits || 0).toFixed(1)} kWh` : "No bill available"}
           icon="bill"
@@ -380,8 +473,11 @@ function BillingPage() {
           generating={generating}
           onView={handleViewBill}
           onUpdate={handleOpenUpdateBill}
+          onMarkPaid={handleMarkBillPaid}
+          onMarkUnpaid={handleMarkBillUnpaid}
           onRegenerate={handleRegenerateExistingBill}
           busyId={busyBillId}
+          payingId={payingBillId}
           monthFilter={tableMonthFilter}
           yearFilter={tableYearFilter}
           onMonthFilterChange={setTableMonthFilter}
@@ -402,6 +498,20 @@ function BillingPage() {
         submitError={createDialogError}
         month={selectedPeriod.month}
         year={selectedPeriod.year}
+      />
+      <BillDialog
+        open={calculatorOpen}
+        onClose={() => {
+          setCalculatorOpen(false);
+          setCreateDialogError("");
+        }}
+        onSubmit={handleSaveCalculatedBill}
+        submitting={submitting}
+        submitError={createDialogError}
+        month={selectedPeriod.month}
+        year={selectedPeriod.year}
+        householdId={householdId}
+        calculatorMode
       />
       <BillDetailsDialog
         open={detailsOpen}
@@ -428,6 +538,7 @@ function BillingPage() {
   );
 }
 
+// Show current vs previous month changes without requiring a separate comparison page.
 function ComparisonCard({ comparison }) {
   const current = comparison?.current || null;
   const previous = comparison?.previous || null;
@@ -455,13 +566,14 @@ function ComparisonCard({ comparison }) {
         }}
       >
         {difference
-          ? `${Math.abs(Number(difference.costChangePercent || 0)).toFixed(1)}% ${isIncrease ? "increase" : "decrease"} (${difference.cost >= 0 ? "+" : "-"}${formatCurrency(Math.abs(difference.cost))} · ${difference.units >= 0 ? "+" : "-"}${Math.abs(difference.units).toFixed(1)} kWh)`
+          ? `${Math.abs(Number(difference.costChangePercent || 0)).toFixed(1)}% ${isIncrease ? "increase" : "decrease"} (${difference.cost >= 0 ? "+" : "-"}${formatCurrency(Math.abs(difference.cost))} | ${difference.units >= 0 ? "+" : "-"}${Math.abs(difference.units).toFixed(1)} kWh)`
           : "Comparison will appear once at least one bill exists for the previous month."}
       </div>
     </div>
   );
 }
 
+// Reusable compact tile for the comparison card.
 function SummaryTile({ label, units, cost }) {
   return (
     <div style={{ background: "#f4f7fa", borderRadius: "18px", padding: "18px", textAlign: "center" }}>
@@ -474,10 +586,11 @@ function SummaryTile({ label, units, cost }) {
   );
 }
 
+// Show the tariff slabs that make up the latest visible bill.
 function TariffBreakdownCard({ breakdown, total }) {
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>Tariff Breakdown</h3>
+      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>Energy Charge Breakdown</h3>
       <div style={{ display: "grid", gap: "12px" }}>
         {breakdown.length ? (
           breakdown.map((item, index) => (
@@ -496,7 +609,7 @@ function TariffBreakdownCard({ breakdown, total }) {
               <div>
                 <div style={{ fontWeight: "700", color: colors.text }}>{item.range}</div>
                 <div style={{ color: colors.muted, fontSize: "14px" }}>
-                  {Number(item.units || 0).toFixed(1)} units × Rs. {Number(item.rate || 0).toFixed(2)}
+                  {Number(item.units || 0).toFixed(1)} units x Rs. {Number(item.rate || 0).toFixed(2)}
                 </div>
               </div>
               <div style={{ fontWeight: "800", color: colors.text }}>{formatCurrency(item.cost)}</div>
@@ -508,8 +621,8 @@ function TariffBreakdownCard({ breakdown, total }) {
 
         <div
           style={{
-            background: colors.greenSoft,
-            color: colors.green,
+            background: colors.blueSoft,
+            color: colors.blue,
             borderRadius: "16px",
             padding: "14px 16px",
             display: "flex",
@@ -527,6 +640,7 @@ function TariffBreakdownCard({ breakdown, total }) {
   );
 }
 
+// Keep page-level empty and loading states separate from the billing header card.
 function PageNotice({ loading, error, householdId, period, billsCount }) {
   if (loading) {
     return <Banner text="Loading billing dashboard..." tone="info" />;
@@ -547,6 +661,7 @@ function PageNotice({ loading, error, householdId, period, billsCount }) {
   return null;
 }
 
+// Shared banner for loading, info, and error notices on the billing page.
 function Banner({ text, tone }) {
   const palette = tone === "error" ? { background: colors.redSoft, color: colors.red } : { background: colors.blueSoft, color: colors.blue };
   return (
@@ -556,6 +671,7 @@ function Banner({ text, tone }) {
   );
 }
 
+// Reuse the same responsive card grid sizing across the billing dashboard.
 function responsiveGrid(minWidth, gap) {
   return {
     display: "grid",
@@ -586,3 +702,4 @@ const TABLE_YEAR_FILTERS = (years) => [
 ];
 
 export default BillingPage;
+

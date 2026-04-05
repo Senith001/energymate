@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { cardStyle, colors } from "../energy/dashboardTheme";
-import { validateBillForm } from "../../utils/billingValidation";
 
 const overlayStyle = {
   position: "fixed",
@@ -24,7 +23,7 @@ const inputStyle = {
 
 const labelStyle = { display: "grid", gap: "8px", color: colors.text, fontWeight: "600" };
 
-// This dialog updates editable bill fields from the bill controller.
+// This dialog updates only bill values; payment state is handled separately from edits.
 function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitError = "" }) {
   const [form, setForm] = useState({
     month: "",
@@ -33,14 +32,10 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
     totalUnits: "",
     previousReading: "",
     currentReading: "",
-    status: "unpaid",
-    paidAt: "",
   });
-  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     if (open && bill) {
-      setFormError("");
       setForm({
         month: bill.month ?? "",
         year: bill.year ?? "",
@@ -48,8 +43,6 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
         totalUnits: bill.totalUnits ?? "",
         previousReading: bill.previousReading ?? "",
         currentReading: bill.currentReading ?? "",
-        status: bill.status || "unpaid",
-        paidAt: bill.paidAt ? new Date(bill.paidAt).toISOString().slice(0, 10) : "",
       });
     }
   }, [bill, open]);
@@ -60,13 +53,10 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
     <div style={overlayStyle} onClick={onClose}>
       <div style={{ ...cardStyle, width: "100%", maxWidth: "620px", padding: "24px" }} onClick={(event) => event.stopPropagation()}>
         <h3 style={{ margin: "0 0 18px 0", fontSize: "22px", color: colors.text }}>Update Bill</h3>
-        {formError || submitError ? <InlineError text={formError || submitError} /> : null}
+        {submitError ? <InlineError text={submitError} /> : null}
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            const nextError = validateBillForm(form, { requirePaidDateConsistency: true });
-            setFormError(nextError);
-            if (nextError) return;
             onSubmit(form);
           }}
           style={{ display: "grid", gap: "16px" }}
@@ -79,8 +69,9 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
                 type="number"
                 min="1"
                 max="12"
+                // Keep the billing period fixed during updates so edits do not accidentally move a bill into another month.
+                disabled
                 value={form.month}
-                onChange={(event) => setForm({ ...form, month: event.target.value })}
               />
             </label>
             <label style={labelStyle}>
@@ -90,8 +81,8 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
                 type="number"
                 min="2000"
                 max="2100"
+                disabled
                 value={form.year}
-                onChange={(event) => setForm({ ...form, year: event.target.value })}
               />
             </label>
           </div>
@@ -144,25 +135,6 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
             </label>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
-            <label style={labelStyle}>
-              Status
-              <select style={inputStyle} value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-                <option value="unpaid">Unpaid</option>
-                <option value="paid">Paid</option>
-              </select>
-            </label>
-            <label style={labelStyle}>
-              Paid Date
-              <input
-                style={inputStyle}
-                type="date"
-                value={form.paidAt}
-                onChange={(event) => setForm({ ...form, paidAt: event.target.value })}
-              />
-            </label>
-          </div>
-
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
             <button type="button" onClick={onClose} style={buttonStyle("secondary")}>
               Cancel
@@ -177,6 +149,7 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
   );
 }
 
+// Reuse the standard primary/secondary dialog button styling.
 function buttonStyle(kind) {
   if (kind === "secondary") {
     return {
@@ -201,6 +174,7 @@ function buttonStyle(kind) {
   };
 }
 
+// Toggle between direct units and meter-reading update modes.
 function pillStyle(active) {
   return {
     padding: "10px 14px",
@@ -213,6 +187,7 @@ function pillStyle(active) {
   };
 }
 
+// Inline error banner for update failures returned from the page handler.
 function InlineError({ text }) {
   return (
     <div

@@ -35,6 +35,11 @@ export async function getBillComparison(householdId, month, year) {
   return requestJson(`/bills/households/${householdId}/compare?month=${month}&year=${year}`);
 }
 
+// Read the current tariff so the billing calculator can preview manual bill amounts before saving.
+export async function getTariff() {
+  return requestJson("/tariffs");
+}
+
 export async function createBill(data) {
   return requestJson("/bills", {
     method: "POST",

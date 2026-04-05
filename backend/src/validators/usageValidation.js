@@ -24,8 +24,12 @@ const createUsageRules = [
   // Custom validation: require either unitsUsed OR both readings
   body().custom((value) => {
     const { unitsUsed, previousReading, currentReading } = value;
-    
-    if (!unitsUsed && (!previousReading || !currentReading)) {
+
+    const hasUnits = unitsUsed !== undefined && unitsUsed !== null;
+    const hasPreviousReading = previousReading !== undefined && previousReading !== null;
+    const hasCurrentReading = currentReading !== undefined && currentReading !== null;
+
+    if (!hasUnits && (!hasPreviousReading || !hasCurrentReading)) {
       throw new Error("Provide either unitsUsed OR both previousReading and currentReading");
     }
       return true;

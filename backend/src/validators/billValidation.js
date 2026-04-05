@@ -53,8 +53,22 @@ const updateBillRules = [
     .optional()
     .isIn(["unpaid", "paid"]).withMessage("status must be 'unpaid' or 'paid'"),
   body("paidAt")
-    .optional()
+    .optional({ nullable: true })
     .isISO8601().withMessage("paidAt must be a valid ISO-8601 date"),
+  body().custom((value) => {
+    const hasStatus = value.status !== undefined;
+    const hasPaidAt = value.paidAt !== undefined;
+
+    if (hasStatus && value.status === "paid" && !hasPaidAt) {
+      throw new Error("paidAt is required when marking a bill as paid");
+    }
+
+    if (hasStatus && value.status === "unpaid" && hasPaidAt && value.paidAt !== null && value.paidAt !== "") {
+      throw new Error("paidAt must be cleared when a bill is marked as unpaid");
+    }
+
+    return true;
+  }),
   body("dueDate")
     .optional()
     .isISO8601().withMessage("dueDate must be a valid ISO-8601 date"),

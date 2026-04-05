@@ -2,6 +2,7 @@ import React from "react";
 import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone, Icon } from "../energy/dashboardTheme";
 
 // Billing table actions are passed down from the page so data refresh logic stays centralized.
+// Render the bill history table with period filters and row-level actions.
 function BillingTableCard({
   rows,
   onCreate,
@@ -9,8 +10,11 @@ function BillingTableCard({
   generating,
   onView,
   onUpdate,
+  onMarkPaid,
+  onMarkUnpaid,
   onRegenerate,
   busyId,
+  payingId,
   monthFilter,
   yearFilter,
   onMonthFilterChange,
@@ -49,17 +53,17 @@ function BillingTableCard({
           </select>
           <button onClick={onCreate} style={buttonStyle(colors.green, "#ffffff", "none")}>
             <Icon name="plus" color="#ffffff" size={16} />
-            Create Bill
+            Add Bill
           </button>
-          <button onClick={onGenerate} disabled={generating} style={buttonStyle("#ffffff", colors.text, `1px solid ${colors.border}`)}>
-            <Icon name="refresh" color={colors.text} size={16} />
+          <button onClick={onGenerate} disabled={generating} style={buttonStyle(colors.greenSoft, colors.green, `1px solid rgba(42, 140, 95, 0.18)` )}>
+            <Icon name="refresh" color={colors.green} size={16} />
             {generating ? "Generating..." : "Generate Bill"}
           </button>
         </div>
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "760px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "700px", tableLayout: "auto" }}>
           <thead>
             <tr style={{ color: colors.muted, textAlign: "left" }}>
               {["Period", "Units (kWh)", "Amount (Rs.)", "Status", "Paid On", "Actions"].map((label) => (
@@ -73,6 +77,7 @@ function BillingTableCard({
             {rows.length ? (
               rows.map((row) => {
                 const tone = getStatusTone(row.status, row.dueDate);
+                const isPaid = tone.label === "paid";
                 return (
                   <tr key={row._id}>
                     <td style={cellStyle(true)}>{formatMonthYear(row.month, row.year)}</td>
@@ -97,15 +102,26 @@ function BillingTableCard({
                       </span>
                     </td>
                     <td style={cellStyle()}>{row.paidAt ? new Date(row.paidAt).toLocaleDateString("en-US", { day: "numeric", month: "short" }) : "-"}</td>
-                    <td style={cellStyle()}>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                    <td style={actionCellStyle}>
+                      <div style={{ display: "inline-flex", gap: "8px", flexWrap: "nowrap", alignItems: "center" }}>
                         <ActionButton icon="eye" onClick={() => onView(row)} title="View bill details" />
-                        <ActionButton icon="edit" onClick={() => onUpdate(row)} title="Update bill" />
+                        <ActionButton
+                          icon="edit"
+                          tone="blue"
+                          onClick={() => onUpdate(row)}
+                          disabled={isPaid}
+                          title={isPaid ? "Paid bills cannot be edited" : "Update bill"}
+                        />
                         <ActionButton
                           icon="refresh"
                           onClick={() => onRegenerate(row)}
-                          disabled={busyId === row._id}
-                          title="Regenerate bill"
+                          disabled={isPaid || busyId === row._id}
+                          title={isPaid ? "Paid bills cannot be regenerated" : "Regenerate bill"}
+                        />
+                        <StatusActionButton
+                          paid={isPaid}
+                          onClick={() => (isPaid ? onMarkUnpaid(row) : onMarkPaid(row))}
+                          disabled={payingId === row._id}
                         />
                       </div>
                     </td>
@@ -126,6 +142,7 @@ function BillingTableCard({
   );
 }
 
+// Keep the top table actions visually consistent with the dashboard buttons.
 function buttonStyle(background, color, border) {
   return {
     border,
@@ -141,6 +158,7 @@ function buttonStyle(background, color, border) {
   };
 }
 
+// Reuse one cell style so the history table stays visually consistent across columns.
 function cellStyle(strong) {
   return {
     padding: "18px 12px",
@@ -150,7 +168,20 @@ function cellStyle(strong) {
   };
 }
 
-function ActionButton({ icon, danger = false, onClick, disabled = false, title }) {
+const actionCellStyle = {
+  ...cellStyle(),
+  width: "1%",
+  whiteSpace: "nowrap",
+  verticalAlign: "middle",
+};
+
+// Compact icon-only action used for view, edit, and regenerate actions.
+function ActionButton({ icon, danger = false, tone = "neutral", onClick, disabled = false, title }) {
+  const isBlue = tone === "blue";
+  const isGreen = tone === "green";
+  const background = danger ? colors.redSoft : isBlue ? colors.blueSoft : isGreen ? colors.greenSoft : colors.slateSoft;
+  const color = danger ? colors.red : isBlue ? colors.blue : isGreen ? colors.green : colors.text;
+
   return (
     <button
       type="button"
@@ -161,17 +192,49 @@ function ActionButton({ icon, danger = false, onClick, disabled = false, title }
         height: "34px",
         borderRadius: "10px",
         border: "none",
-        background: danger ? colors.redSoft : colors.slateSoft,
+        background,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: danger ? colors.red : colors.text,
+        color,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.7 : 1,
       }}
       title={title}
     >
-      <Icon name={icon} color={danger ? colors.red : colors.text} size={15} />
+      <Icon name={icon} color={color} size={15} />
+    </button>
+  );
+}
+
+// Separate payment-state action so bill editing and payment updates stay distinct.
+function StatusActionButton({ paid, onClick, disabled }) {
+  const background = paid ? colors.redSoft : colors.greenSoft;
+  const color = paid ? colors.red : colors.green;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        border: "none",
+        background,
+        color,
+        minWidth: "74px",
+        padding: "5px 8px",
+        borderRadius: "10px",
+        cursor: disabled ? "not-allowed" : "pointer",
+        fontWeight: "700",
+        fontSize: "10px",
+        lineHeight: 1.2,
+        textAlign: "center",
+        whiteSpace: "nowrap",
+        opacity: disabled ? 0.7 : 1,
+      }}
+      title={paid ? "Mark bill as unpaid" : "Mark bill as paid"}
+    >
+      {paid ? "Mark Unpaid" : "Mark Paid"}
     </button>
   );
 }

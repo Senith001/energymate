@@ -109,6 +109,9 @@ async function updateUsage(req, res) {
     }
 
     const activeEntryType = existingUsage.entryType;
+    const nextPreviousReading = previousReading !== undefined ? previousReading : existingUsage.previousReading;
+    const nextCurrentReading = currentReading !== undefined ? currentReading : existingUsage.currentReading;
+    const nextUnitsUsed = unitsUsed !== undefined ? unitsUsed : existingUsage.unitsUsed;
 
     if (previousReading !== undefined) {
       existingUsage.previousReading = previousReading;
@@ -118,28 +121,35 @@ async function updateUsage(req, res) {
       existingUsage.currentReading = currentReading;
     }
 
-    // Meter entries always derive units from the stored readings.
-    if (
-      activeEntryType === "meter" &&
-      existingUsage.previousReading !== undefined &&
-      existingUsage.previousReading !== null &&
-      existingUsage.currentReading !== undefined &&
-      existingUsage.currentReading !== null
-    ) {
-      const calculated = existingUsage.currentReading - existingUsage.previousReading;
+    if (activeEntryType === "meter") {
+      // When an entry is meter-based, both readings must exist and units are always derived from them.
+      if (
+        nextPreviousReading === undefined ||
+        nextPreviousReading === null ||
+        nextCurrentReading === undefined ||
+        nextCurrentReading === null
+      ) {
+        return error(res, "Meter entries require both previousReading and currentReading", 400);
+      }
+
+      const calculated = nextCurrentReading - nextPreviousReading;
 
       if (calculated < 0) {
         return error(res, "currentReading must be greater than previousReading", 400);
       }
 
+      existingUsage.previousReading = nextPreviousReading;
+      existingUsage.currentReading = nextCurrentReading;
       existingUsage.unitsUsed = calculated;
-    } else if (unitsUsed !== undefined) {
-      // Manual entries store units directly and do not keep meter readings.
-      existingUsage.unitsUsed = unitsUsed;
-      if (activeEntryType === "manual") {
-        existingUsage.previousReading = null;
-        existingUsage.currentReading = null;
+    } else {
+      // Manual entries store units directly and clear any stale meter readings.
+      if (nextUnitsUsed === undefined || nextUnitsUsed === null) {
+        return error(res, "Manual entries require unitsUsed", 400);
       }
+
+      existingUsage.unitsUsed = nextUnitsUsed;
+      existingUsage.previousReading = null;
+      existingUsage.currentReading = null;
     }
 
     const updated = await existingUsage.save();

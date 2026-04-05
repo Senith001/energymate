@@ -13,6 +13,7 @@ async function createUserBill({ householdId, month, year, totalUnits, previousRe
     { householdId, month, year },
     {
       ...billFields,
+      // Recreating a bill replaces the stored bill for that period and reopens it as the current version.
       status: "unpaid", paidAt: null,
     },
     { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
@@ -77,11 +78,32 @@ async function generateBill(householdId, month, year) {
 
   const bill = await Bill.findOneAndUpdate(
     { householdId, month, year },
+    // Regeneration replaces the current stored bill snapshot for the same billing period.
     { totalUnits, energyCharge, fixedCharge, subTotal, sscl, totalCost, breakdown, dueDate, status: "unpaid", paidAt: null },
     { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
   );
 
   return bill;
+}
+
+// Create the previous month's bill automatically once a new month starts, but only when usage exists and no bill was saved yet.
+async function ensurePreviousMonthBill(householdId, referenceDate = new Date()) {
+  const currentMonth = referenceDate.getMonth() + 1;
+  const currentYear = referenceDate.getFullYear();
+  const month = currentMonth === 1 ? 12 : currentMonth - 1;
+  const year = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+  const existingBill = await Bill.findOne({ householdId, month, year }).select("_id");
+  if (existingBill) {
+    return existingBill;
+  }
+
+  const { totalUnits, entries } = await getMonthlyTotalUnits(householdId, month, year);
+  if (!entries || totalUnits <= 0) {
+    return null;
+  }
+
+  return generateBill(householdId, month, year);
 }
 
 /**
@@ -146,4 +168,4 @@ async function compareBills(householdId, month, year) {
   return comparison;
 }
 
-export { createUserBill, generateBill, compareBills, buildBillFields };
+export { createUserBill, generateBill, compareBills, buildBillFields, ensurePreviousMonthBill };
