@@ -4,3 +4,4 @@ package-lock.json
 *.log
 .DS_Store
 backend/uploads/user avatars/
+frontend/dist/

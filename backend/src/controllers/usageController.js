@@ -1,4 +1,6 @@
 import Usage from "../models/usage.js";
+import Appliance from "../models/Appliance.js";
+import ApplianceUsageLog from "../models/ApplianceUsageLog.js";
 import { success, error } from "../utils/responseFormatter.js";
 import Household from "../models/Household.js";
 import { getMonthlyCostSummary, getUsageByAppliances, getUsageByRooms } from "../services/usageService.js";
@@ -275,6 +277,113 @@ async function getUsageByRoomsController(req, res) {
   }
 }
 
+// DAILY APPLIANCE HOURS
+async function createApplianceUsageLog(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { applianceId, date, hoursUsed, source } = req.body;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const appliance = await Appliance.findOne({ _id: applianceId, householdId });
+    if (!appliance) return error(res, "Appliance not found in this household", 404);
+
+    const log = new ApplianceUsageLog({
+      householdId,
+      applianceId,
+      date,
+      hoursUsed,
+      source: source || "manual",
+    });
+
+    const saved = await log.save();
+    return success(res, saved, "Appliance usage log created", 201);
+  } catch (err) {
+    if (err.code === 11000) {
+      return error(res, "A usage-hours entry already exists for this appliance and date", 409);
+    }
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+async function getApplianceUsageLogs(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { month, year, applianceId } = req.query;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const filter = { householdId };
+
+    if (applianceId) {
+      filter.applianceId = applianceId;
+    }
+
+    if (month && year) {
+      filter.date = {
+        $gte: new Date(Number(year), Number(month) - 1, 1),
+        $lte: new Date(Number(year), Number(month), 0, 23, 59, 59, 999),
+      };
+    }
+
+    const logs = await ApplianceUsageLog.find(filter).sort({ date: -1, createdAt: -1 });
+    return success(res, logs, "Appliance usage logs fetched");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+async function updateApplianceUsageLog(req, res) {
+  try {
+    const { householdId, logId } = req.params;
+    const { date, hoursUsed, source } = req.body;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const log = await ApplianceUsageLog.findOne({ _id: logId, householdId });
+    if (!log) return error(res, "Appliance usage log not found", 404);
+
+    if (date !== undefined) log.date = date;
+    if (hoursUsed !== undefined) log.hoursUsed = hoursUsed;
+    if (source !== undefined) log.source = source;
+
+    const updated = await log.save();
+    return success(res, updated, "Appliance usage log updated");
+  } catch (err) {
+    if (err.code === 11000) {
+      return error(res, "A usage-hours entry already exists for this appliance and date", 409);
+    }
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+async function deleteApplianceUsageLog(req, res) {
+  try {
+    const { householdId, logId } = req.params;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const log = await ApplianceUsageLog.findOneAndDelete({ _id: logId, householdId });
+    if (!log) return error(res, "Appliance usage log not found", 404);
+
+    return success(res, log, "Appliance usage log deleted");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
 export {
   createUsage,
   getUsages,
@@ -286,4 +395,8 @@ export {
   getWeatherImpact,
   getUsageByAppliancesController,
   getUsageByRoomsController,
+  createApplianceUsageLog,
+  getApplianceUsageLogs,
+  updateApplianceUsageLog,
+  deleteApplianceUsageLog,
 };

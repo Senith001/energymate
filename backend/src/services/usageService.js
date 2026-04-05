@@ -4,6 +4,7 @@ import { getTariff } from "./tarifService.js";
 import Household from "../models/Household.js";
 import Appliance from "../models/Appliance.js";
 import Room from "../models/Room.js";
+import ApplianceUsageLog from "../models/ApplianceUsageLog.js";
 
 // Two tiers:
 //   Tier A  – Consumption of 0–60 kWh per month
@@ -93,6 +94,79 @@ async function getMonthlyTotalUnits(householdId, month, year) {
   return result.length > 0 ? result[0] : { totalUnits: 0, entries: 0 };
 }
 
+function getMonthDateRange(month, year) {
+  return {
+    startDate: new Date(year, month - 1, 1),
+    endDate: new Date(year, month, 0, 23, 59, 59, 999),
+  };
+}
+
+// Use logged appliance hours when available, and fall back to appliance defaults otherwise.
+async function getMonthlyApplianceProfiles(householdId, month, year) {
+  const monthlyUsage = await getMonthlyTotalUnits(householdId, month, year);
+  const appliances = await Appliance.find({ householdId });
+
+  if (appliances.length === 0) {
+    return {
+      householdId,
+      month,
+      year,
+      totalUnits: monthlyUsage.totalUnits,
+      totalEstimatedUsage: 0,
+      allocationFactor: 0,
+      profiles: [],
+    };
+  }
+
+  const { startDate, endDate } = getMonthDateRange(month, year);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const logs = await ApplianceUsageLog.find({
+    householdId,
+    date: { $gte: startDate, $lte: endDate },
+  });
+
+  const loggedHoursByAppliance = new Map();
+
+  logs.forEach((log) => {
+    const key = log.applianceId.toString();
+    loggedHoursByAppliance.set(key, (loggedHoursByAppliance.get(key) || 0) + Number(log.hoursUsed || 0));
+  });
+
+  const profiles = appliances.map((appliance) => {
+    const applianceId = appliance._id.toString();
+    const loggedHours = loggedHoursByAppliance.get(applianceId) || 0;
+    const usedLoggedHours = loggedHoursByAppliance.has(applianceId);
+    const hoursUsed = usedLoggedHours
+      ? loggedHours
+      : Number(appliance.defaultHoursPerDay || 0) * daysInMonth;
+    const estimatedUsage =
+      (Number(appliance.wattage || 0) *
+        Number(appliance.quantity || 1) *
+        hoursUsed) /
+      1000;
+
+    return {
+      appliance,
+      hoursUsed: +hoursUsed.toFixed(2),
+      estimatedUsage,
+      source: usedLoggedHours ? "logged" : "default",
+    };
+  });
+
+  const totalEstimatedUsage = profiles.reduce((sum, item) => sum + item.estimatedUsage, 0);
+  const allocationFactor = totalEstimatedUsage > 0 ? monthlyUsage.totalUnits / totalEstimatedUsage : 0;
+
+  return {
+    householdId,
+    month,
+    year,
+    totalUnits: monthlyUsage.totalUnits,
+    totalEstimatedUsage: +totalEstimatedUsage.toFixed(2),
+    allocationFactor: +allocationFactor.toFixed(4),
+    profiles,
+  };
+}
+
 /**
  * Combined helper: get monthly summary with cost calculation.
  * Reduces duplication between getMonthlySummary and estimateCost endpoints.
@@ -125,57 +199,27 @@ export async function verifyHouseholdOwnership(householdId, userId) {
  * @returns {Promise<object>} breakdown with { householdId, month, year, totalUnits, breakdown[] }
  */
 export async function getUsageByAppliances(householdId, month, year) {
-  const monthlyUsage = await getMonthlyTotalUnits(householdId, month, year);
-  const appliances = await Appliance.find({ householdId });
+  const monthlyProfiles = await getMonthlyApplianceProfiles(householdId, month, year);
 
-  if (appliances.length === 0) {
-    return {
-      householdId,
-      month,
-      year,
-      totalUnits: monthlyUsage.totalUnits,
-      totalEstimatedUsage: 0,
-      allocationFactor: 0,
-      breakdown: [],
-    };
-  }
-
-  const daysInMonth = new Date(year, month, 0).getDate();
-
-  // Calculate estimated usage for each appliance
-  const applianceUsages = appliances.map((appliance) => {
-    const estimatedUsage =
-      (appliance.wattage *
-        appliance.quantity *
-        appliance.defaultHoursPerDay *
-        daysInMonth) /
-      1000;
-    return { appliance, estimatedUsage };
-  });
-
-  // Calculate total estimated usage
-  const totalEstimatedUsage = applianceUsages.reduce((sum, a) => sum + a.estimatedUsage, 0);
-
-  // Allocate actual usage proportionally
-  const allocationFactor = totalEstimatedUsage > 0 ? monthlyUsage.totalUnits / totalEstimatedUsage : 0;
-
-  const breakdown = applianceUsages.map((a) => ({
-    applianceId: a.appliance._id,
-    name: a.appliance.name,
-    wattage: a.appliance.wattage,
-    quantity: a.appliance.quantity,
-    defaultHoursPerDay: a.appliance.defaultHoursPerDay,
-    estimatedUsage: +a.estimatedUsage.toFixed(2),
-    allocatedUsage: +(a.estimatedUsage * allocationFactor).toFixed(2),
+  const breakdown = monthlyProfiles.profiles.map((item) => ({
+    applianceId: item.appliance._id,
+    name: item.appliance.name,
+    wattage: item.appliance.wattage,
+    quantity: item.appliance.quantity,
+    defaultHoursPerDay: item.appliance.defaultHoursPerDay,
+    hoursUsed: item.hoursUsed,
+    source: item.source,
+    estimatedUsage: +item.estimatedUsage.toFixed(2),
+    allocatedUsage: +(item.estimatedUsage * monthlyProfiles.allocationFactor).toFixed(2),
   }));
 
   return {
     householdId,
     month,
     year,
-    totalUnits: monthlyUsage.totalUnits,
-    totalEstimatedUsage: +totalEstimatedUsage.toFixed(2),
-    allocationFactor: +allocationFactor.toFixed(4),
+    totalUnits: monthlyProfiles.totalUnits,
+    totalEstimatedUsage: monthlyProfiles.totalEstimatedUsage,
+    allocationFactor: monthlyProfiles.allocationFactor,
     breakdown,
   };
 }
@@ -189,8 +233,7 @@ export async function getUsageByAppliances(householdId, month, year) {
  * @returns {Promise<object>} breakdown with { householdId, month, year, totalUnits, breakdown[] }
  */
 export async function getUsageByRooms(householdId, month, year) {
-  const monthlyUsage = await getMonthlyTotalUnits(householdId, month, year);
-  const appliances = await Appliance.find({ householdId });
+  const monthlyProfiles = await getMonthlyApplianceProfiles(householdId, month, year);
   const rooms = await Room.find({ householdId });
 
   if (rooms.length === 0) {
@@ -198,35 +241,26 @@ export async function getUsageByRooms(householdId, month, year) {
       householdId,
       month,
       year,
-      totalUnits: monthlyUsage.totalUnits,
+      totalUnits: monthlyProfiles.totalUnits,
       totalEstimatedUsage: 0,
       allocationFactor: 0,
       breakdown: [],
     };
   }
 
-  const daysInMonth = new Date(year, month, 0).getDate();
-
   // Group appliances by room and calculate estimated usage
   const roomUsages = rooms.map((room) => {
-    const roomAppliances = appliances.filter(
-      (app) => app.roomId && app.roomId.toString() === room._id.toString()
+    const roomAppliances = monthlyProfiles.profiles.filter(
+      (item) => item.appliance.roomId && item.appliance.roomId.toString() === room._id.toString()
     );
 
-    const estimatedUsage = roomAppliances.reduce((sum, appliance) => {
-      return (
-        sum +
-        (appliance.wattage *
-          appliance.quantity *
-          appliance.defaultHoursPerDay *
-          daysInMonth) /
-          1000
-      );
-    }, 0);
+    const estimatedUsage = roomAppliances.reduce((sum, item) => sum + item.estimatedUsage, 0);
+    const hoursUsed = roomAppliances.reduce((sum, item) => sum + item.hoursUsed, 0);
 
     return {
       room,
       estimatedUsage,
+      hoursUsed,
       applianceCount: roomAppliances.length,
     };
   });
@@ -235,12 +269,13 @@ export async function getUsageByRooms(householdId, month, year) {
   const totalEstimatedUsage = roomUsages.reduce((sum, r) => sum + r.estimatedUsage, 0);
 
   // Allocate actual usage proportionally
-  const allocationFactor = totalEstimatedUsage > 0 ? monthlyUsage.totalUnits / totalEstimatedUsage : 0;
+  const allocationFactor = totalEstimatedUsage > 0 ? monthlyProfiles.totalUnits / totalEstimatedUsage : 0;
 
   const breakdown = roomUsages.map((r) => ({
     roomId: r.room._id,
     roomName: r.room.name,
     applianceCount: r.applianceCount,
+    hoursUsed: +r.hoursUsed.toFixed(2),
     estimatedUsage: +r.estimatedUsage.toFixed(2),
     allocatedUsage: +(r.estimatedUsage * allocationFactor).toFixed(2),
   }));
@@ -249,7 +284,7 @@ export async function getUsageByRooms(householdId, month, year) {
     householdId,
     month,
     year,
-    totalUnits: monthlyUsage.totalUnits,
+    totalUnits: monthlyProfiles.totalUnits,
     totalEstimatedUsage: +totalEstimatedUsage.toFixed(2),
     allocationFactor: +allocationFactor.toFixed(4),
     breakdown,
@@ -260,4 +295,5 @@ export {
   calculateCost,
   getMonthlyTotalUnits,
   getMonthlyCostSummary,
+  getMonthlyApplianceProfiles,
 };
