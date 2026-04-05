@@ -8,7 +8,7 @@ import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone } fro
 import { useAuth } from "../../context/AuthContext";
 import { validateBillForm } from "../../utils/billingValidation";
 import { createBill, generateBill, getBillById, getBillComparison, getBills, regenerateBill, updateBill } from "../../utils/billingAPI";
-import { getUsages } from "../../utils/usageAPI";
+import { getHouseholdDetails, getUsages } from "../../utils/usageAPI";
 
 function BillingPage() {
   const { user } = useAuth();
@@ -30,6 +30,11 @@ function BillingPage() {
   const [updateDialogError, setUpdateDialogError] = useState("");
   const [tableMonthFilter, setTableMonthFilter] = useState("all");
   const [tableYearFilter, setTableYearFilter] = useState("all");
+  const [householdName, setHouseholdName] = useState(
+    localStorage.getItem("selectedHouseholdName") ||
+      localStorage.getItem("householdName") ||
+      (user?.name ? `${user.name}'s Household` : "Household")
+  );
 
   useEffect(() => {
     loadBillingPage();
@@ -59,6 +64,8 @@ function BillingPage() {
         return;
       }
 
+      await loadHouseholdName(resolvedHouseholdId);
+
       const billsPayload = await getBills(resolvedHouseholdId);
       const billRows = billsPayload.data || [];
       setBills(billRows);
@@ -71,6 +78,25 @@ function BillingPage() {
     } catch (err) {
       setError(err.message || "Unable to load billing dashboard.");
       setLoading(false);
+    }
+  }
+
+  // Borrow the temporary household lookup from usage until the shared household API is exposed centrally.
+  async function loadHouseholdName(activeHouseholdId) {
+    try {
+      const householdPayload = await getHouseholdDetails(activeHouseholdId);
+      const resolvedName =
+        householdPayload?.data?.name ||
+        householdPayload?.name ||
+        localStorage.getItem("selectedHouseholdName") ||
+        localStorage.getItem("householdName") ||
+        (user?.name ? `${user.name}'s Household` : "Household");
+
+      setHouseholdName(resolvedName);
+      localStorage.setItem("selectedHouseholdName", resolvedName);
+      localStorage.setItem("householdName", resolvedName);
+    } catch (householdError) {
+      setHouseholdName((current) => current || (user?.name ? `${user.name}'s Household` : "Household"));
     }
   }
 
@@ -254,15 +280,53 @@ function BillingPage() {
     years.add(new Date().getFullYear());
     return Array.from(years).sort((a, b) => b - a);
   }, [bills]);
-  // Use an existing stored household name when available so we do not expose the raw object id in the UI.
-  const householdName =
-    localStorage.getItem("selectedHouseholdName") ||
-    localStorage.getItem("householdName") ||
-    (user?.name ? `${user.name}'s Household` : "Household");
-
   return (
     <div style={{ minHeight: "100%", background: colors.background, padding: "10px" }}>
+      <div style={{ marginBottom: "18px" }}>
+        <h1 style={{ margin: 0, fontSize: "30px", color: colors.text }}>Billing and Cost Analysis</h1>
+      </div>
       <PageNotice loading={loading} error={error} householdId={householdId} period={selectedPeriod} billsCount={bills.length} />
+
+      {householdId ? (
+        <div
+          style={{
+            ...cardStyle,
+            padding: "18px 22px",
+            marginBottom: "18px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div style={{ color: colors.text, fontSize: "20px", fontWeight: "800", marginBottom: "6px" }}>{householdName}</div>
+            <div style={{ color: colors.muted }}>Track recent bills, charges, and monthly cost changes in one place.</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setCreateDialogError("");
+              setDialogOpen(true);
+            }}
+            style={{
+              border: "none",
+              background: colors.green,
+              color: "#ffffff",
+              padding: "12px 18px",
+              borderRadius: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              fontWeight: "700",
+            }}
+          >
+            + Create Bill
+          </button>
+        </div>
+      ) : null}
 
       {/* Use a slightly smaller minimum card width so all four summary cards fit in one row on common desktop widths. */}
       <div style={responsiveGrid("220px", "18px")}>
@@ -480,22 +544,7 @@ function PageNotice({ loading, error, householdId, period, billsCount }) {
     return <Banner text="No bills have been created for this household yet. Create or generate a bill to see billing insights." tone="info" />;
   }
 
-  return (
-    <div
-      style={{
-        ...cardStyle,
-        padding: "16px 20px",
-        marginBottom: "22px",
-        display: "flex",
-        justifyContent: "space-between",
-        gap: "14px",
-        flexWrap: "wrap",
-      }}
-    >
-      <div style={{ color: colors.text, fontWeight: "700" }}>Billing Overview</div>
-      <div style={{ color: colors.muted }}>Billing overview for {formatMonthYear(period.month, period.year)}</div>
-    </div>
-  );
+  return null;
 }
 
 function Banner({ text, tone }) {

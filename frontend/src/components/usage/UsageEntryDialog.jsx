@@ -79,10 +79,17 @@ function UsageEntryDialog({
           <label style={labelStyle}>
             Date
             <input
-              style={inputStyle}
+              // Keep the original day fixed during edits so updates do not accidentally move historical usage records.
+              style={{
+                ...inputStyle,
+                background: initialValues ? colors.slateSoft : "#ffffff",
+                color: initialValues ? colors.muted : colors.text,
+                cursor: initialValues ? "not-allowed" : "text",
+              }}
               type="date"
               value={form.date}
               onChange={(event) => setForm({ ...form, date: event.target.value })}
+              disabled={Boolean(initialValues)}
             />
           </label>
 

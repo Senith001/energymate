@@ -136,9 +136,13 @@ async function getMonthlyApplianceProfiles(householdId, month, year) {
     const applianceId = appliance._id.toString();
     const loggedHours = loggedHoursByAppliance.get(applianceId) || 0;
     const usedLoggedHours = loggedHoursByAppliance.has(applianceId);
+    // Temporary rule until appliance usageMode is added:
+    // if the user logs this appliance at least once in the month, treat it as manually tracked for that month.
+    // Otherwise, fall back to the appliance's default daily hours.
     const hoursUsed = usedLoggedHours
       ? loggedHours
       : Number(appliance.defaultHoursPerDay || 0) * daysInMonth;
+    // Convert stored appliance metadata into an estimated monthly kWh value.
     const estimatedUsage =
       (Number(appliance.wattage || 0) *
         Number(appliance.quantity || 1) *
@@ -201,6 +205,7 @@ export async function verifyHouseholdOwnership(householdId, userId) {
 export async function getUsageByAppliances(householdId, month, year) {
   const monthlyProfiles = await getMonthlyApplianceProfiles(householdId, month, year);
 
+  // Allocate the real household total across appliance profiles so the chart still sums back to monthly usage.
   const breakdown = monthlyProfiles.profiles.map((item) => ({
     applianceId: item.appliance._id,
     name: item.appliance.name,
@@ -248,7 +253,7 @@ export async function getUsageByRooms(householdId, month, year) {
     };
   }
 
-  // Group appliances by room and calculate estimated usage
+  // Room totals are derived from the appliance logs/defaults instead of being stored separately.
   const roomUsages = rooms.map((room) => {
     const roomAppliances = monthlyProfiles.profiles.filter(
       (item) => item.appliance.roomId && item.appliance.roomId.toString() === room._id.toString()

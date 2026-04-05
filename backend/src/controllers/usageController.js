@@ -288,6 +288,7 @@ async function createApplianceUsageLog(req, res) {
       if (!household) return error(res, "Household not found or access denied", 403);
     }
 
+    // Keep the log scoped to appliances that actually belong to the selected household.
     const appliance = await Appliance.findOne({ _id: applianceId, householdId });
     if (!appliance) return error(res, "Appliance not found in this household", 404);
 
@@ -326,6 +327,7 @@ async function getApplianceUsageLogs(req, res) {
     }
 
     if (month && year) {
+      // Month filtering is optional so the same endpoint can back both history lists and period-specific dialogs.
       filter.date = {
         $gte: new Date(Number(year), Number(month) - 1, 1),
         $lte: new Date(Number(year), Number(month), 0, 23, 59, 59, 999),

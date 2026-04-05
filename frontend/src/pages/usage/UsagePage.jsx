@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import MetricCard from "../../components/energy/MetricCard";
 import UsageBars from "../../components/usage/UsageBars";
 import BreakdownDonut from "../../components/usage/BreakdownDonut";
+import ApplianceHoursDialog from "../../components/usage/ApplianceHoursDialog";
 import UsageDetailsDialog from "../../components/usage/UsageDetailsDialog";
 import ProgressBreakdown from "../../components/usage/ProgressBreakdown";
 import WeatherInsightCard from "../../components/usage/WeatherInsightCard";
@@ -11,7 +12,11 @@ import { cardStyle, colors, formatCurrency, formatMonthYear } from "../../compon
 import { validateUsageForm } from "../../utils/usageValidation";
 import {
   createUsage,
+  createApplianceHoursLog,
+  deleteApplianceHoursLog,
   deleteUsage,
+  getApplianceHoursLogs,
+  getHouseholdAppliances,
   getEstimatedCost,
   getHouseholdDetails,
   getMonthlySummary,
@@ -20,6 +25,7 @@ import {
   getUsageByRooms,
   getUsages,
   getWeatherImpact,
+  updateApplianceHoursLog,
   updateUsage,
 } from "../../utils/usageAPI";
 
@@ -44,6 +50,12 @@ function UsagePage() {
   const [dialogError, setDialogError] = useState("");
   const [tableMonthFilter, setTableMonthFilter] = useState("all");
   const [tableYearFilter, setTableYearFilter] = useState("all");
+  const [applianceHoursOpen, setApplianceHoursOpen] = useState(false);
+  const [applianceOptions, setApplianceOptions] = useState([]);
+  const [applianceLogs, setApplianceLogs] = useState([]);
+  const [applianceHoursSaving, setApplianceHoursSaving] = useState(false);
+  const [applianceHoursError, setApplianceHoursError] = useState("");
+  const [editingApplianceLog, setEditingApplianceLog] = useState(null);
   const [weatherLocationMode, setWeatherLocationMode] = useState(localStorage.getItem("weatherLocationMode") || "browser");
   const [customWeatherCity, setCustomWeatherCity] = useState(localStorage.getItem("customWeatherCity") || "");
 
@@ -105,6 +117,7 @@ function UsagePage() {
         (appliancesPayload.data?.breakdown || []).map((item) => ({
           name: item.name,
           value: item.allocatedUsage || 0,
+          source: item.source,
         }))
       );
       setRoomBreakdown(
@@ -114,6 +127,7 @@ function UsagePage() {
         }))
       );
       setUsages(usagePayload.data || []);
+      await loadApplianceHoursData(activeHouseholdId, month, year);
 
       try {
         const weatherLocation = await resolveWeatherLocation(activeHouseholdId);
@@ -131,6 +145,23 @@ function UsagePage() {
     } catch (err) {
       setError(err.message || "Unable to load usage details.");
       setLoading(false);
+    }
+  }
+
+  // Load appliance definitions and the saved hour logs together for the selected period.
+  async function loadApplianceHoursData(activeHouseholdId, month, year) {
+    try {
+      const [appliancesPayload, logsPayload] = await Promise.all([
+        getHouseholdAppliances(activeHouseholdId),
+        getApplianceHoursLogs(activeHouseholdId, month, year),
+      ]);
+
+      // The household appliance endpoint returns a plain array, while usage-owned endpoints use the success/data wrapper.
+      setApplianceOptions(Array.isArray(appliancesPayload) ? appliancesPayload : appliancesPayload.data || []);
+      setApplianceLogs(logsPayload.data || []);
+    } catch (hoursError) {
+      setApplianceOptions([]);
+      setApplianceLogs([]);
     }
   }
 
@@ -182,6 +213,82 @@ function UsagePage() {
 
     if (householdId) {
       await loadPeriodData(householdId, selectedPeriod.month, selectedPeriod.year);
+    }
+  }
+
+  async function handleSaveApplianceHours(form) {
+    if (!householdId) {
+      setApplianceHoursError("A household must be selected before logging appliance hours.");
+      return;
+    }
+
+    if (!form.applianceId) {
+      setApplianceHoursError("Select an appliance before saving.");
+      return;
+    }
+
+    if (!form.date) {
+      setApplianceHoursError("Pick the date for this usage log.");
+      return;
+    }
+
+    const parsedHours = Number(form.hoursUsed);
+    if (Number.isNaN(parsedHours) || parsedHours < 0 || parsedHours > 24) {
+      setApplianceHoursError("Hours used must be between 0 and 24.");
+      return;
+    }
+
+    try {
+      setApplianceHoursSaving(true);
+      setApplianceHoursError("");
+
+      // Reuse the same dialog for create and edit so users can correct logged hours without leaving the usage page.
+      const payload = {
+        applianceId: form.applianceId,
+        date: form.date,
+        hoursUsed: parsedHours,
+        source: "manual",
+      };
+
+      if (editingApplianceLog?._id) {
+        await updateApplianceHoursLog(householdId, editingApplianceLog._id, payload);
+      } else {
+        await createApplianceHoursLog(householdId, payload);
+      }
+
+      await loadPeriodData(householdId, selectedPeriod.month, selectedPeriod.year);
+      setApplianceHoursOpen(false);
+      setEditingApplianceLog(null);
+    } catch (err) {
+      setApplianceHoursError(err.message || "Unable to save appliance hours.");
+    } finally {
+      setApplianceHoursSaving(false);
+    }
+  }
+
+  function handleEditApplianceLog(log) {
+    setApplianceHoursError("");
+    setEditingApplianceLog(log);
+  }
+
+  // Delete logged hours directly from the usage page because they affect the appliance and room breakdowns immediately.
+  async function handleDeleteApplianceLog(log) {
+    const confirmed = window.confirm("Delete this appliance hours entry?");
+    if (!confirmed) return;
+
+    try {
+      setApplianceHoursSaving(true);
+      setApplianceHoursError("");
+      await deleteApplianceHoursLog(householdId, log._id);
+      await loadPeriodData(householdId, selectedPeriod.month, selectedPeriod.year);
+
+      if (editingApplianceLog?._id === log._id) {
+        setEditingApplianceLog(null);
+      }
+    } catch (err) {
+      setApplianceHoursError(err.message || "Unable to delete appliance hours.");
+    } finally {
+      setApplianceHoursSaving(false);
     }
   }
 
@@ -293,9 +400,9 @@ function UsagePage() {
   }, [selectedPeriod.month, selectedPeriod.year, usages]);
 
   const chartData = useMemo(() => {
-    // Show a rolling 7-day view so the chart feels more current than a full month snapshot.
-    const latestUsageDate = usages.length ? new Date(Math.max(...usages.map((item) => new Date(item.date).getTime()))) : new Date();
-    const normalizedEndDate = new Date(latestUsageDate.getFullYear(), latestUsageDate.getMonth(), latestUsageDate.getDate());
+    // Keep the chart anchored to today so the last 7 days always reflect the current calendar window.
+    const today = new Date();
+    const normalizedEndDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const dailyUnits = new Map();
 
     usages.forEach((item) => {
@@ -352,6 +459,9 @@ function UsagePage() {
 
   return (
     <div style={{ minHeight: "100%", background: colors.background, padding: "10px" }}>
+      <div style={{ marginBottom: "18px" }}>
+        <h1 style={{ margin: 0, fontSize: "30px", color: colors.text }}>Usage Tracking</h1>
+      </div>
       <PageNotice loading={loading} error={error} householdId={householdId} />
 
       <div
@@ -459,7 +569,17 @@ function UsagePage() {
       </div>
 
       <div style={{ ...responsiveGrid("360px", "26px"), marginTop: "26px" }}>
-        <BreakdownDonut title="Usage by Appliance" items={applianceItems} labelKey="name" />
+        <BreakdownDonut
+          title="Usage by Appliance"
+          items={applianceItems}
+          labelKey="name"
+          actionLabel="Log Hours"
+          onAction={() => {
+            setApplianceHoursError("");
+            setEditingApplianceLog(null);
+            setApplianceHoursOpen(true);
+          }}
+        />
         <ProgressBreakdown title="Usage by Room" items={roomItems} labelKey="roomName" />
       </div>
 
@@ -491,6 +611,24 @@ function UsagePage() {
           setDetailsOpen(false);
           setSelectedUsage(null);
         }}
+      />
+      <ApplianceHoursDialog
+        open={applianceHoursOpen}
+        appliances={applianceOptions}
+        logs={applianceLogs}
+        selectedPeriod={{ label: formatMonthYear(selectedPeriod.month, selectedPeriod.year) }}
+        saving={applianceHoursSaving}
+        submitError={applianceHoursError}
+        editingLogId={editingApplianceLog?._id || ""}
+        initialLog={editingApplianceLog}
+        onClose={() => {
+          setApplianceHoursOpen(false);
+          setApplianceHoursError("");
+          setEditingApplianceLog(null);
+        }}
+        onSubmit={handleSaveApplianceHours}
+        onEdit={handleEditApplianceLog}
+        onDelete={handleDeleteApplianceLog}
       />
       <UsageEntryDialog
         open={dialogOpen}

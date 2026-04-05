@@ -200,3 +200,79 @@ export async function getHouseholdDetails(householdId) {
     throw err;
   }
 }
+
+// Read appliance definitions from the existing household module so usage can log daily hours without copying their pages.
+export async function getHouseholdAppliances(householdId) {
+  try {
+    const res = await fetch(`${API_BASE}/households/${householdId}/appliances`, {
+      headers: authHeaders(),
+    });
+    return await readJson(res);
+  } catch (err) {
+    console.error("Error fetching household appliances:", err);
+    throw err;
+  }
+}
+
+// Daily appliance-hour logs stay under usage so they can feed monthly analytics without changing appliance CRUD.
+export async function createApplianceHoursLog(householdId, data) {
+  try {
+    const res = await fetch(`${API_BASE}/usage/households/${householdId}/appliance-hours`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    return await readJson(res);
+  } catch (err) {
+    console.error("Error creating appliance usage log:", err);
+    throw err;
+  }
+}
+
+export async function getApplianceHoursLogs(householdId, month, year) {
+  try {
+    const params = new URLSearchParams();
+
+    if (month != null && year != null) {
+      params.set("month", String(month));
+      params.set("year", String(year));
+    }
+
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    const res = await fetch(`${API_BASE}/usage/households/${householdId}/appliance-hours${suffix}`, {
+      headers: authHeaders(),
+    });
+    return await readJson(res);
+  } catch (err) {
+    console.error("Error fetching appliance usage logs:", err);
+    throw err;
+  }
+}
+
+// Keep edit/delete helpers next to create/list so the usage page can manage the full log flow from one dialog.
+export async function updateApplianceHoursLog(householdId, logId, data) {
+  try {
+    const res = await fetch(`${API_BASE}/usage/households/${householdId}/appliance-hours/${logId}`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    return await readJson(res);
+  } catch (err) {
+    console.error("Error updating appliance usage log:", err);
+    throw err;
+  }
+}
+
+export async function deleteApplianceHoursLog(householdId, logId) {
+  try {
+    const res = await fetch(`${API_BASE}/usage/households/${householdId}/appliance-hours/${logId}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    return await readJson(res);
+  } catch (err) {
+    console.error("Error deleting appliance usage log:", err);
+    throw err;
+  }
+}

@@ -13,6 +13,8 @@ function WeatherInsightCard({
 }) {
   const details = weather || {};
   const [showSettings, setShowSettings] = useState(false);
+  // Match the card accent to the backend insight so the weather state reads quickly at a glance.
+  const tone = getWeatherTone(tip);
 
   return (
     <div style={{ ...cardStyle, padding: "24px", position: "relative", minHeight: "350px", width: "100%", display: "flex", flexDirection: "column" }}>
@@ -91,14 +93,14 @@ function WeatherInsightCard({
             width: "68px",
             height: "68px",
             borderRadius: "20px",
-            background: colors.amberSoft,
+            background: tone.soft,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             marginBottom: "16px",
           }}
         >
-          <Icon name="cloud" color={colors.amber} size={32} />
+          <Icon name="cloud" color={tone.main} size={32} />
         </div>
         <div style={{ fontSize: "22px", fontWeight: "800", color: colors.text, marginBottom: "6px" }}>
           {details.temperature != null ? `${details.temperature}${String.fromCharCode(176)}C` : "-"}
@@ -120,8 +122,8 @@ function WeatherInsightCard({
       <div
         style={{
           marginTop: "24px",
-          background: colors.amberSoft,
-          color: colors.amber,
+          background: tone.soft,
+          color: tone.main,
           borderRadius: "16px",
           padding: "14px 16px",
           lineHeight: 1.5,
@@ -134,6 +136,20 @@ function WeatherInsightCard({
 }
 
 export default WeatherInsightCard;
+
+function getWeatherTone(tip = "") {
+  const normalizedTip = tip.toLowerCase();
+
+  if (normalizedTip.includes("high temperatures")) {
+    return { main: colors.amber, soft: colors.amberSoft };
+  }
+
+  if (normalizedTip.includes("moderate temperatures")) {
+    return { main: colors.green, soft: colors.greenSoft };
+  }
+
+  return { main: colors.blue, soft: colors.blueSoft };
+}
 
 function pillStyle(active) {
   return {

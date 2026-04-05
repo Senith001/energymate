@@ -15,13 +15,33 @@ function donutArc(cx, cy, r, startAngle, endAngle) {
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 }
 
-function BreakdownDonut({ title, items, labelKey }) {
+function BreakdownDonut({ title, items, labelKey, actionLabel, onAction }) {
   const total = items.reduce((sum, item) => sum + item.value, 0);
   let start = 0;
 
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>{title}</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "22px", flexWrap: "wrap" }}>
+        <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>{title}</h3>
+        {onAction ? (
+          <button
+            type="button"
+            onClick={onAction}
+            // This action is optional so the same card can stay reusable outside the appliance-hours flow.
+            style={{
+              border: "none",
+              background: colors.green,
+              color: "#ffffff",
+              padding: "8px 12px",
+              borderRadius: "12px",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            {actionLabel || "Action"}
+          </button>
+        ) : null}
+      </div>
       <div style={{ display: "flex", gap: "26px", alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ width: "220px", height: "220px", flexShrink: 0 }}>
           <svg viewBox="0 0 220 220" style={{ width: "100%", height: "100%" }}>

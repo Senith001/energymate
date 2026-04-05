@@ -155,6 +155,7 @@ const applianceUsageLogListRules = [
   query("year")
     .optional()
     .isInt({ min: 2000, max: 2100 }).withMessage("year must be between 2000 and 2100"),
+  // Keep period filters paired so the backend does not guess a partial date range.
   query("year").custom((_, { req }) => {
     if ((req.query.month && !req.query.year) || (!req.query.month && req.query.year)) {
       throw new Error("month and year must be provided together");
