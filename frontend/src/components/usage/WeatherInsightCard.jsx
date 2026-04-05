@@ -13,9 +13,11 @@ function WeatherInsightCard({
 }) {
   const details = weather || {};
   const [showSettings, setShowSettings] = useState(false);
+  // Match the card accent to the backend insight so the weather state reads quickly at a glance.
+  const tone = getWeatherTone(tip);
 
   return (
-    <div style={{ ...cardStyle, padding: "24px", position: "relative" }}>
+    <div style={{ ...cardStyle, padding: "24px", position: "relative", minHeight: "350px", width: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "22px" }}>
         <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Weather Impact</h3>
         <div style={{ position: "relative" }}>
@@ -25,7 +27,7 @@ function WeatherInsightCard({
             style={settingsButtonStyle}
             title="Weather settings"
           >
-            ⚙
+            <span aria-hidden="true">&#9881;</span>
           </button>
           {showSettings ? (
             <div style={settingsPanelStyle}>
@@ -85,30 +87,30 @@ function WeatherInsightCard({
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", flex: 1, justifyContent: "center" }}>
         <div
           style={{
             width: "68px",
             height: "68px",
             borderRadius: "20px",
-            background: colors.amberSoft,
+            background: tone.soft,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             marginBottom: "16px",
           }}
         >
-          <Icon name="cloud" color={colors.amber} size={32} />
+          <Icon name="cloud" color={tone.main} size={32} />
         </div>
         <div style={{ fontSize: "22px", fontWeight: "800", color: colors.text, marginBottom: "6px" }}>
-          {details.temperature != null ? `${details.temperature}°C` : "—"}
+          {details.temperature != null ? `${details.temperature}${String.fromCharCode(176)}C` : "-"}
         </div>
         <div style={{ color: colors.muted, marginBottom: "18px" }}>{details.description || "Current conditions unavailable"}</div>
 
         <div style={{ display: "flex", gap: "18px", flexWrap: "wrap", justifyContent: "center", color: colors.muted }}>
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Icon name="drop" color={colors.muted} size={16} />
-            {details.humidity != null ? `${details.humidity}%` : "—"}
+            {details.humidity != null ? `${details.humidity}%` : "-"}
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Icon name="thermo" color={colors.muted} size={16} />
@@ -120,8 +122,8 @@ function WeatherInsightCard({
       <div
         style={{
           marginTop: "24px",
-          background: colors.amberSoft,
-          color: colors.amber,
+          background: tone.soft,
+          color: tone.main,
           borderRadius: "16px",
           padding: "14px 16px",
           lineHeight: 1.5,
@@ -134,6 +136,20 @@ function WeatherInsightCard({
 }
 
 export default WeatherInsightCard;
+
+function getWeatherTone(tip = "") {
+  const normalizedTip = tip.toLowerCase();
+
+  if (normalizedTip.includes("high temperatures")) {
+    return { main: colors.amber, soft: colors.amberSoft };
+  }
+
+  if (normalizedTip.includes("moderate temperatures")) {
+    return { main: colors.green, soft: colors.greenSoft };
+  }
+
+  return { main: colors.blue, soft: colors.blueSoft };
+}
 
 function pillStyle(active) {
   return {

@@ -7,6 +7,22 @@ import { getTariff } from "./tarifService.js";
  * User provides EITHER totalUnits directly OR previousReading & currentReading.
  */
 async function createUserBill({ householdId, month, year, totalUnits, previousReading, currentReading }) {
+  const billFields = await buildBillFields({ month, year, totalUnits, previousReading, currentReading });
+
+  const bill = await Bill.findOneAndUpdate(
+    { householdId, month, year },
+    {
+      ...billFields,
+      status: "unpaid", paidAt: null,
+    },
+    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  );
+
+  return bill;
+}
+
+// Reuse the same tariff calculation whenever bill units, readings, or period changes.
+async function buildBillFields({ month, year, totalUnits, previousReading, currentReading }) {
   // Calculate totalUnits from readings if not provided directly
   if (totalUnits === undefined || totalUnits === null) {
     if (previousReading === undefined || currentReading === undefined) {
@@ -24,18 +40,18 @@ async function createUserBill({ householdId, month, year, totalUnits, previousRe
 
   const dueDate = new Date(year, month, 20);
 
-  const bill = await Bill.findOneAndUpdate(
-    { householdId, month, year },
-    {
-      previousReading: previousReading ?? null,
-      currentReading: currentReading ?? null,
-      totalUnits, energyCharge, fixedCharge, subTotal, sscl, totalCost, breakdown, dueDate,
-      status: "unpaid", paidAt: null,
-    },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-  );
-
-  return bill;
+  return {
+    previousReading: previousReading ?? null,
+    currentReading: currentReading ?? null,
+    totalUnits,
+    energyCharge,
+    fixedCharge,
+    subTotal,
+    sscl,
+    totalCost,
+    breakdown,
+    dueDate,
+  };
 }
 
 /**
@@ -130,4 +146,4 @@ async function compareBills(householdId, month, year) {
   return comparison;
 }
 
-export { createUserBill, generateBill, compareBills };
+export { createUserBill, generateBill, compareBills, buildBillFields };

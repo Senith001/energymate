@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { colors, cardStyle } from "../energy/dashboardTheme";
+import { validateBillForm } from "../../utils/billingValidation";
 
 const overlayStyle = {
   position: "fixed",
@@ -23,7 +24,7 @@ const inputStyle = {
 
 const labelStyle = { display: "grid", gap: "8px", color: colors.text, fontWeight: "600" };
 
-function BillDialog({ open, onClose, onSubmit, submitting, month, year }) {
+function BillDialog({ open, onClose, onSubmit, submitting, month, year, submitError = "" }) {
   const [form, setForm] = useState({
     month: month || new Date().getMonth() + 1,
     year: year || new Date().getFullYear(),
@@ -32,9 +33,11 @@ function BillDialog({ open, onClose, onSubmit, submitting, month, year }) {
     previousReading: "",
     currentReading: "",
   });
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     if (open) {
+      setFormError("");
       setForm({
         month: month || new Date().getMonth() + 1,
         year: year || new Date().getFullYear(),
@@ -52,9 +55,13 @@ function BillDialog({ open, onClose, onSubmit, submitting, month, year }) {
     <div style={overlayStyle} onClick={onClose}>
       <div style={{ ...cardStyle, width: "100%", maxWidth: "520px", padding: "24px" }} onClick={(event) => event.stopPropagation()}>
         <h3 style={{ margin: "0 0 18px 0", fontSize: "22px", color: colors.text }}>Create Bill</h3>
+        {formError || submitError ? <InlineError text={formError || submitError} /> : null}
         <form
           onSubmit={(event) => {
             event.preventDefault();
+            const nextError = validateBillForm(form);
+            setFormError(nextError);
+            if (nextError) return;
             onSubmit(form);
           }}
           style={{ display: "grid", gap: "16px" }}
@@ -180,6 +187,23 @@ function pillStyle(active) {
     fontWeight: "700",
     cursor: "pointer",
   };
+}
+
+function InlineError({ text }) {
+  return (
+    <div
+      style={{
+        marginBottom: "16px",
+        padding: "12px 14px",
+        borderRadius: "12px",
+        background: colors.redSoft,
+        color: colors.red,
+        fontWeight: "600",
+      }}
+    >
+      {text}
+    </div>
+  );
 }
 
 export default BillDialog;

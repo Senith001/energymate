@@ -2,15 +2,21 @@ import React, { useEffect, useMemo, useState } from "react";
 import MetricCard from "../../components/energy/MetricCard";
 import UsageBars from "../../components/usage/UsageBars";
 import BreakdownDonut from "../../components/usage/BreakdownDonut";
+import ApplianceHoursDialog from "../../components/usage/ApplianceHoursDialog";
 import UsageDetailsDialog from "../../components/usage/UsageDetailsDialog";
 import ProgressBreakdown from "../../components/usage/ProgressBreakdown";
 import WeatherInsightCard from "../../components/usage/WeatherInsightCard";
 import UsageEntryDialog from "../../components/usage/UsageEntryDialog";
 import UsageTableCard from "../../components/usage/UsageTableCard";
 import { cardStyle, colors, formatCurrency, formatMonthYear } from "../../components/energy/dashboardTheme";
+import { validateUsageForm } from "../../utils/usageValidation";
 import {
   createUsage,
+  createApplianceHoursLog,
+  deleteApplianceHoursLog,
   deleteUsage,
+  getApplianceHoursLogs,
+  getHouseholdAppliances,
   getEstimatedCost,
   getHouseholdDetails,
   getMonthlySummary,
@@ -19,6 +25,7 @@ import {
   getUsageByRooms,
   getUsages,
   getWeatherImpact,
+  updateApplianceHoursLog,
   updateUsage,
 } from "../../utils/usageAPI";
 
@@ -40,8 +47,15 @@ function UsagePage() {
   const [selectedUsage, setSelectedUsage] = useState(null);
   const [busyUsageId, setBusyUsageId] = useState("");
   const [error, setError] = useState("");
+  const [dialogError, setDialogError] = useState("");
   const [tableMonthFilter, setTableMonthFilter] = useState("all");
   const [tableYearFilter, setTableYearFilter] = useState("all");
+  const [applianceHoursOpen, setApplianceHoursOpen] = useState(false);
+  const [applianceOptions, setApplianceOptions] = useState([]);
+  const [applianceLogs, setApplianceLogs] = useState([]);
+  const [applianceHoursSaving, setApplianceHoursSaving] = useState(false);
+  const [applianceHoursError, setApplianceHoursError] = useState("");
+  const [editingApplianceLog, setEditingApplianceLog] = useState(null);
   const [weatherLocationMode, setWeatherLocationMode] = useState(localStorage.getItem("weatherLocationMode") || "browser");
   const [customWeatherCity, setCustomWeatherCity] = useState(localStorage.getItem("customWeatherCity") || "");
 
@@ -88,6 +102,7 @@ function UsagePage() {
     try {
       setLoading(true);
 
+      // Load the main dashboard slices together so the page updates as one period snapshot.
       const [summaryPayload, costPayload, appliancesPayload, roomsPayload, usagePayload] = await Promise.all([
         getMonthlySummary(activeHouseholdId, month, year),
         getEstimatedCost(activeHouseholdId, month, year),
@@ -102,6 +117,7 @@ function UsagePage() {
         (appliancesPayload.data?.breakdown || []).map((item) => ({
           name: item.name,
           value: item.allocatedUsage || 0,
+          source: item.source,
         }))
       );
       setRoomBreakdown(
@@ -111,6 +127,7 @@ function UsagePage() {
         }))
       );
       setUsages(usagePayload.data || []);
+      await loadApplianceHoursData(activeHouseholdId, month, year);
 
       try {
         const weatherLocation = await resolveWeatherLocation(activeHouseholdId);
@@ -128,6 +145,23 @@ function UsagePage() {
     } catch (err) {
       setError(err.message || "Unable to load usage details.");
       setLoading(false);
+    }
+  }
+
+  // Load appliance definitions and the saved hour logs together for the selected period.
+  async function loadApplianceHoursData(activeHouseholdId, month, year) {
+    try {
+      const [appliancesPayload, logsPayload] = await Promise.all([
+        getHouseholdAppliances(activeHouseholdId),
+        getApplianceHoursLogs(activeHouseholdId, month, year),
+      ]);
+
+      // The household appliance endpoint returns a plain array, while usage-owned endpoints use the success/data wrapper.
+      setApplianceOptions(Array.isArray(appliancesPayload) ? appliancesPayload : appliancesPayload.data || []);
+      setApplianceLogs(logsPayload.data || []);
+    } catch (hoursError) {
+      setApplianceOptions([]);
+      setApplianceLogs([]);
     }
   }
 
@@ -182,13 +216,93 @@ function UsagePage() {
     }
   }
 
+  async function handleSaveApplianceHours(form) {
+    if (!householdId) {
+      setApplianceHoursError("A household must be selected before logging appliance hours.");
+      return;
+    }
+
+    if (!form.applianceId) {
+      setApplianceHoursError("Select an appliance before saving.");
+      return;
+    }
+
+    if (!form.date) {
+      setApplianceHoursError("Pick the date for this usage log.");
+      return;
+    }
+
+    const parsedHours = Number(form.hoursUsed);
+    if (Number.isNaN(parsedHours) || parsedHours < 0 || parsedHours > 24) {
+      setApplianceHoursError("Hours used must be between 0 and 24.");
+      return;
+    }
+
+    try {
+      setApplianceHoursSaving(true);
+      setApplianceHoursError("");
+
+      // Reuse the same dialog for create and edit so users can correct logged hours without leaving the usage page.
+      const payload = {
+        applianceId: form.applianceId,
+        date: form.date,
+        hoursUsed: parsedHours,
+        source: "manual",
+      };
+
+      if (editingApplianceLog?._id) {
+        await updateApplianceHoursLog(householdId, editingApplianceLog._id, payload);
+      } else {
+        await createApplianceHoursLog(householdId, payload);
+      }
+
+      await loadPeriodData(householdId, selectedPeriod.month, selectedPeriod.year);
+      setApplianceHoursOpen(false);
+      setEditingApplianceLog(null);
+    } catch (err) {
+      setApplianceHoursError(err.message || "Unable to save appliance hours.");
+    } finally {
+      setApplianceHoursSaving(false);
+    }
+  }
+
+  function handleEditApplianceLog(log) {
+    setApplianceHoursError("");
+    setEditingApplianceLog(log);
+  }
+
+  // Delete logged hours directly from the usage page because they affect the appliance and room breakdowns immediately.
+  async function handleDeleteApplianceLog(log) {
+    const confirmed = window.confirm("Delete this appliance hours entry?");
+    if (!confirmed) return;
+
+    try {
+      setApplianceHoursSaving(true);
+      setApplianceHoursError("");
+      await deleteApplianceHoursLog(householdId, log._id);
+      await loadPeriodData(householdId, selectedPeriod.month, selectedPeriod.year);
+
+      if (editingApplianceLog?._id === log._id) {
+        setEditingApplianceLog(null);
+      }
+    } catch (err) {
+      setApplianceHoursError(err.message || "Unable to delete appliance hours.");
+    } finally {
+      setApplianceHoursSaving(false);
+    }
+  }
+
   // Save either a new usage entry or an update to an existing entry.
   async function handleSaveUsage(form) {
-    if (!householdId) return;
+    if (!householdId) {
+      setDialogError("A household must be selected before saving usage.");
+      return;
+    }
 
     try {
       setSaving(true);
       setError("");
+      setDialogError("");
 
       const payload = {
         householdId,
@@ -196,11 +310,20 @@ function UsagePage() {
         entryType: form.entryType,
       };
 
+      const validationError = validateUsageForm(form);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+
       if (form.entryType === "meter") {
-        payload.previousReading = Number(form.previousReading);
-        payload.currentReading = Number(form.currentReading);
+        const previousReading = Number(form.previousReading);
+        const currentReading = Number(form.currentReading);
+
+        payload.previousReading = previousReading;
+        payload.currentReading = currentReading;
       } else {
-        payload.unitsUsed = Number(form.unitsUsed);
+        const unitsUsed = Number(form.unitsUsed);
+        payload.unitsUsed = unitsUsed;
       }
 
       const result = editingUsage?._id
@@ -215,6 +338,7 @@ function UsagePage() {
       setEditingUsage(null);
       await loadPeriodData(householdId, selectedPeriod.month, selectedPeriod.year);
     } catch (err) {
+      setDialogError(err.message || "Unable to save usage entry.");
       setError(err.message || "Unable to save usage entry.");
     } finally {
       setSaving(false);
@@ -237,6 +361,7 @@ function UsagePage() {
   async function handleEditUsage(row) {
     try {
       setError("");
+      setDialogError("");
       const payload = await getUsageById(row._id);
       setEditingUsage(payload.data || row);
       setDialogOpen(true);
@@ -274,10 +399,31 @@ function UsagePage() {
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [selectedPeriod.month, selectedPeriod.year, usages]);
 
-  const chartData = monthUsages.map((item) => ({
-    label: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    units: Number(item.unitsUsed || 0),
-  }));
+  const chartData = useMemo(() => {
+    // Keep the chart anchored to today so the last 7 days always reflect the current calendar window.
+    const today = new Date();
+    const normalizedEndDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dailyUnits = new Map();
+
+    usages.forEach((item) => {
+      const date = new Date(item.date);
+      const key = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().slice(0, 10);
+      dailyUnits.set(key, (dailyUnits.get(key) || 0) + Number(item.unitsUsed || 0));
+    });
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(normalizedEndDate);
+      date.setDate(normalizedEndDate.getDate() - (6 - index));
+      const key = date.toISOString().slice(0, 10);
+
+      return {
+        label: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        units: dailyUnits.get(key) || 0,
+      };
+    });
+  }, [usages]);
+
+  // Keep the records table broader than the summary cards so users can review older entries without changing the dashboard period.
   const tableRows = useMemo(() => {
     const sortedRows = [...usages].sort((a, b) => new Date(b.date) - new Date(a.date));
     return sortedRows.filter((item) => {
@@ -307,11 +453,57 @@ function UsagePage() {
   const dailyAverage = summary?.entries ? totalUnits / summary.entries : 0;
   const weather = weatherInfo?.weather || null;
   const weatherTip = weatherInfo?.insight || "Weather insight is unavailable right now.";
+  // Prefer a saved household label so the header never falls back to the raw object id.
+  const householdLabel = localStorage.getItem("selectedHouseholdName") || localStorage.getItem("householdName") || "Household";
+  const degreeSymbol = String.fromCharCode(176);
 
-  // This page now renders directly inside MainLayout, so the temporary shell is no longer needed.
   return (
     <div style={{ minHeight: "100%", background: colors.background, padding: "10px" }}>
+      <div style={{ marginBottom: "18px" }}>
+        <h1 style={{ margin: 0, fontSize: "30px", color: colors.text }}>Usage Tracking</h1>
+      </div>
       <PageNotice loading={loading} error={error} householdId={householdId} />
+
+      <div
+        style={{
+          ...cardStyle,
+          padding: "18px 22px",
+          marginBottom: "18px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <div style={{ color: colors.text, fontSize: "20px", fontWeight: "800", marginBottom: "6px" }}>{householdLabel}</div>
+          <div style={{ color: colors.muted }}>Track recent usage, costs, and weather impact in one place.</div>
+        </div>
+        {/* Keep a quick action at the top so users can add usage entries without scrolling. */}
+        <button
+          type="button"
+          onClick={() => {
+            setEditingUsage(null);
+            setDialogError("");
+            setDialogOpen(true);
+          }}
+          style={{
+            border: "none",
+            background: colors.green,
+            color: "#ffffff",
+            padding: "12px 18px",
+            borderRadius: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+            fontWeight: "700",
+          }}
+        >
+          + Add Entry
+        </button>
+      </div>
 
       {/* Use a slightly smaller minimum card width so all four summary cards fit in one row on common desktop widths. */}
       <div style={responsiveGrid("220px", "18px")}>
@@ -339,34 +531,55 @@ function UsagePage() {
         />
         <MetricCard
           title="Weather"
-          value={weather?.temperature != null ? `${weather.temperature}°C` : "—"}
+          value={weather?.temperature != null ? `${weather.temperature}${degreeSymbol}C` : "-"}
           subtitle={weather?.city || "Colombo"}
           icon="thermo"
           tone="red"
         />
       </div>
 
-      <div style={{ ...responsiveGrid("320px", "26px"), marginTop: "26px" }}>
-        <div style={{ gridColumn: "span 2" }}>
-          <UsageBars title={`Daily Usage - ${formatMonthYear(selectedPeriod.month, selectedPeriod.year)}`} data={chartData} />
+      <div
+        style={{
+          // This row uses a fixed two-panel layout because the wide chart and narrow weather card overlap in auto-fit grids.
+          display: "flex",
+          gap: "26px",
+          flexWrap: "wrap",
+          alignItems: "stretch",
+          marginTop: "26px",
+        }}
+      >
+        <div style={{ flex: "2 1 680px", minWidth: "320px", display: "flex" }}>
+          <UsageBars title="Daily Usage - Last 7 Days" data={chartData} />
         </div>
-        <WeatherInsightCard
-          city={weather?.city || "Colombo"}
-          weather={weather}
-          tip={weatherTip}
-          locationMode={weatherLocationMode}
-          customCity={customWeatherCity}
-          onLocationModeChange={handleWeatherLocationModeChange}
-          onCustomCityChange={(value) => {
-            setCustomWeatherCity(value);
-            localStorage.setItem("customWeatherCity", value);
-          }}
-          onApplyCustomCity={handleApplyCustomCity}
-        />
+        <div style={{ flex: "1 1 320px", minWidth: "320px", display: "flex" }}>
+          <WeatherInsightCard
+            city={weather?.city || "Colombo"}
+            weather={weather}
+            tip={weatherTip}
+            locationMode={weatherLocationMode}
+            customCity={customWeatherCity}
+            onLocationModeChange={handleWeatherLocationModeChange}
+            onCustomCityChange={(value) => {
+              setCustomWeatherCity(value);
+              localStorage.setItem("customWeatherCity", value);
+            }}
+            onApplyCustomCity={handleApplyCustomCity}
+          />
+        </div>
       </div>
 
       <div style={{ ...responsiveGrid("360px", "26px"), marginTop: "26px" }}>
-        <BreakdownDonut title="Usage by Appliance" items={applianceItems} labelKey="name" />
+        <BreakdownDonut
+          title="Usage by Appliance"
+          items={applianceItems}
+          labelKey="name"
+          actionLabel="Log Hours"
+          onAction={() => {
+            setApplianceHoursError("");
+            setEditingApplianceLog(null);
+            setApplianceHoursOpen(true);
+          }}
+        />
         <ProgressBreakdown title="Usage by Room" items={roomItems} labelKey="roomName" />
       </div>
 
@@ -375,6 +588,7 @@ function UsagePage() {
           rows={tableRows}
           onAdd={() => {
             setEditingUsage(null);
+            setDialogError("");
             setDialogOpen(true);
           }}
           onView={handleViewUsage}
@@ -398,14 +612,34 @@ function UsagePage() {
           setSelectedUsage(null);
         }}
       />
+      <ApplianceHoursDialog
+        open={applianceHoursOpen}
+        appliances={applianceOptions}
+        logs={applianceLogs}
+        selectedPeriod={{ label: formatMonthYear(selectedPeriod.month, selectedPeriod.year) }}
+        saving={applianceHoursSaving}
+        submitError={applianceHoursError}
+        editingLogId={editingApplianceLog?._id || ""}
+        initialLog={editingApplianceLog}
+        onClose={() => {
+          setApplianceHoursOpen(false);
+          setApplianceHoursError("");
+          setEditingApplianceLog(null);
+        }}
+        onSubmit={handleSaveApplianceHours}
+        onEdit={handleEditApplianceLog}
+        onDelete={handleDeleteApplianceLog}
+      />
       <UsageEntryDialog
         open={dialogOpen}
         onClose={() => {
           setDialogOpen(false);
           setEditingUsage(null);
+          setDialogError("");
         }}
         onSubmit={handleSaveUsage}
         submitting={saving}
+        submitError={dialogError}
         initialValues={editingUsage}
         title={editingUsage ? "Edit Usage Entry" : "Add Usage Entry"}
         submitLabel={editingUsage ? "Save Changes" : "Save Entry"}
@@ -427,22 +661,7 @@ function PageNotice({ loading, error, householdId }) {
     return <Banner text="No usage-linked household was found. Add a usage record after setting a household ID in storage." tone="info" />;
   }
 
-  return (
-    <div
-      style={{
-        ...cardStyle,
-        padding: "16px 20px",
-        marginBottom: "22px",
-        display: "flex",
-        justifyContent: "space-between",
-        gap: "14px",
-        flexWrap: "wrap",
-      }}
-    >
-      <div style={{ color: colors.text, fontWeight: "700" }}>Usage Overview</div>
-      <div style={{ color: colors.muted }}>Live usage overview</div>
-    </div>
-  );
+  return null;
 }
 
 function Banner({ text, tone }) {
@@ -530,4 +749,3 @@ function getBrowserCoordinates() {
     );
   });
 }
-

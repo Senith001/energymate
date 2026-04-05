@@ -5,7 +5,8 @@ function UsageBars({ title, data }) {
   const points = data && data.length ? data : [];
   const max = Math.max(...points.map((item) => item.units), 10);
   const ticks = 4;
-  const chartHeight = 250;
+  // Increase the SVG plotting area so the chart uses more of the available card space.
+  const chartHeight = 300;
   const chartWidth = 760;
   const leftPadding = 58;
   const bottomPadding = 34;
@@ -15,10 +16,10 @@ function UsageBars({ title, data }) {
   const slot = points.length ? innerWidth / points.length : 80;
 
   return (
-    <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 18px 0", fontSize: "18px", color: colors.text }}>{title}</h3>
+    <div style={{ ...cardStyle, padding: "24px", minHeight: "350px", width: "100%", display: "flex", flexDirection: "column" }}>
+      <h3 style={{ margin: "0 0 28px 0", fontSize: "18px", color: colors.text }}>{title}</h3>
       {points.length ? (
-        <div style={{ width: "100%", overflowX: "auto" }}>
+        <div style={{ width: "100%", overflowX: "auto", flex: 1 }}>
           <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", minWidth: "580px", display: "block" }}>
             {[...Array(ticks + 1)].map((_, index) => {
               const value = (max / ticks) * (ticks - index);
@@ -51,7 +52,9 @@ function UsageBars({ title, data }) {
           </svg>
         </div>
       ) : (
-        <div style={{ color: colors.muted, padding: "50px 0", textAlign: "center" }}>No usage records available for this month.</div>
+        <div style={{ color: colors.muted, padding: "50px 0", textAlign: "center", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          No usage records available for the last 7 days.
+        </div>
       )}
     </div>
   );

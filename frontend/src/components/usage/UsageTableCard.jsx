@@ -103,7 +103,7 @@ function UsageTableCard({
                   <td style={cellStyle()}>
                     <div style={{ display: "flex", gap: "8px" }}>
                       <ActionButton icon="eye" onClick={() => onView(row)} title="View entry" />
-                      <ActionButton icon="edit" onClick={() => onEdit(row)} title="Edit entry" />
+                      <ActionButton icon="edit" tone="blue" onClick={() => onEdit(row)} title="Edit entry" />
                       <ActionButton
                         icon="trash"
                         danger
@@ -138,7 +138,11 @@ function cellStyle(strong) {
   };
 }
 
-function ActionButton({ icon, danger = false, onClick, disabled = false, title }) {
+function ActionButton({ icon, danger = false, tone = "neutral", onClick, disabled = false, title }) {
+  const isBlue = tone === "blue" && !danger;
+  const background = danger ? colors.redSoft : isBlue ? colors.blueSoft : colors.slateSoft;
+  const iconColor = danger ? colors.red : isBlue ? colors.blue : colors.text;
+
   return (
     <button
       type="button"
@@ -149,17 +153,17 @@ function ActionButton({ icon, danger = false, onClick, disabled = false, title }
         height: "34px",
         borderRadius: "10px",
         border: "none",
-        background: danger ? colors.redSoft : colors.slateSoft,
+        background,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: danger ? colors.red : colors.text,
+        color: iconColor,
         cursor: disabled ? "wait" : "pointer",
         opacity: disabled ? 0.7 : 1,
       }}
       title={title}
     >
-      <Icon name={icon} color={danger ? colors.red : colors.text} size={15} />
+      <Icon name={icon} color={iconColor} size={15} />
     </button>
   );
 }

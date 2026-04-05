@@ -6,8 +6,9 @@ import BillingTableCard from "../../components/billing/BillingTableCard";
 import BillDialog from "../../components/billing/BillDialog";
 import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone } from "../../components/energy/dashboardTheme";
 import { useAuth } from "../../context/AuthContext";
+import { validateBillForm } from "../../utils/billingValidation";
 import { createBill, generateBill, getBillById, getBillComparison, getBills, regenerateBill, updateBill } from "../../utils/billingAPI";
-import { getUsages } from "../../utils/usageAPI";
+import { getHouseholdDetails, getUsages } from "../../utils/usageAPI";
 
 function BillingPage() {
   const { user } = useAuth();
@@ -25,8 +26,15 @@ function BillingPage() {
   const [generating, setGenerating] = useState(false);
   const [busyBillId, setBusyBillId] = useState("");
   const [error, setError] = useState("");
+  const [createDialogError, setCreateDialogError] = useState("");
+  const [updateDialogError, setUpdateDialogError] = useState("");
   const [tableMonthFilter, setTableMonthFilter] = useState("all");
   const [tableYearFilter, setTableYearFilter] = useState("all");
+  const [householdName, setHouseholdName] = useState(
+    localStorage.getItem("selectedHouseholdName") ||
+      localStorage.getItem("householdName") ||
+      (user?.name ? `${user.name}'s Household` : "Household")
+  );
 
   useEffect(() => {
     loadBillingPage();
@@ -45,10 +53,9 @@ function BillingPage() {
 
       let resolvedHouseholdId = householdId;
       if (!resolvedHouseholdId) {
+        // Billing still borrows the existing usage context until household selection is wired in centrally.
         const usagePayload = await getUsages();
-        resolvedHouseholdId =
-          usagePayload.data?.[0]?.householdId ||
-          "";
+        resolvedHouseholdId = usagePayload.data?.[0]?.householdId || "";
         setHouseholdId(resolvedHouseholdId);
       }
 
@@ -56,6 +63,8 @@ function BillingPage() {
         setLoading(false);
         return;
       }
+
+      await loadHouseholdName(resolvedHouseholdId);
 
       const billsPayload = await getBills(resolvedHouseholdId);
       const billRows = billsPayload.data || [];
@@ -72,9 +81,29 @@ function BillingPage() {
     }
   }
 
+  // Borrow the temporary household lookup from usage until the shared household API is exposed centrally.
+  async function loadHouseholdName(activeHouseholdId) {
+    try {
+      const householdPayload = await getHouseholdDetails(activeHouseholdId);
+      const resolvedName =
+        householdPayload?.data?.name ||
+        householdPayload?.name ||
+        localStorage.getItem("selectedHouseholdName") ||
+        localStorage.getItem("householdName") ||
+        (user?.name ? `${user.name}'s Household` : "Household");
+
+      setHouseholdName(resolvedName);
+      localStorage.setItem("selectedHouseholdName", resolvedName);
+      localStorage.setItem("householdName", resolvedName);
+    } catch (householdError) {
+      setHouseholdName((current) => current || (user?.name ? `${user.name}'s Household` : "Household"));
+    }
+  }
+
   async function loadComparison(activeHouseholdId, month, year) {
     try {
       setLoading(true);
+      // Refresh the history list and comparison card together so they stay in sync for the selected bill period.
       const [billsPayload, comparisonPayload] = await Promise.all([getBills(activeHouseholdId), getBillComparison(activeHouseholdId, month, year)]);
       setBills(billsPayload.data || []);
       setComparison(comparisonPayload.data || null);
@@ -86,17 +115,26 @@ function BillingPage() {
   }
 
   async function handleCreateBill(form) {
-    if (!householdId) return;
+    if (!householdId) {
+      setCreateDialogError("A household must be selected before creating a bill.");
+      return;
+    }
 
     try {
       setSubmitting(true);
       setError("");
+      setCreateDialogError("");
 
       const payload = {
         householdId,
         month: Number(form.month),
         year: Number(form.year),
       };
+
+      const validationError = validateBillForm(form);
+      if (validationError) {
+        throw new Error(validationError);
+      }
 
       if (form.mode === "readings") {
         payload.previousReading = Number(form.previousReading);
@@ -110,6 +148,7 @@ function BillingPage() {
       setSelectedPeriod({ month: payload.month, year: payload.year });
       await loadComparison(householdId, payload.month, payload.year);
     } catch (err) {
+      setCreateDialogError(err.message || "Unable to create bill.");
       setError(err.message || "Unable to create bill.");
     } finally {
       setSubmitting(false);
@@ -147,6 +186,7 @@ function BillingPage() {
   async function handleOpenUpdateBill(row) {
     try {
       setError("");
+      setUpdateDialogError("");
       const payload = await getBillById(row._id);
       setSelectedBill(payload.data || row);
       setUpdateOpen(true);
@@ -162,11 +202,17 @@ function BillingPage() {
     try {
       setSubmitting(true);
       setError("");
+      setUpdateDialogError("");
       const payload = {
         month: Number(form.month),
         year: Number(form.year),
         status: form.status,
       };
+
+      const validationError = validateBillForm(form, { requirePaidDateConsistency: true });
+      if (validationError) {
+        throw new Error(validationError);
+      }
 
       if (form.mode === "readings") {
         payload.previousReading = Number(form.previousReading);
@@ -186,6 +232,7 @@ function BillingPage() {
       setSelectedBill(null);
       await loadComparison(householdId, selectedPeriod.month, selectedPeriod.year);
     } catch (err) {
+      setUpdateDialogError(err.message || "Unable to update bill.");
       setError(err.message || "Unable to update bill.");
     } finally {
       setSubmitting(false);
@@ -214,6 +261,7 @@ function BillingPage() {
       return bDate - aDate;
     });
 
+    // Keep the history table independent from the summary cards so users can browse older billing periods without changing the dashboard period.
     return sortedRows.filter((bill) => {
       const monthMatches = tableMonthFilter === "all" || bill.month === Number(tableMonthFilter);
       const yearMatches = tableYearFilter === "all" || bill.year === Number(tableYearFilter);
@@ -232,16 +280,53 @@ function BillingPage() {
     years.add(new Date().getFullYear());
     return Array.from(years).sort((a, b) => b - a);
   }, [bills]);
-  // Use an existing stored household name when available so we do not expose the raw object id in the UI.
-  const householdName =
-    localStorage.getItem("selectedHouseholdName") ||
-    localStorage.getItem("householdName") ||
-    (user?.name ? `${user.name}'s Household` : "Household");
-
-  // This page now renders directly inside MainLayout, so the temporary shell is no longer needed.
   return (
     <div style={{ minHeight: "100%", background: colors.background, padding: "10px" }}>
-      <PageNotice loading={loading} error={error} householdId={householdId} period={selectedPeriod} />
+      <div style={{ marginBottom: "18px" }}>
+        <h1 style={{ margin: 0, fontSize: "30px", color: colors.text }}>Billing and Cost Analysis</h1>
+      </div>
+      <PageNotice loading={loading} error={error} householdId={householdId} period={selectedPeriod} billsCount={bills.length} />
+
+      {householdId ? (
+        <div
+          style={{
+            ...cardStyle,
+            padding: "18px 22px",
+            marginBottom: "18px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div style={{ color: colors.text, fontSize: "20px", fontWeight: "800", marginBottom: "6px" }}>{householdName}</div>
+            <div style={{ color: colors.muted }}>Track recent bills, charges, and monthly cost changes in one place.</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setCreateDialogError("");
+              setDialogOpen(true);
+            }}
+            style={{
+              border: "none",
+              background: colors.green,
+              color: "#ffffff",
+              padding: "12px 18px",
+              borderRadius: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              fontWeight: "700",
+            }}
+          >
+            + Create Bill
+          </button>
+        </div>
+      ) : null}
 
       {/* Use a slightly smaller minimum card width so all four summary cards fit in one row on common desktop widths. */}
       <div style={responsiveGrid("220px", "18px")}>
@@ -287,7 +372,10 @@ function BillingPage() {
       <div style={{ marginTop: "26px" }}>
         <BillingTableCard
           rows={tableRows}
-          onCreate={() => setDialogOpen(true)}
+          onCreate={() => {
+            setCreateDialogError("");
+            setDialogOpen(true);
+          }}
           onGenerate={handleGenerateBill}
           generating={generating}
           onView={handleViewBill}
@@ -305,9 +393,13 @@ function BillingPage() {
 
       <BillDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => {
+          setDialogOpen(false);
+          setCreateDialogError("");
+        }}
         onSubmit={handleCreateBill}
         submitting={submitting}
+        submitError={createDialogError}
         month={selectedPeriod.month}
         year={selectedPeriod.year}
       />
@@ -326,9 +418,11 @@ function BillingPage() {
         onClose={() => {
           setUpdateOpen(false);
           setSelectedBill(null);
+          setUpdateDialogError("");
         }}
         onSubmit={handleUpdateBill}
         submitting={submitting}
+        submitError={updateDialogError}
       />
     </div>
   );
@@ -338,6 +432,7 @@ function ComparisonCard({ comparison }) {
   const current = comparison?.current || null;
   const previous = comparison?.previous || null;
   const difference = comparison?.difference || null;
+  // Treat missing difference data as an increase-neutral state so the empty message keeps a stable style.
   const isIncrease = Number(difference?.cost || 0) >= 0;
 
   return (
@@ -372,9 +467,9 @@ function SummaryTile({ label, units, cost }) {
     <div style={{ background: "#f4f7fa", borderRadius: "18px", padding: "18px", textAlign: "center" }}>
       <div style={{ color: colors.muted, marginBottom: "8px" }}>{label}</div>
       <div style={{ color: colors.text, fontSize: "24px", fontWeight: "800" }}>
-        {units != null ? Number(units).toFixed(1) : "—"} <span style={{ fontSize: "14px", fontWeight: "500", color: colors.muted }}>kWh</span>
+        {units != null ? Number(units).toFixed(1) : "-"} <span style={{ fontSize: "14px", fontWeight: "500", color: colors.muted }}>kWh</span>
       </div>
-      <div style={{ marginTop: "8px", fontWeight: "700", color: colors.text }}>{cost != null ? formatCurrency(cost) : "—"}</div>
+      <div style={{ marginTop: "8px", fontWeight: "700", color: colors.text }}>{cost != null ? formatCurrency(cost) : "-"}</div>
     </div>
   );
 }
@@ -432,7 +527,7 @@ function TariffBreakdownCard({ breakdown, total }) {
   );
 }
 
-function PageNotice({ loading, error, householdId, period }) {
+function PageNotice({ loading, error, householdId, period, billsCount }) {
   if (loading) {
     return <Banner text="Loading billing dashboard..." tone="info" />;
   }
@@ -445,22 +540,11 @@ function PageNotice({ loading, error, householdId, period }) {
     return <Banner text="No household ID was found from usage data or local storage. Billing needs an existing household context." tone="info" />;
   }
 
-  return (
-    <div
-      style={{
-        ...cardStyle,
-        padding: "16px 20px",
-        marginBottom: "22px",
-        display: "flex",
-        justifyContent: "space-between",
-        gap: "14px",
-        flexWrap: "wrap",
-      }}
-    >
-      <div style={{ color: colors.text, fontWeight: "700" }}>Billing Overview</div>
-      <div style={{ color: colors.muted }}>Billing overview for {formatMonthYear(period.month, period.year)}</div>
-    </div>
-  );
+  if (!billsCount) {
+    return <Banner text="No bills have been created for this household yet. Create or generate a bill to see billing insights." tone="info" />;
+  }
+
+  return null;
 }
 
 function Banner({ text, tone }) {

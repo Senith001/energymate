@@ -1,4 +1,6 @@
 import Usage from "../models/usage.js";
+import Appliance from "../models/Appliance.js";
+import ApplianceUsageLog from "../models/ApplianceUsageLog.js";
 import { success, error } from "../utils/responseFormatter.js";
 import Household from "../models/Household.js";
 import { getMonthlyCostSummary, getUsageByAppliances, getUsageByRooms } from "../services/usageService.js";
@@ -19,7 +21,7 @@ async function createUsage(req, res) {
     // Calculate unitsUsed if readings provided
     if (!unitsUsed && previousReading !== undefined && currentReading !== undefined) {
       unitsUsed = currentReading - previousReading;
-      
+
       if (unitsUsed < 0) {
         return error(res, "currentReading must be greater than previousReading", 400);
       }
@@ -28,7 +30,7 @@ async function createUsage(req, res) {
     const usage = new Usage({
       householdId,
       date,
-      entryType: entryType || "manual", 
+      entryType: entryType || "manual",
       unitsUsed,
       previousReading,
       currentReading,
@@ -44,7 +46,7 @@ async function createUsage(req, res) {
   }
 }
 
-// READ ALL 
+// READ ALL
 async function getUsages(req, res) {
   try {
     // Get all households owned by the user
@@ -96,9 +98,18 @@ async function updateUsage(req, res) {
       if (!household) return error(res, "Access denied", 403);
     }
 
-    const { currentReading, previousReading, unitsUsed } = req.body;
+    const { currentReading, previousReading, unitsUsed, date, entryType } = req.body;
 
-    // Update both readings if provided
+    if (date !== undefined) {
+      existingUsage.date = date;
+    }
+
+    if (entryType !== undefined) {
+      existingUsage.entryType = entryType;
+    }
+
+    const activeEntryType = existingUsage.entryType;
+
     if (previousReading !== undefined) {
       existingUsage.previousReading = previousReading;
     }
@@ -107,20 +118,28 @@ async function updateUsage(req, res) {
       existingUsage.currentReading = currentReading;
     }
 
-    // Recalculate unitsUsed from readings
-    if ((previousReading !== undefined || currentReading !== undefined) && 
-        existingUsage.previousReading !== undefined && 
-        existingUsage.currentReading !== undefined) {
+    // Meter entries always derive units from the stored readings.
+    if (
+      activeEntryType === "meter" &&
+      existingUsage.previousReading !== undefined &&
+      existingUsage.previousReading !== null &&
+      existingUsage.currentReading !== undefined &&
+      existingUsage.currentReading !== null
+    ) {
       const calculated = existingUsage.currentReading - existingUsage.previousReading;
-      
+
       if (calculated < 0) {
         return error(res, "currentReading must be greater than previousReading", 400);
       }
-      
+
       existingUsage.unitsUsed = calculated;
     } else if (unitsUsed !== undefined) {
-      // ✅ Or update unitsUsed directly
+      // Manual entries store units directly and do not keep meter readings.
       existingUsage.unitsUsed = unitsUsed;
+      if (activeEntryType === "manual") {
+        existingUsage.previousReading = null;
+        existingUsage.currentReading = null;
+      }
     }
 
     const updated = await existingUsage.save();
@@ -133,7 +152,7 @@ async function updateUsage(req, res) {
   }
 }
 
-// DELETE 
+// DELETE
 async function deleteUsage(req, res) {
   try {
     const usage = await Usage.findById(req.params.id);
@@ -151,10 +170,10 @@ async function deleteUsage(req, res) {
   }
 }
 
-// MONTHLY USAGE SUMMARY 
+// MONTHLY USAGE SUMMARY
 async function getMonthlySummary(req, res) {
   try {
-    const { householdId, month, year } = req.params;
+    const { householdId } = req.params;
     const { month: queryMonth, year: queryYear } = req.query;
 
     if (req.user && req.user.role === "user") {
@@ -172,7 +191,7 @@ async function getMonthlySummary(req, res) {
 // ESTIMATE COST
 async function estimateCost(req, res) {
   try {
-    const { householdId, month, year } = req.params;
+    const { householdId } = req.params;
     const { month: queryMonth, year: queryYear } = req.query;
 
     if (req.user && req.user.role === "user") {
@@ -187,7 +206,7 @@ async function estimateCost(req, res) {
   }
 }
 
-// WEATHER IMPACT (third-party API integration) 
+// WEATHER IMPACT (third-party API integration)
 async function getWeatherImpact(req, res) {
   try {
     const { householdId } = req.params;
@@ -258,6 +277,115 @@ async function getUsageByRoomsController(req, res) {
   }
 }
 
+// DAILY APPLIANCE HOURS
+async function createApplianceUsageLog(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { applianceId, date, hoursUsed, source } = req.body;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    // Keep the log scoped to appliances that actually belong to the selected household.
+    const appliance = await Appliance.findOne({ _id: applianceId, householdId });
+    if (!appliance) return error(res, "Appliance not found in this household", 404);
+
+    const log = new ApplianceUsageLog({
+      householdId,
+      applianceId,
+      date,
+      hoursUsed,
+      source: source || "manual",
+    });
+
+    const saved = await log.save();
+    return success(res, saved, "Appliance usage log created", 201);
+  } catch (err) {
+    if (err.code === 11000) {
+      return error(res, "A usage-hours entry already exists for this appliance and date", 409);
+    }
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+async function getApplianceUsageLogs(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { month, year, applianceId } = req.query;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const filter = { householdId };
+
+    if (applianceId) {
+      filter.applianceId = applianceId;
+    }
+
+    if (month && year) {
+      // Month filtering is optional so the same endpoint can back both history lists and period-specific dialogs.
+      filter.date = {
+        $gte: new Date(Number(year), Number(month) - 1, 1),
+        $lte: new Date(Number(year), Number(month), 0, 23, 59, 59, 999),
+      };
+    }
+
+    const logs = await ApplianceUsageLog.find(filter).sort({ date: -1, createdAt: -1 });
+    return success(res, logs, "Appliance usage logs fetched");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+async function updateApplianceUsageLog(req, res) {
+  try {
+    const { householdId, logId } = req.params;
+    const { date, hoursUsed, source } = req.body;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const log = await ApplianceUsageLog.findOne({ _id: logId, householdId });
+    if (!log) return error(res, "Appliance usage log not found", 404);
+
+    if (date !== undefined) log.date = date;
+    if (hoursUsed !== undefined) log.hoursUsed = hoursUsed;
+    if (source !== undefined) log.source = source;
+
+    const updated = await log.save();
+    return success(res, updated, "Appliance usage log updated");
+  } catch (err) {
+    if (err.code === 11000) {
+      return error(res, "A usage-hours entry already exists for this appliance and date", 409);
+    }
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+async function deleteApplianceUsageLog(req, res) {
+  try {
+    const { householdId, logId } = req.params;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const log = await ApplianceUsageLog.findOneAndDelete({ _id: logId, householdId });
+    if (!log) return error(res, "Appliance usage log not found", 404);
+
+    return success(res, log, "Appliance usage log deleted");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
 export {
   createUsage,
   getUsages,
@@ -269,4 +397,8 @@ export {
   getWeatherImpact,
   getUsageByAppliancesController,
   getUsageByRoomsController,
+  createApplianceUsageLog,
+  getApplianceUsageLogs,
+  updateApplianceUsageLog,
+  deleteApplianceUsageLog,
 };

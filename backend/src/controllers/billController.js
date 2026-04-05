@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Bill from "../models/bill.js";
 import { success, error } from "../utils/responseFormatter.js";
-import { createUserBill, generateBill, compareBills } from "../services/billService.js";
+import { buildBillFields, createUserBill, generateBill, compareBills } from "../services/billService.js";
 import { verifyHouseholdOwnership } from "../services/usageService.js";
 
 // CREATE BILL (user enters units or readings)
@@ -112,27 +112,55 @@ async function updateBill(req, res) {
     }
 
     const { totalUnits, previousReading, currentReading, month, year, status, paidAt } = req.body;
-
-    // Calculate totalUnits from readings if provided
-    let newTotalUnits = totalUnits;
-    if (totalUnits === undefined || totalUnits === null) {
-      if (previousReading !== undefined && currentReading !== undefined) {
-        if (currentReading < previousReading) {
-          return error(res, "currentReading must be greater than previousReading", 400);
-        }
-        newTotalUnits = currentReading - previousReading;
-      }
-    }
+    const nextMonth = month !== undefined ? Number(month) : bill.month;
+    const nextYear = year !== undefined ? Number(year) : bill.year;
+    const readingsChanged = previousReading !== undefined || currentReading !== undefined;
+    const unitsChanged = totalUnits !== undefined && totalUnits !== null;
+    const periodChanged = month !== undefined || year !== undefined;
 
     // Prepare updates
     const updates = {};
-    if (newTotalUnits !== undefined) updates.totalUnits = Number(newTotalUnits);
-    if (previousReading !== undefined) updates.previousReading = Number(previousReading);
-    if (currentReading !== undefined) updates.currentReading = Number(currentReading);
-    if (month !== undefined) updates.month = Number(month);
-    if (year !== undefined) updates.year = Number(year);
+    if (month !== undefined) updates.month = nextMonth;
+    if (year !== undefined) updates.year = nextYear;
     if (status !== undefined) updates.status = status;
     if (paidAt !== undefined) updates.paidAt = paidAt;
+
+    // Recalculate the derived bill fields whenever bill inputs or the billing period changes.
+    if (unitsChanged || readingsChanged || periodChanged) {
+      let billFields;
+
+      if (unitsChanged) {
+        billFields = await buildBillFields({
+          month: nextMonth,
+          year: nextYear,
+          totalUnits: Number(totalUnits),
+          previousReading: null,
+          currentReading: null,
+        });
+      } else {
+        const nextPreviousReading = previousReading !== undefined ? Number(previousReading) : bill.previousReading;
+        const nextCurrentReading = currentReading !== undefined ? Number(currentReading) : bill.currentReading;
+
+        if (nextPreviousReading === null || nextCurrentReading === null) {
+          billFields = await buildBillFields({
+            month: nextMonth,
+            year: nextYear,
+            totalUnits: bill.totalUnits,
+            previousReading: null,
+            currentReading: null,
+          });
+        } else {
+          billFields = await buildBillFields({
+            month: nextMonth,
+            year: nextYear,
+            previousReading: nextPreviousReading,
+            currentReading: nextCurrentReading,
+          });
+        }
+      }
+
+      Object.assign(updates, billFields);
+    }
 
     const updatedBill = await Bill.findByIdAndUpdate(req.params.id, updates, {
       new: true,

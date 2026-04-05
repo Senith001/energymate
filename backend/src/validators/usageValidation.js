@@ -106,6 +106,73 @@ const weatherImpactRules = [
   validate,
 ];
 
+const applianceUsageLogCreateRules = [
+  param("householdId")
+    .notEmpty().withMessage("householdId param is required")
+    .isMongoId().withMessage("householdId must be a valid Mongo ID"),
+  body("applianceId")
+    .notEmpty().withMessage("applianceId is required")
+    .isMongoId().withMessage("applianceId must be a valid Mongo ID"),
+  body("date")
+    .notEmpty().withMessage("date is required")
+    .isISO8601().withMessage("date must be a valid ISO-8601 date"),
+  body("hoursUsed")
+    .notEmpty().withMessage("hoursUsed is required")
+    .isFloat({ min: 0, max: 24 }).withMessage("hoursUsed must be between 0 and 24"),
+  body("source")
+    .optional()
+    .isIn(["manual", "default"]).withMessage("source must be 'manual' or 'default'"),
+  validate,
+];
+
+const applianceUsageLogUpdateRules = [
+  param("householdId")
+    .notEmpty().withMessage("householdId param is required")
+    .isMongoId().withMessage("householdId must be a valid Mongo ID"),
+  param("logId").isMongoId().withMessage("Invalid appliance usage log ID"),
+  body("date")
+    .optional()
+    .isISO8601().withMessage("date must be a valid ISO-8601 date"),
+  body("hoursUsed")
+    .optional()
+    .isFloat({ min: 0, max: 24 }).withMessage("hoursUsed must be between 0 and 24"),
+  body("source")
+    .optional()
+    .isIn(["manual", "default"]).withMessage("source must be 'manual' or 'default'"),
+  validate,
+];
+
+const applianceUsageLogListRules = [
+  param("householdId")
+    .notEmpty().withMessage("householdId param is required")
+    .isMongoId().withMessage("householdId must be a valid Mongo ID"),
+  query("applianceId")
+    .optional()
+    .isMongoId().withMessage("applianceId must be a valid Mongo ID"),
+  query("month")
+    .optional()
+    .isInt({ min: 1, max: 12 }).withMessage("month must be 1-12"),
+  query("year")
+    .optional()
+    .isInt({ min: 2000, max: 2100 }).withMessage("year must be between 2000 and 2100"),
+  // Keep period filters paired so the backend does not guess a partial date range.
+  query("year").custom((_, { req }) => {
+    if ((req.query.month && !req.query.year) || (!req.query.month && req.query.year)) {
+      throw new Error("month and year must be provided together");
+    }
+    return true;
+  }),
+  validate,
+];
+
+const applianceUsageLogIdRule = [
+  param("householdId")
+    .notEmpty().withMessage("householdId param is required")
+    .isMongoId().withMessage("householdId must be a valid Mongo ID"),
+  param("logId").isMongoId().withMessage("Invalid appliance usage log ID"),
+  validate,
+];
+
 export {
   validate,
   createUsageRules,
@@ -113,4 +180,8 @@ export {
   idParamRule,
   monthlyQueryRules,
   weatherImpactRules,
+  applianceUsageLogCreateRules,
+  applianceUsageLogUpdateRules,
+  applianceUsageLogListRules,
+  applianceUsageLogIdRule,
 };
