@@ -1,6 +1,42 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 function SupportTicketsPage() {
+  const defaultTickets = [
+    {
+      id: "T001",
+      subject: "Appliance not updating",
+      category: "Appliance Issue",
+      priority: "High",
+      description: "The appliance usage data is not updating correctly.",
+      date: "2026-04-01",
+      status: "Open",
+    },
+    {
+      id: "T002",
+      subject: "Room details missing",
+      category: "Room Issue",
+      priority: "Medium",
+      description: "One room is not visible on dashboard.",
+      date: "2026-03-29",
+      status: "In Progress",
+    },
+  ];
+
+  const [subject, setSubject] = useState("");
+  const [category, setCategory] = useState("Appliance Issue");
+  const [priority, setPriority] = useState("High");
+  const [description, setDescription] = useState("");
+  const [editId, setEditId] = useState(null);
+
+  const [tickets, setTickets] = useState(() => {
+    const savedTickets = localStorage.getItem("supportTickets");
+    return savedTickets ? JSON.parse(savedTickets) : defaultTickets;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("supportTickets", JSON.stringify(tickets));
+  }, [tickets]);
+
   const pageCard = {
     background: "#ffffff",
     borderRadius: "24px",
@@ -35,6 +71,89 @@ function SupportTicketsPage() {
     fontSize: "15px",
   });
 
+  const buttonStyle = {
+    border: "none",
+    borderRadius: "10px",
+    padding: "8px 12px",
+    cursor: "pointer",
+    color: "white",
+    fontWeight: "600",
+  };
+
+  const getStatusBadge = (status) => {
+    if (status === "Open") return badgeStyle("#fef3c7", "#b45309");
+    if (status === "In Progress") return badgeStyle("#dbeafe", "#1d4ed8");
+    if (status === "Resolved") return badgeStyle("#dff3e8", "#166534");
+    return badgeStyle("#e5e7eb", "#374151");
+  };
+
+  const resetForm = () => {
+    setSubject("");
+    setCategory("Appliance Issue");
+    setPriority("High");
+    setDescription("");
+    setEditId(null);
+  };
+
+  const handleSaveTicket = () => {
+    if (subject.trim() === "" || description.trim() === "") {
+      alert("Please fill all fields");
+      return;
+    }
+
+    if (editId) {
+      const updatedTickets = tickets.map((ticket) =>
+        ticket.id === editId
+          ? {
+              ...ticket,
+              subject,
+              category,
+              priority,
+              description,
+            }
+          : ticket
+      );
+
+      setTickets(updatedTickets);
+      alert("Ticket updated successfully");
+    } else {
+      const newTicket = {
+        id: `T${String(tickets.length + 1).padStart(3, "0")}`,
+        subject,
+        category,
+        priority,
+        description,
+        date: new Date().toISOString().split("T")[0],
+        status: "Open",
+      };
+
+      setTickets([newTicket, ...tickets]);
+      alert("Support ticket created successfully");
+    }
+
+    resetForm();
+  };
+
+  const handleEditTicket = (ticket) => {
+    setSubject(ticket.subject);
+    setCategory(ticket.category);
+    setPriority(ticket.priority);
+    setDescription(ticket.description);
+    setEditId(ticket.id);
+  };
+
+  const handleDeleteTicket = (id) => {
+    const updatedTickets = tickets.filter((ticket) => ticket.id !== id);
+    setTickets(updatedTickets);
+  };
+
+  const handleStatusChange = (id, newStatus) => {
+    const updatedTickets = tickets.map((ticket) =>
+      ticket.id === id ? { ...ticket, status: newStatus } : ticket
+    );
+    setTickets(updatedTickets);
+  };
+
   return (
     <div style={{ background: "#f3f4f6", minHeight: "100vh", padding: "10px" }}>
       <div
@@ -64,6 +183,7 @@ function SupportTicketsPage() {
         </div>
 
         <button
+          onClick={handleSaveTicket}
           style={{
             background: "#0b8f3a",
             color: "white",
@@ -76,7 +196,7 @@ function SupportTicketsPage() {
             boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
           }}
         >
-          + Create Ticket
+          {editId ? "Update Ticket" : "Create Ticket"}
         </button>
       </div>
 
@@ -95,7 +215,7 @@ function SupportTicketsPage() {
               color: "#111827",
             }}
           >
-            Create New Ticket
+            {editId ? "Edit Ticket" : "Create New Ticket"}
           </h2>
 
           <div style={{ display: "grid", gap: "18px" }}>
@@ -113,6 +233,8 @@ function SupportTicketsPage() {
               <input
                 type="text"
                 placeholder="Enter ticket subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
                 style={inputStyle}
               />
             </div>
@@ -128,7 +250,11 @@ function SupportTicketsPage() {
               >
                 Issue Category
               </label>
-              <select style={inputStyle}>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                style={inputStyle}
+              >
                 <option>Appliance Issue</option>
                 <option>Room Issue</option>
                 <option>Energy Target Issue</option>
@@ -148,7 +274,11 @@ function SupportTicketsPage() {
               >
                 Priority
               </label>
-              <select style={inputStyle}>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                style={inputStyle}
+              >
                 <option>High</option>
                 <option>Medium</option>
                 <option>Low</option>
@@ -169,9 +299,29 @@ function SupportTicketsPage() {
               <textarea
                 rows="6"
                 placeholder="Describe your issue"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 style={{ ...inputStyle, resize: "none" }}
               ></textarea>
             </div>
+
+            {editId && (
+              <button
+                onClick={resetForm}
+                style={{
+                  background: "#d1d5db",
+                  color: "#111827",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "12px 18px",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel Edit
+              </button>
+            )}
           </div>
         </div>
 
@@ -186,55 +336,84 @@ function SupportTicketsPage() {
             Your Recent Tickets
           </h2>
 
-          <div
-            style={{
-              background: "#fbf5e7",
-              borderRadius: "18px",
-              padding: "18px",
-              marginBottom: "14px",
-            }}
-          >
-            <h3 style={{ margin: "0 0 10px 0", fontSize: "22px", color: "#111827" }}>
-              T001 - Appliance not updating
-            </h3>
-            <p style={{ margin: "0 0 10px 0", color: "#374151" }}>
-              Created: 2026-04-01
-            </p>
-            <span style={badgeStyle("#fef3c7", "#b45309")}>Open</span>
-          </div>
+          {tickets.map((ticket) => (
+            <div
+              key={ticket.id}
+              style={{
+                background: "#fbf5e7",
+                borderRadius: "18px",
+                padding: "18px",
+                marginBottom: "14px",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 10px 0",
+                  fontSize: "22px",
+                  color: "#111827",
+                }}
+              >
+                {ticket.id} - {ticket.subject}
+              </h3>
 
-          <div
-            style={{
-              background: "#e8f7ed",
-              borderRadius: "18px",
-              padding: "18px",
-              marginBottom: "14px",
-            }}
-          >
-            <h3 style={{ margin: "0 0 10px 0", fontSize: "22px", color: "#111827" }}>
-              T002 - Room details missing
-            </h3>
-            <p style={{ margin: "0 0 10px 0", color: "#374151" }}>
-              Created: 2026-03-29
-            </p>
-            <span style={badgeStyle("#dbeafe", "#1d4ed8")}>In Progress</span>
-          </div>
+              <p style={{ margin: "0 0 8px 0", color: "#374151" }}>
+                Category: {ticket.category}
+              </p>
 
-          <div
-            style={{
-              background: "#eef2ff",
-              borderRadius: "18px",
-              padding: "18px",
-            }}
-          >
-            <h3 style={{ margin: "0 0 10px 0", fontSize: "22px", color: "#111827" }}>
-              T003 - Feedback submission issue
-            </h3>
-            <p style={{ margin: "0 0 10px 0", color: "#374151" }}>
-              Created: 2026-03-25
-            </p>
-            <span style={badgeStyle("#dff3e8", "#166534")}>Resolved</span>
-          </div>
+              <p style={{ margin: "0 0 8px 0", color: "#374151" }}>
+                Priority: {ticket.priority}
+              </p>
+
+              <p style={{ margin: "0 0 8px 0", color: "#374151" }}>
+                Created: {ticket.date}
+              </p>
+
+              <p style={{ margin: "0 0 10px 0", color: "#374151" }}>
+                {ticket.description}
+              </p>
+
+              <div style={{ marginBottom: "12px" }}>
+                <span style={getStatusBadge(ticket.status)}>{ticket.status}</span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  flexWrap: "wrap",
+                  marginBottom: "10px",
+                }}
+              >
+                <button
+                  onClick={() => handleEditTicket(ticket)}
+                  style={{ ...buttonStyle, background: "#2563eb" }}
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() => handleDeleteTicket(ticket.id)}
+                  style={{ ...buttonStyle, background: "#dc2626" }}
+                >
+                  Delete
+                </button>
+
+                <button
+                  onClick={() => handleStatusChange(ticket.id, "In Progress")}
+                  style={{ ...buttonStyle, background: "#1d4ed8" }}
+                >
+                  In Progress
+                </button>
+
+                <button
+                  onClick={() => handleStatusChange(ticket.id, "Resolved")}
+                  style={{ ...buttonStyle, background: "#15803d" }}
+                >
+                  Resolve
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

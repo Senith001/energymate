@@ -1,6 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 function FeedbackPage() {
+  const defaultFeedback = {
+    subject: "Good Dashboard UI",
+    category: "Dashboard",
+    rating: "4",
+    message: "Dashboard layout is simple, clean, and easy to understand.",
+    date: "2026-04-01",
+    status: "Reviewed",
+  };
+
+  const [subject, setSubject] = useState("");
+  const [category, setCategory] = useState("Dashboard");
+  const [rating, setRating] = useState("5");
+  const [message, setMessage] = useState("");
+
+  const [lastFeedback, setLastFeedback] = useState(() => {
+    const savedFeedback = localStorage.getItem("lastFeedback");
+    return savedFeedback ? JSON.parse(savedFeedback) : defaultFeedback;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("lastFeedback", JSON.stringify(lastFeedback));
+  }, [lastFeedback]);
+
   const pageCard = {
     background: "#ffffff",
     borderRadius: "24px",
@@ -23,6 +46,38 @@ function FeedbackPage() {
     outline: "none",
     boxSizing: "border-box",
     background: "#ffffff",
+  };
+
+  const handleSubmitFeedback = () => {
+    if (subject.trim() === "" || message.trim() === "") {
+      alert("Please fill all fields");
+      return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const newFeedback = {
+      subject,
+      category,
+      rating,
+      message,
+      date: today,
+      status: "Submitted",
+    };
+
+    setLastFeedback(newFeedback);
+
+    setSubject("");
+    setCategory("Dashboard");
+    setRating("5");
+    setMessage("");
+
+    alert("Feedback submitted successfully");
+  };
+
+  const getRatingStars = (value) => {
+    const count = parseInt(value, 10);
+    return "⭐".repeat(count);
   };
 
   return (
@@ -54,6 +109,7 @@ function FeedbackPage() {
         </div>
 
         <button
+          onClick={handleSubmitFeedback}
           style={{
             background: "#0b8f3a",
             color: "white",
@@ -103,6 +159,8 @@ function FeedbackPage() {
               <input
                 type="text"
                 placeholder="Enter feedback subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
                 style={inputStyle}
               />
             </div>
@@ -118,7 +176,11 @@ function FeedbackPage() {
               >
                 Category
               </label>
-              <select style={inputStyle}>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                style={inputStyle}
+              >
                 <option>Dashboard</option>
                 <option>Rooms</option>
                 <option>Appliances</option>
@@ -138,12 +200,16 @@ function FeedbackPage() {
               >
                 Rating
               </label>
-              <select style={inputStyle}>
-                <option>5 - Excellent</option>
-                <option>4 - Good</option>
-                <option>3 - Average</option>
-                <option>2 - Poor</option>
-                <option>1 - Very Poor</option>
+              <select
+                value={rating}
+                onChange={(e) => setRating(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Average</option>
+                <option value="2">2 - Poor</option>
+                <option value="1">1 - Very Poor</option>
               </select>
             </div>
 
@@ -161,6 +227,8 @@ function FeedbackPage() {
               <textarea
                 rows="6"
                 placeholder="Write your feedback here"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 style={{ ...inputStyle, resize: "none" }}
               ></textarea>
             </div>
@@ -188,13 +256,16 @@ function FeedbackPage() {
           >
             <div style={{ fontSize: "32px", marginBottom: "10px" }}>⭐</div>
             <h3 style={{ margin: "0 0 8px 0", fontSize: "24px", color: "#111827" }}>
-              Good Dashboard UI
+              {lastFeedback.subject}
             </h3>
             <p style={{ margin: "0 0 8px 0", color: "#d97706", fontWeight: "700" }}>
-              Rating: 4/5
+              Rating: {getRatingStars(lastFeedback.rating)} ({lastFeedback.rating}/5)
+            </p>
+            <p style={{ margin: "0 0 8px 0", color: "#374151", fontWeight: "600" }}>
+              Category: {lastFeedback.category}
             </p>
             <p style={{ margin: 0, color: "#374151", lineHeight: 1.6 }}>
-              Dashboard layout is simple, clean, and easy to understand.
+              {lastFeedback.message}
             </p>
           </div>
 
@@ -209,10 +280,10 @@ function FeedbackPage() {
               Feedback Status
             </h3>
             <p style={{ margin: "0 0 8px 0", color: "#374151" }}>
-              Submitted Date: 2026-04-01
+              Submitted Date: {lastFeedback.date}
             </p>
             <p style={{ margin: 0, color: "#166534", fontWeight: "700" }}>
-              Status: Reviewed
+              Status: {lastFeedback.status}
             </p>
           </div>
         </div>
