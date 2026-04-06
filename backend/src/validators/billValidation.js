@@ -2,7 +2,7 @@ import { body, param } from "express-validator";
 import { validate } from "../middlewares/validate.middleware.js";
 import { idParamRule, monthlyQueryRules } from "./usageValidation.js";
 
-// Bill: create / generate
+// Validate the billing inputs needed to create a manual bill or seed a generated one.
 const createBillRules = [
   body("householdId")
     .notEmpty().withMessage("householdId is required")
@@ -25,7 +25,7 @@ const createBillRules = [
   validate,
 ];
 
-// Bill: update (mark paid, change due date)
+// Bill updates can touch payment state or editable calculation inputs on an existing record.
 const updateBillRules = [
   param("id").isMongoId().withMessage("Invalid bill ID"),
   body("month")
@@ -53,8 +53,23 @@ const updateBillRules = [
     .optional()
     .isIn(["unpaid", "paid"]).withMessage("status must be 'unpaid' or 'paid'"),
   body("paidAt")
-    .optional()
+    .optional({ nullable: true })
     .isISO8601().withMessage("paidAt must be a valid ISO-8601 date"),
+  // Keep payment state consistent so paid bills always have a paid date and unpaid bills do not.
+  body().custom((value) => {
+    const hasStatus = value.status !== undefined;
+    const hasPaidAt = value.paidAt !== undefined;
+
+    if (hasStatus && value.status === "paid" && !hasPaidAt) {
+      throw new Error("paidAt is required when marking a bill as paid");
+    }
+
+    if (hasStatus && value.status === "unpaid" && hasPaidAt && value.paidAt !== null && value.paidAt !== "") {
+      throw new Error("paidAt must be cleared when a bill is marked as unpaid");
+    }
+
+    return true;
+  }),
   body("dueDate")
     .optional()
     .isISO8601().withMessage("dueDate must be a valid ISO-8601 date"),

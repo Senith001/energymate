@@ -49,20 +49,29 @@ async function createUsage(req, res) {
 // READ ALL
 async function getUsages(req, res) {
   try {
-    // Get all households owned by the user
-    const userHouseholds = await Household.find({ userId: req.user._id }).select("_id");
-    const householdIds = userHouseholds.map((h) => h._id);
+    const isAdmin = req.user && (req.user.role === "admin" || req.user.role === "superadmin");
+    let filter = {};
 
-    const filter = { householdId: { $in: householdIds } };
-    // If specific householdId provided, verify ownership
-    if (req.query.householdId) {
-      if (!householdIds.some((id) => id.toString() === req.query.householdId)) {
-        return error(res, "Household not found or access denied", 403);
+    if (!isAdmin) {
+      // Normal users can only browse usage entries from their own households.
+      const userHouseholds = await Household.find({ userId: req.user._id }).select("_id");
+      const householdIds = userHouseholds.map((h) => h._id);
+
+      filter = { householdId: { $in: householdIds } };
+
+      if (req.query.householdId) {
+        if (!householdIds.some((id) => id.toString() === req.query.householdId)) {
+          return error(res, "Household not found or access denied", 403);
+        }
+        filter.householdId = req.query.householdId;
       }
+    } else if (req.query.householdId) {
+      // Admin views stay household-scoped when a filter is supplied from the admin dashboard.
       filter.householdId = req.query.householdId;
     }
 
-    const usages = await Usage.find(filter);
+    // Sort newest first so both user pages and admin pages can reuse the same endpoint sensibly.
+    const usages = await Usage.find(filter).sort({ date: -1, createdAt: -1 });
 
     return success(res, usages, "Usages fetched");
   } catch (err) {
@@ -109,6 +118,9 @@ async function updateUsage(req, res) {
     }
 
     const activeEntryType = existingUsage.entryType;
+    const nextPreviousReading = previousReading !== undefined ? previousReading : existingUsage.previousReading;
+    const nextCurrentReading = currentReading !== undefined ? currentReading : existingUsage.currentReading;
+    const nextUnitsUsed = unitsUsed !== undefined ? unitsUsed : existingUsage.unitsUsed;
 
     if (previousReading !== undefined) {
       existingUsage.previousReading = previousReading;
@@ -118,28 +130,35 @@ async function updateUsage(req, res) {
       existingUsage.currentReading = currentReading;
     }
 
-    // Meter entries always derive units from the stored readings.
-    if (
-      activeEntryType === "meter" &&
-      existingUsage.previousReading !== undefined &&
-      existingUsage.previousReading !== null &&
-      existingUsage.currentReading !== undefined &&
-      existingUsage.currentReading !== null
-    ) {
-      const calculated = existingUsage.currentReading - existingUsage.previousReading;
+    if (activeEntryType === "meter") {
+      // When an entry is meter-based, both readings must exist and units are always derived from them.
+      if (
+        nextPreviousReading === undefined ||
+        nextPreviousReading === null ||
+        nextCurrentReading === undefined ||
+        nextCurrentReading === null
+      ) {
+        return error(res, "Meter entries require both previousReading and currentReading", 400);
+      }
+
+      const calculated = nextCurrentReading - nextPreviousReading;
 
       if (calculated < 0) {
         return error(res, "currentReading must be greater than previousReading", 400);
       }
 
+      existingUsage.previousReading = nextPreviousReading;
+      existingUsage.currentReading = nextCurrentReading;
       existingUsage.unitsUsed = calculated;
-    } else if (unitsUsed !== undefined) {
-      // Manual entries store units directly and do not keep meter readings.
-      existingUsage.unitsUsed = unitsUsed;
-      if (activeEntryType === "manual") {
-        existingUsage.previousReading = null;
-        existingUsage.currentReading = null;
+    } else {
+      // Manual entries store units directly and clear any stale meter readings.
+      if (nextUnitsUsed === undefined || nextUnitsUsed === null) {
+        return error(res, "Manual entries require unitsUsed", 400);
       }
+
+      existingUsage.unitsUsed = nextUnitsUsed;
+      existingUsage.previousReading = null;
+      existingUsage.currentReading = null;
     }
 
     const updated = await existingUsage.save();

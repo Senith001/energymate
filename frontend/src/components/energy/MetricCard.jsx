@@ -2,10 +2,10 @@ import React from "react";
 import { colors, cardStyle, Icon } from "./dashboardTheme";
 
 const toneMap = {
-  green: { background: colors.greenSoft, iconBg: "#d9efe2", icon: colors.green },
-  amber: { background: colors.amberSoft, iconBg: "#ffedb6", icon: colors.amber },
-  blue: { background: colors.blueSoft, iconBg: "#d8e7ff", icon: colors.blue },
-  red: { background: colors.redSoft, iconBg: "#ffd9d9", icon: colors.red },
+  green: { background: colors.greenSoft, iconBg: "#d9efe2", icon: colors.green, border: colors.green },
+  amber: { background: colors.amberSoft, iconBg: "#ffedb6", icon: colors.amber, border: colors.amber },
+  blue: { background: colors.blueSoft, iconBg: "#d8e7ff", icon: colors.blue, border: colors.blue },
+  red: { background: colors.redSoft, iconBg: "#ffd9d9", icon: colors.red, border: colors.red },
 };
 
 function MetricCard({ title, value, subtitle, trend, icon, tone = "green" }) {
@@ -16,6 +16,7 @@ function MetricCard({ title, value, subtitle, trend, icon, tone = "green" }) {
       style={{
         ...cardStyle,
         background: palette.background,
+        border: `1px solid ${palette.border}`,
         padding: "24px",
         minWidth: 0,
       }}

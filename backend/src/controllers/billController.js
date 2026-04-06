@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Bill from "../models/bill.js";
 import { success, error } from "../utils/responseFormatter.js";
-import { buildBillFields, createUserBill, generateBill, compareBills } from "../services/billService.js";
+import { buildBillFields, createUserBill, generateBill, compareBills, ensurePreviousMonthBill } from "../services/billService.js";
 import { verifyHouseholdOwnership } from "../services/usageService.js";
 
 // CREATE BILL (user enters units or readings)
@@ -51,11 +51,13 @@ async function generateBillFromUsage(req, res) {
 async function getBills(req, res) {
   try {
     const { householdId } = req.params;
+    const isAdmin = req.user && (req.user.role === "admin" || req.user.role === "superadmin");
 
+    // Admins can inspect any household, while normal users stay limited to their own bill history.
     let filter = {};
 
-    // Admin sees all bills
-    if (req.user.role === "admin") {
+    // Admin views can browse any household's bill history.
+    if (isAdmin) {
       // If admin specifies householdId, filter by it
       if (householdId) {
         filter.householdId = householdId;
@@ -73,6 +75,11 @@ async function getBills(req, res) {
       }
 
       filter.householdId = householdId;
+    }
+
+    // Backfill the previous month automatically when billing history is opened after a month rollover.
+    if (filter.householdId) {
+      await ensurePreviousMonthBill(filter.householdId.toString());
     }
 
     const bills = await Bill.find(filter).sort({ year: -1, month: -1 });
@@ -124,6 +131,15 @@ async function updateBill(req, res) {
     if (year !== undefined) updates.year = nextYear;
     if (status !== undefined) updates.status = status;
     if (paidAt !== undefined) updates.paidAt = paidAt;
+
+    // Keep payment state consistent even if a client bypasses the frontend form rules.
+    if (status === "paid" && paidAt === undefined) {
+      return error(res, "paidAt is required when marking a bill as paid", 400);
+    }
+
+    if (status === "unpaid" && paidAt !== undefined && paidAt !== null && paidAt !== "") {
+      return error(res, "paidAt must be cleared when a bill is marked as unpaid", 400);
+    }
 
     // Recalculate the derived bill fields whenever bill inputs or the billing period changes.
     if (unitsChanged || readingsChanged || periodChanged) {
