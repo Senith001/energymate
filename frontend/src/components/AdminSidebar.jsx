@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { FiBarChart2 } from "react-icons/fi";
 
 function AdminSidebar() {
   const location = useLocation();
@@ -10,6 +11,7 @@ function AdminSidebar() {
     { name: "Control Center", path: "/admin/dashboard", icon: "⚙" },
     { name: "User Management", path: "/admin/users", icon: "👥" },
     { name: "System Settings", path: "/admin/settings", icon: "🛠" },
+    { name: "Usage & Billing", path: "/admin/usage-billing", icon: <FiBarChart2 /> },
   ];
 
   return (
