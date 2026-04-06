@@ -68,15 +68,29 @@ function AdminBillingPage() {
         setMessage("");
 
         if (selectedHouseholdId) {
-          const [billsResponse] = await Promise.all([
-            api.get(`/bills/households/${selectedHouseholdId}`),
-          ]);
+          const billsResponse = await api.get(`/bills/households/${selectedHouseholdId}`);
+          const nextBills = toArray(billsResponse.data?.data ?? billsResponse.data);
+          setBills(nextBills);
 
-          setBills(toArray(billsResponse.data?.data ?? billsResponse.data));
+          // The summary cards now support two modes:
+          // 1. year only -> latest bill within that year
+          // 2. year + month -> exact selected billing period
+          if (year !== "all") {
+            const targetBill =
+              month !== "all"
+                ? nextBills.find((bill) => Number(bill.year) === Number(year) && Number(bill.month) === Number(month))
+                : nextBills
+                    .filter((bill) => Number(bill.year) === Number(year))
+                    .sort(sortBillsNewestFirst)[0];
 
-          if (month !== "all" && year !== "all") {
-            const comparisonResponse = await api.get(`/bills/households/${selectedHouseholdId}/compare?month=${month}&year=${year}`);
-            setComparison(comparisonResponse.data?.data || null);
+            if (targetBill) {
+              const comparisonResponse = await api.get(
+                `/bills/households/${selectedHouseholdId}/compare?month=${targetBill.month}&year=${targetBill.year}`
+              );
+              setComparison(comparisonResponse.data?.data || null);
+            } else {
+              setComparison(null);
+            }
           } else {
             setComparison(null);
           }
@@ -85,8 +99,7 @@ function AdminBillingPage() {
           const billResponses = await Promise.all(visibleHouseholds.map((household) => api.get(`/bills/households/${household._id}`)));
           const combinedBills = billResponses
             .flatMap((response) => toArray(response.data?.data ?? response.data))
-              
-              .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+            .sort(sortBillsNewestFirst);
 
           setBills(combinedBills);
           setComparison(null);
@@ -204,9 +217,13 @@ function AdminBillingPage() {
   });
 
   // Billing summary cards stay hidden for user-only mode because the comparison endpoint is household-specific.
-  const shouldShowBillingCards = Boolean(selectedHouseholdId && month !== "all" && year !== "all");
+  const shouldShowBillingCards = Boolean(selectedHouseholdId && year !== "all");
   const filteredBills = bills.filter((bill) => matchesBillPeriod(bill, month, year));
-  const latestBill = filteredBills[0] || null;
+  // Follow the exact month when both filters are selected; otherwise show the latest bill within the chosen year.
+  const latestBill =
+    month !== "all" && year !== "all"
+      ? bills.find((bill) => Number(bill.year) === Number(year) && Number(bill.month) === Number(month)) || null
+      : bills.filter((bill) => year === "all" || Number(bill.year) === Number(year)).sort(sortBillsNewestFirst)[0] || null;
   const totalBillPages = Math.max(1, Math.ceil(filteredBills.length / BILLS_PER_PAGE));
   const visibleBills = filteredBills.slice((billsPage - 1) * BILLS_PER_PAGE, billsPage * BILLS_PER_PAGE);
 
@@ -797,6 +814,18 @@ function buildYearOptions(records, getYear) {
   ).sort((a, b) => Number(b) - Number(a));
 
   return ["all", ...years];
+}
+
+function sortBillsNewestFirst(a, b) {
+  if (Number(a.year) !== Number(b.year)) {
+    return Number(b.year) - Number(a.year);
+  }
+
+  if (Number(a.month) !== Number(b.month)) {
+    return Number(b.month) - Number(a.month);
+  }
+
+  return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
 }
 
 export default AdminBillingPage;
