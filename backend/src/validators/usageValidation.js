@@ -1,6 +1,6 @@
 import { body, param, query } from "express-validator";
 import { validate } from "../middlewares/validate.middleware.js";
-// Usage: create
+// Validate full usage creation payloads before the controller decides between manual and meter entry flows.
 const createUsageRules = [
   body("householdId")
     .notEmpty().withMessage("householdId is required")
@@ -21,7 +21,7 @@ const createUsageRules = [
     .optional()
     .isFloat({ min: 0 }).withMessage("currentReading must be a non-negative number"),
   
-  // Custom validation: require either unitsUsed OR both readings
+  // Require enough raw input to derive usage, whether the entry is manual or based on meter readings.
   body().custom((value) => {
     const { unitsUsed, previousReading, currentReading } = value;
 
@@ -37,7 +37,7 @@ const createUsageRules = [
   validate,
 ];
 
-// Usage: update
+// Allow partial usage edits while still validating any numeric fields that are present.
 const updateUsageRules = [
   param("id").isMongoId().withMessage("Invalid usage ID"),
   body("date")
@@ -67,13 +67,13 @@ const updateUsageRules = [
   validate,
 ];
 
-// Param :id 
+// Reuse a single id validator for fetch and delete endpoints that only need the usage record id.
 const idParamRule = [
   param("id").isMongoId().withMessage("Invalid ID"),
   validate,
 ];
 
-// Monthly summary / estimate param
+// Protect the month/year analytics endpoints from invalid household or period values.
 const monthlyQueryRules = [
   param("householdId")
     .notEmpty().withMessage("householdId param is required")
@@ -87,7 +87,7 @@ const monthlyQueryRules = [
   validate,
 ];
 
-// Weather impact param
+// Validate weather insight requests, including optional browser coordinates or custom city fallback.
 const weatherImpactRules = [
   param("householdId")
     .notEmpty().withMessage("householdId param is required")
@@ -110,6 +110,7 @@ const weatherImpactRules = [
   validate,
 ];
 
+// Appliance-hour logs are daily overrides used by the appliance and room breakdown charts.
 const applianceUsageLogCreateRules = [
   param("householdId")
     .notEmpty().withMessage("householdId param is required")
@@ -129,6 +130,7 @@ const applianceUsageLogCreateRules = [
   validate,
 ];
 
+// Updates only touch the log fields that can change after an appliance-hours entry is created.
 const applianceUsageLogUpdateRules = [
   param("householdId")
     .notEmpty().withMessage("householdId param is required")
@@ -146,6 +148,7 @@ const applianceUsageLogUpdateRules = [
   validate,
 ];
 
+// Listing rules keep appliance-hour filters predictable for monthly admin and user views.
 const applianceUsageLogListRules = [
   param("householdId")
     .notEmpty().withMessage("householdId param is required")
@@ -169,6 +172,7 @@ const applianceUsageLogListRules = [
   validate,
 ];
 
+// Shared household/log id validation for appliance-hour fetch and delete endpoints.
 const applianceUsageLogIdRule = [
   param("householdId")
     .notEmpty().withMessage("householdId param is required")

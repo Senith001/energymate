@@ -49,20 +49,29 @@ async function createUsage(req, res) {
 // READ ALL
 async function getUsages(req, res) {
   try {
-    // Get all households owned by the user
-    const userHouseholds = await Household.find({ userId: req.user._id }).select("_id");
-    const householdIds = userHouseholds.map((h) => h._id);
+    const isAdmin = req.user && (req.user.role === "admin" || req.user.role === "superadmin");
+    let filter = {};
 
-    const filter = { householdId: { $in: householdIds } };
-    // If specific householdId provided, verify ownership
-    if (req.query.householdId) {
-      if (!householdIds.some((id) => id.toString() === req.query.householdId)) {
-        return error(res, "Household not found or access denied", 403);
+    if (!isAdmin) {
+      // Normal users can only browse usage entries from their own households.
+      const userHouseholds = await Household.find({ userId: req.user._id }).select("_id");
+      const householdIds = userHouseholds.map((h) => h._id);
+
+      filter = { householdId: { $in: householdIds } };
+
+      if (req.query.householdId) {
+        if (!householdIds.some((id) => id.toString() === req.query.householdId)) {
+          return error(res, "Household not found or access denied", 403);
+        }
+        filter.householdId = req.query.householdId;
       }
+    } else if (req.query.householdId) {
+      // Admin views stay household-scoped when a filter is supplied from the admin dashboard.
       filter.householdId = req.query.householdId;
     }
 
-    const usages = await Usage.find(filter);
+    // Sort newest first so both user pages and admin pages can reuse the same endpoint sensibly.
+    const usages = await Usage.find(filter).sort({ date: -1, createdAt: -1 });
 
     return success(res, usages, "Usages fetched");
   } catch (err) {

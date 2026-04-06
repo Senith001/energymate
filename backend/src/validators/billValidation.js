@@ -2,7 +2,7 @@ import { body, param } from "express-validator";
 import { validate } from "../middlewares/validate.middleware.js";
 import { idParamRule, monthlyQueryRules } from "./usageValidation.js";
 
-// Bill: create / generate
+// Validate the billing inputs needed to create a manual bill or seed a generated one.
 const createBillRules = [
   body("householdId")
     .notEmpty().withMessage("householdId is required")
@@ -25,7 +25,7 @@ const createBillRules = [
   validate,
 ];
 
-// Bill: update (mark paid, change due date)
+// Bill updates can touch payment state or editable calculation inputs on an existing record.
 const updateBillRules = [
   param("id").isMongoId().withMessage("Invalid bill ID"),
   body("month")
@@ -55,6 +55,7 @@ const updateBillRules = [
   body("paidAt")
     .optional({ nullable: true })
     .isISO8601().withMessage("paidAt must be a valid ISO-8601 date"),
+  // Keep payment state consistent so paid bills always have a paid date and unpaid bills do not.
   body().custom((value) => {
     const hasStatus = value.status !== undefined;
     const hasPaidAt = value.paidAt !== undefined;

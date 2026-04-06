@@ -15,19 +15,19 @@ import { protect, authorize } from "../middlewares/auth.middleware.js"; // auth 
 const router = express.Router();
 
 //create
-router.post("/",             protect,  createBillRules, createBill);           // user enters units or readings
-router.post("/households/:householdId/generate",     protect,  comparisonQueryRules, generateBillFromUsage); // auto from usage records
+router.post("/", protect, createBillRules, createBill);           // user enters units or readings
+router.post("/households/:householdId/generate", protect, comparisonQueryRules, generateBillFromUsage); // auto from usage records
 
 //read
-router.get("/households/:householdId",              protect,  getBills);
-router.get("/households/:householdId/compare",       protect,  comparisonQueryRules, getComparison);
-router.get("/:id",           protect,  billIdRule, getBillById);
+router.get("/households/:householdId", protect, getBills);
+router.get("/households/:householdId/compare", protect, comparisonQueryRules, getComparison);
+router.get("/:id", protect, billIdRule, getBillById);
 
 //update
-router.patch("/:id",         protect,  updateBillRules, updateBill);
-router.put("/:id/regenerate",protect, billIdRule, regenerateBill);
+router.patch("/:id", protect, updateBillRules, updateBill);
+router.put("/:id/regenerate", protect, billIdRule, regenerateBill);
 
-//delete
-router.delete("/:id",        protect, authorize("admin"), billIdRule, deleteBill);
+// Bill deletion stays admin-side because the regular user flow already supports safer status-based actions.
+router.delete("/:id", protect, authorize("admin", "superadmin"), billIdRule, deleteBill);
 
 export default router;

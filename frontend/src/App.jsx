@@ -15,6 +15,10 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsagePage from "./pages/usage/AdminUsagePage";
+import AdminUsageBillingPage from "./pages/usage/AdminUsageBillingPage";
+import AdminBillingPage from "./pages/bill/AdminBillingPage";
+import AdminTariffPage from "./pages/bill/AdminTariffPage";
 
 //User Pages
 import UserProfile from "./pages/user/UserProfile";
@@ -46,6 +50,10 @@ function App() {
           {/* Protected Admin Layout Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="usage-billing" element={<AdminUsageBillingPage />} />
+            <Route path="usage" element={<AdminUsagePage />} />
+            <Route path="billing" element={<AdminBillingPage />} />
+            <Route path="tariffs" element={<AdminTariffPage />} />
           </Route>
 
           {/* 🔵 SECURE USER ROUTES (Wrapped in ProtectedRoute) */}

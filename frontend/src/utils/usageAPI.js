@@ -1,9 +1,9 @@
 const API_BASE = "http://localhost:5001/api";
 
-// Get token from localStorage (adjust as needed)
+// Read the saved auth token once per request so usage calls stay scoped to the signed-in user.
 const getToken = () => localStorage.getItem("token");
 
-// Create headers with auth token
+// Reuse the same authenticated JSON headers across all usage-side requests.
 const authHeaders = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${getToken()}`,
@@ -229,6 +229,7 @@ export async function createApplianceHoursLog(householdId, data) {
   }
 }
 
+// Read saved appliance-hour entries for the current month so the dialog can show and edit them.
 export async function getApplianceHoursLogs(householdId, month, year) {
   try {
     const params = new URLSearchParams();
