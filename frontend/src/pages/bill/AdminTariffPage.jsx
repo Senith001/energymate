@@ -316,6 +316,7 @@ function SummaryTile({ label, value, tone }) {
       style={{
         borderRadius: "18px",
         background: palette.background,
+        border: `1px solid ${palette.border}`,
         padding: "18px",
         display: "grid",
         gap: "8px",
@@ -405,9 +406,9 @@ const backLinkStyle = {
 };
 
 const summaryToneMap = {
-  green: { background: adminColors.greenSoft },
-  blue: { background: adminColors.blueSoft },
-  amber: { background: adminColors.amberSoft },
+  green: { background: adminColors.greenSoft, border: "rgba(21, 128, 61, 0.4)" },
+  blue: { background: adminColors.blueSoft, border: "rgba(29, 78, 216, 0.38)" },
+  amber: { background: adminColors.amberSoft, border: "rgba(180, 83, 9, 0.4)" },
 };
 
 export default AdminTariffPage;

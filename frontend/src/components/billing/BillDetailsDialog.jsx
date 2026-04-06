@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone } from "../energy/dashboardTheme";
 
 const overlayStyle = {
@@ -146,6 +146,18 @@ export function BillSummaryContent({ bill, householdName, previewMode = false, f
 
 // This dialog is read-only so viewing a bill stays separate from updating it.
 function BillDetailsDialog({ open, bill, onClose, householdName }) {
+  useEffect(() => {
+    if (!open) return undefined;
+
+    // Lock background page scrolling while the bill view dialog is open so only the modal scrolls.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   if (!open || !bill) return null;
 
   return (

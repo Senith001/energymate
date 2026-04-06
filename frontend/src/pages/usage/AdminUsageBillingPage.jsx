@@ -19,7 +19,7 @@ function AdminUsageBillingPage() {
           icon={FiActivity}
           title="Usage Monitoring"
           description="Review household usage summaries, recent entries, and appliance or room breakdowns."
-          path="/admin/usage"
+          path="/admin/usage-billing/usage"
           accent={adminColors.amber}
           soft={adminColors.amberSoft}
         />
@@ -27,7 +27,7 @@ function AdminUsageBillingPage() {
           icon={FiCreditCard}
           title="Billing Oversight"
           description="Inspect bill history, totals, paid status, and monthly bill changes for any household."
-          path="/admin/billing"
+          path="/admin/usage-billing/billing"
           accent={adminColors.green}
           soft={adminColors.greenSoft}
         />
@@ -35,7 +35,7 @@ function AdminUsageBillingPage() {
           icon={FiSliders}
           title="Tariff Settings"
           description="View and edit the current domestic tariff slabs used for estimates and bill generation."
-          path="/admin/tariffs"
+          path="/admin/usage-billing/tariffs"
           accent={adminColors.blue}
           soft={adminColors.blueSoft}
         />
@@ -54,6 +54,7 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
         display: "grid",
         gap: "16px",
         background: soft,
+        border: `1px solid ${toSoftBorder(accent)}`,
       }}
     >
       <div style={{ display: "grid", gap: "10px" }}>
@@ -98,6 +99,13 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
       </div>
     </div>
   );
+}
+
+function toSoftBorder(color) {
+  if (color === adminColors.green) return "rgba(21, 128, 61, 0.4)";
+  if (color === adminColors.blue) return "rgba(29, 78, 216, 0.38)";
+  if (color === adminColors.amber) return "rgba(180, 83, 9, 0.4)";
+  return adminColors.border;
 }
 
 export default AdminUsageBillingPage;

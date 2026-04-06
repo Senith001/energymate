@@ -374,7 +374,7 @@ function BillingPage() {
     return Array.from(years).sort((a, b) => b - a);
   }, [bills]);
   return (
-    <div style={{ minHeight: "100%", background: colors.background, padding: "10px" }}>
+    <div style={{ background: colors.background, padding: "10px" }}>
       <div style={{ marginBottom: "18px" }}>
         <h1 style={{ margin: 0, fontSize: "30px", color: colors.text }}>Billing and Cost Analysis</h1>
       </div>
@@ -435,7 +435,7 @@ function BillingPage() {
           value={`${Math.abs(Number(percentageChange || 0)).toFixed(1)}%`}
           subtitle={`${costDifference >= 0 ? "+" : "-"}${formatCurrency(Math.abs(costDifference))}`}
           icon="trend-up"
-          tone={costDifference >= 0 ? "red" : "green"}
+          tone="blue"
           trend={{
             value: Number(percentageChange || 0),
             label: comparison?.previous ? `vs ${formatMonthYear(comparison.previous.month, comparison.previous.year)}` : "No previous bill",
@@ -453,7 +453,7 @@ function BillingPage() {
           value={`${openBills.length}`}
           subtitle={overdueBills.length ? `${overdueBills.length} overdue` : "All caught up"}
           icon="thermo"
-          tone={overdueBills.length ? "red" : "blue"}
+          tone="red"
         />
       </div>
 
@@ -681,7 +681,7 @@ function responsiveGrid(minWidth, gap) {
 }
 
 const TABLE_MONTH_FILTERS = [
-  { value: "all", label: "None (Show All)" },
+  { value: "all", label: "All Months" },
   { value: "1", label: "January" },
   { value: "2", label: "February" },
   { value: "3", label: "March" },

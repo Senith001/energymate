@@ -48,6 +48,7 @@ function UsagePage() {
   const [busyUsageId, setBusyUsageId] = useState("");
   const [error, setError] = useState("");
   const [dialogError, setDialogError] = useState("");
+  const [tableDayFilter, setTableDayFilter] = useState("all");
   const [tableMonthFilter, setTableMonthFilter] = useState("all");
   const [tableYearFilter, setTableYearFilter] = useState("all");
   const [applianceHoursOpen, setApplianceHoursOpen] = useState(false);
@@ -428,11 +429,13 @@ function UsagePage() {
     const sortedRows = [...usages].sort((a, b) => new Date(b.date) - new Date(a.date));
     return sortedRows.filter((item) => {
       const date = new Date(item.date);
+      // Add an optional day filter because monthly usage logs can be dense enough to need one-day lookup.
+      const dayMatches = tableDayFilter === "all" || date.getDate() === Number(tableDayFilter);
       const monthMatches = tableMonthFilter === "all" || date.getMonth() + 1 === Number(tableMonthFilter);
       const yearMatches = tableYearFilter === "all" || date.getFullYear() === Number(tableYearFilter);
-      return monthMatches && yearMatches;
+      return dayMatches && monthMatches && yearMatches;
     });
-  }, [tableMonthFilter, tableYearFilter, usages]);
+  }, [tableDayFilter, tableMonthFilter, tableYearFilter, usages]);
 
   const applianceItems = useMemo(() => makePercentageItems(applianceBreakdown), [applianceBreakdown]);
   const roomItems = useMemo(() => makePercentageItems(roomBreakdown), [roomBreakdown]);
@@ -458,7 +461,7 @@ function UsagePage() {
   const degreeSymbol = String.fromCharCode(176);
 
   return (
-    <div style={{ minHeight: "100%", background: colors.background, padding: "10px" }}>
+    <div style={{ background: colors.background, padding: "10px" }}>
       <div style={{ marginBottom: "18px" }}>
         <h1 style={{ margin: 0, fontSize: "30px", color: colors.text }}>Usage Tracking</h1>
       </div>
@@ -520,7 +523,7 @@ function UsagePage() {
           value={formatCurrency(costInfo?.totalCost)}
           subtitle={`${summary?.entries || 0} recorded entries`}
           icon="trend-up"
-          tone="amber"
+          tone="red"
         />
         <MetricCard
           title="Daily Average"
@@ -534,7 +537,7 @@ function UsagePage() {
           value={weather?.temperature != null ? `${weather.temperature}${degreeSymbol}C` : "-"}
           subtitle={weather?.city || "Colombo"}
           icon="thermo"
-          tone="red"
+          tone="amber"
         />
       </div>
 
@@ -595,10 +598,13 @@ function UsagePage() {
           onEdit={handleEditUsage}
           onDelete={handleDeleteUsage}
           busyId={busyUsageId}
+          dayFilter={tableDayFilter}
           monthFilter={tableMonthFilter}
           yearFilter={tableYearFilter}
+          onDayFilterChange={setTableDayFilter}
           onMonthFilterChange={setTableMonthFilter}
           onYearFilterChange={setTableYearFilter}
+          dayOptions={TABLE_DAY_FILTERS}
           monthOptions={TABLE_MONTH_FILTERS}
           yearOptions={TABLE_YEAR_FILTERS(availableYears)}
         />
@@ -709,9 +715,16 @@ const MONTH_OPTIONS = [
 ];
 
 const TABLE_MONTH_FILTERS = [
-  { value: "all", label: "None (Show All)" },
+  { value: "all", label: "All Months" },
   ...MONTH_OPTIONS.map((month) => ({ value: String(month.value), label: month.label })),
 ];
+
+const TABLE_DAY_FILTERS = [{ value: "all", label: "All Dates" }].concat(
+  Array.from({ length: 31 }, (_, index) => ({
+    value: String(index + 1),
+    label: String(index + 1),
+  }))
+);
 
 const TABLE_YEAR_FILTERS = (years) => [
   { value: "all", label: "All Years" },

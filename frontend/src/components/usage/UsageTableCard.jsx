@@ -9,10 +9,13 @@ function UsageTableCard({
   onEdit,
   onDelete,
   busyId,
+  dayFilter,
   monthFilter,
   yearFilter,
+  onDayFilterChange,
   onMonthFilterChange,
   onYearFilterChange,
+  dayOptions,
   monthOptions,
   yearOptions,
 }) {
@@ -23,7 +26,7 @@ function UsageTableCard({
   // Reset paging when the filters change the underlying result set.
   useEffect(() => {
     setPage(1);
-  }, [rows.length, monthFilter, yearFilter]);
+  }, [rows.length, dayFilter, monthFilter, yearFilter]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -45,7 +48,14 @@ function UsageTableCard({
       >
         <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Usage Records</h3>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          {/* Keep the records table open to all entries by default, with separate month and year filters. */}
+          {/* Keep the records table open to all entries by default, with date/month/year filters for faster lookup. */}
+          <select value={dayFilter} onChange={(event) => onDayFilterChange(event.target.value)} style={selectStyle}>
+            {dayOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
           <select value={monthFilter} onChange={(event) => onMonthFilterChange(event.target.value)} style={selectStyle}>
             {monthOptions.map((option) => (
               <option key={option.value} value={option.value}>

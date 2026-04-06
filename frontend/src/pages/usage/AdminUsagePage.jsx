@@ -85,9 +85,7 @@ function AdminUsagePage() {
 
           const responses = await Promise.all(requests);
           const usageResponse = responses[responses.length - 1];
-          const filteredEntries = toArray(usageResponse.data?.data ?? usageResponse.data).filter((entry) =>
-            matchesPeriod(new Date(entry.date), month, year)
-          );
+          const scopedEntries = toArray(usageResponse.data?.data ?? usageResponse.data);
 
           if (supportsAnalyticsCards) {
             const [summaryResponse, estimateResponse, applianceResponse, roomResponse] = responses;
@@ -102,24 +100,20 @@ function AdminUsagePage() {
             setRooms([]);
           }
 
-          setEntries(filteredEntries);
+          setEntries(scopedEntries);
         } else {
           // User-only selection rolls up recent entries across that user's households, but skips household-specific analytics cards.
           const usageResponse = await api.get("/usage");
           const selectedHouseholdIds = new Set(visibleHouseholds.map((household) => household._id));
-          const filteredEntries = toArray(usageResponse.data?.data ?? usageResponse.data).filter((entry) => {
-            const entryDate = new Date(entry.date);
-            return (
-              selectedHouseholdIds.has(entry.householdId) &&
-              matchesPeriod(entryDate, month, year)
-            );
-          });
+          const scopedEntries = toArray(usageResponse.data?.data ?? usageResponse.data).filter((entry) =>
+            selectedHouseholdIds.has(entry.householdId)
+          );
 
           setSummary(null);
           setEstimate(null);
           setAppliances([]);
           setRooms([]);
-          setEntries(filteredEntries);
+          setEntries(scopedEntries);
         }
       } catch (err) {
         setError(err.response?.data?.message || "Unable to load usage data for this household.");
@@ -209,6 +203,8 @@ function AdminUsagePage() {
     if (!searchText || householdQuery === selectedLabel) return true;
     return getHouseholdOptionLabel(household).toLowerCase().includes(searchText);
   });
+  // Build the year dropdown from the records currently in scope so older years stay selectable.
+  const availableYearOptions = buildYearOptions(entries, (entry) => new Date(entry.date).getFullYear());
 
   // Admin delete stays in this page so data-cleanup actions remain scoped to the oversight view.
   async function handleDeleteUsage(usageId) {
@@ -243,8 +239,10 @@ function AdminUsagePage() {
   // The analytics cards only make sense when one household is selected, while user-level browsing stays table-only.
   const shouldShowUsageCards = Boolean(selectedHouseholdId && month !== "all" && year !== "all");
   const filteredTableEntries = entries.filter((entry) => {
+    const entryDate = new Date(entry.date);
+    if (!matchesPeriod(entryDate, month, year)) return false;
     if (day === "all") return true;
-    return new Date(entry.date).getDate() === Number(day);
+    return entryDate.getDate() === Number(day);
   });
   const totalEntryPages = Math.max(1, Math.ceil(filteredTableEntries.length / ENTRIES_PER_PAGE));
   const visibleEntries = filteredTableEntries.slice((entriesPage - 1) * ENTRIES_PER_PAGE, entriesPage * ENTRIES_PER_PAGE);
@@ -252,6 +250,13 @@ function AdminUsagePage() {
   useEffect(() => {
     setEntriesPage(1);
   }, [selectedUserId, selectedHouseholdId, month, year, day]);
+
+  useEffect(() => {
+    // Reset an out-of-range year filter after the available records change.
+    if (year !== "all" && !availableYearOptions.includes(String(year))) {
+      setYear("all");
+    }
+  }, [availableYearOptions, year]);
 
   useEffect(() => {
     if (entriesPage > totalEntryPages) {
@@ -316,7 +321,9 @@ function AdminUsagePage() {
                       setHouseholdQuery("");
                       setShowUserOptions(false);
                     }}
-                    style={optionButtonStyle}
+                    style={getOptionButtonStyle(false)}
+                    onMouseEnter={(event) => applyOptionHover(event, false)}
+                    onMouseLeave={(event) => clearOptionHover(event, false)}
                   >
                     None
                   </button>
@@ -328,10 +335,9 @@ function AdminUsagePage() {
                         key={user._id}
                         type="button"
                         onMouseDown={() => handleUserSelect(user)}
-                        style={{
-                          ...optionButtonStyle,
-                          background: user._id === selectedUserId ? adminColors.blueSoft : "#ffffff",
-                        }}
+                        style={getOptionButtonStyle(user._id === selectedUserId)}
+                        onMouseEnter={(event) => applyOptionHover(event, user._id === selectedUserId)}
+                        onMouseLeave={(event) => clearOptionHover(event, user._id === selectedUserId)}
                       >
                         {getUserOptionLabel(user)}
                       </button>
@@ -381,7 +387,9 @@ function AdminUsagePage() {
                       setHouseholdQuery("");
                       setShowHouseholdOptions(false);
                     }}
-                    style={optionButtonStyle}
+                    style={getOptionButtonStyle(false)}
+                    onMouseEnter={(event) => applyOptionHover(event, false)}
+                    onMouseLeave={(event) => clearOptionHover(event, false)}
                   >
                     None (All households)
                   </button>
@@ -393,10 +401,9 @@ function AdminUsagePage() {
                         key={household._id}
                         type="button"
                         onMouseDown={() => handleHouseholdSelect(household)}
-                        style={{
-                          ...optionButtonStyle,
-                          background: household._id === selectedHouseholdId ? adminColors.blueSoft : "#ffffff",
-                        }}
+                        style={getOptionButtonStyle(household._id === selectedHouseholdId)}
+                        onMouseEnter={(event) => applyOptionHover(event, household._id === selectedHouseholdId)}
+                        onMouseLeave={(event) => clearOptionHover(event, household._id === selectedHouseholdId)}
                       >
                         {getHouseholdOptionLabel(household)}
                       </button>
@@ -429,7 +436,7 @@ function AdminUsagePage() {
           <label style={labelStyle}>
             Year
             <select style={adminInputStyle} value={year} onChange={(event) => setYear(event.target.value)}>
-              {yearOptions.map((option) => (
+              {availableYearOptions.map((option) => (
                 <option key={option} value={option}>
                   {option === "all" ? "All Years" : option}
                 </option>
@@ -520,7 +527,9 @@ function AdminUsagePage() {
                   <tr key={entry._id} style={{ borderBottom: `1px solid ${adminColors.border}` }}>
                     <TableCell>{new Date(entry.date).toLocaleDateString("en-US")}</TableCell>
                     {!selectedHouseholdId ? <TableCell>{householdNameMap.get(entry.householdId) || "-"}</TableCell> : null}
-                    <TableCell style={{ textTransform: "capitalize" }}>{entry.entryType}</TableCell>
+                    <TableCell>
+                      <EntryTypeBadge entryType={entry.entryType} />
+                    </TableCell>
                     <TableCell>{Number(entry.unitsUsed || 0).toFixed(1)}</TableCell>
                     <TableCell>{entry.previousReading ?? "-"}</TableCell>
                     <TableCell>{entry.currentReading ?? "-"}</TableCell>
@@ -576,7 +585,7 @@ function MetricCard({ label, value, tone }) {
   const palette = tonePalettes[tone] || tonePalettes.blue;
 
   return (
-    <div style={{ ...adminCardStyle, padding: "22px", background: palette.background }}>
+    <div style={{ ...adminCardStyle, padding: "22px", background: palette.background, border: `1px solid ${palette.border}` }}>
       <div style={{ color: adminColors.muted, fontSize: "13px", fontWeight: "700", marginBottom: "10px" }}>{label}</div>
       <div style={{ color: adminColors.text, fontSize: "28px", fontWeight: "800" }}>{value}</div>
     </div>
@@ -640,6 +649,30 @@ function TableCell({ children, style = {} }) {
   return <td style={{ padding: "14px", color: adminColors.text, ...style }}>{children}</td>;
 }
 
+// Match the customer-side usage table so meter and manual entries read consistently across both views.
+function EntryTypeBadge({ entryType }) {
+  const isMeter = entryType === "meter";
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "6px 12px",
+        borderRadius: "999px",
+        background: isMeter ? "#eaf6ef" : "#eef2f6",
+        color: isMeter ? "#2a8c5f" : adminColors.text,
+        fontSize: "13px",
+        fontWeight: "700",
+        textTransform: "lowercase",
+      }}
+    >
+      {entryType}
+    </span>
+  );
+}
+
 const labelStyle = {
   display: "grid",
   gap: "8px",
@@ -648,9 +681,9 @@ const labelStyle = {
 };
 
 const tonePalettes = {
-  green: { background: adminColors.greenSoft },
-  blue: { background: adminColors.blueSoft },
-  amber: { background: adminColors.amberSoft },
+  green: { background: adminColors.greenSoft, border: "rgba(21, 128, 61, 0.4)" },
+  blue: { background: adminColors.blueSoft, border: "rgba(29, 78, 216, 0.38)" },
+  amber: { background: adminColors.amberSoft, border: "rgba(180, 83, 9, 0.4)" },
 };
 
 const backLinkStyle = {
@@ -701,7 +734,7 @@ const optionListStyle = {
   border: `1px solid ${adminColors.border}`,
   borderRadius: "14px",
   boxShadow: "0 14px 30px rgba(15, 23, 42, 0.12)",
-  maxHeight: "240px",
+  maxHeight: "360px",
   overflowY: "auto",
 };
 
@@ -715,6 +748,24 @@ const optionButtonStyle = {
   cursor: "pointer",
   fontSize: "14px",
 };
+
+function getOptionButtonStyle(selected) {
+  return {
+    ...optionButtonStyle,
+    background: selected ? adminColors.blueSoft : "#ffffff",
+  };
+}
+
+// Give the searchable dropdown rows a clearer hover state without overriding the selected row styling.
+function applyOptionHover(event, selected) {
+  if (!selected) {
+    event.currentTarget.style.background = "#f5f9ff";
+  }
+}
+
+function clearOptionHover(event, selected) {
+  event.currentTarget.style.background = selected ? adminColors.blueSoft : "#ffffff";
+}
 
 const emptyOptionStyle = {
   padding: "12px 14px",
@@ -783,7 +834,6 @@ const monthOptions = [
   { value: "12", label: "Dec" },
 ];
 
-const yearOptions = ["all", ...Array.from({ length: 8 }, (_, index) => String(new Date().getFullYear() - 3 + index))];
 const dayOptions = [
   { value: "all", label: "All Dates" },
   ...Array.from({ length: 31 }, (_, index) => ({
@@ -844,6 +894,21 @@ function normalizeRoomBreakdown(value) {
     allocatedUsage: Number(item.allocatedUsage || 0),
     percentage: totalUnits > 0 ? (Number(item.allocatedUsage || 0) / totalUnits) * 100 : 0,
   }));
+}
+
+// Build year filters from the records that actually exist in the current admin scope.
+function buildYearOptions(records, getYear) {
+  // Extract distinct years from the current record set, sort newest first, and prepend the open-ended option.
+  const years = Array.from(
+    new Set(
+      records
+        .map(getYear)
+        .filter((value) => Number.isInteger(value))
+        .map((value) => String(value))
+    )
+  ).sort((a, b) => Number(b) - Number(a));
+
+  return ["all", ...years];
 }
 
 export default AdminUsagePage;

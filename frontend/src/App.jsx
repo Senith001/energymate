@@ -51,9 +51,9 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="usage-billing" element={<AdminUsageBillingPage />} />
-            <Route path="usage" element={<AdminUsagePage />} />
-            <Route path="billing" element={<AdminBillingPage />} />
-            <Route path="tariffs" element={<AdminTariffPage />} />
+            <Route path="usage-billing/usage" element={<AdminUsagePage />} />
+            <Route path="usage-billing/billing" element={<AdminBillingPage />} />
+            <Route path="usage-billing/tariffs" element={<AdminTariffPage />} />
           </Route>
 
           {/* 🔵 SECURE USER ROUTES (Wrapped in ProtectedRoute) */}

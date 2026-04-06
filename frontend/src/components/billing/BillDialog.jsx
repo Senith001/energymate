@@ -53,6 +53,18 @@ function BillDialog({
   const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
+    if (!open) return undefined;
+
+    // Lock the background page while the bill create/calculation dialog is open.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (open) {
       setFormError("");
       setPreview(null);

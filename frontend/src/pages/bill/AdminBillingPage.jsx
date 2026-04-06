@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../../services/api";
 import { FiArrowLeft, FiChevronDown, FiEye, FiTrash2 } from "react-icons/fi";
 import BillDetailsDialog from "../../components/billing/BillDetailsDialog";
+import { getStatusTone } from "../../components/energy/dashboardTheme";
 import {
   adminCardStyle,
   adminColors,
@@ -71,11 +72,7 @@ function AdminBillingPage() {
             api.get(`/bills/households/${selectedHouseholdId}`),
           ]);
 
-          const filteredBills = toArray(billsResponse.data?.data ?? billsResponse.data).filter((bill) =>
-            matchesBillPeriod(bill, month, year)
-          );
-
-          setBills(filteredBills);
+          setBills(toArray(billsResponse.data?.data ?? billsResponse.data));
 
           if (month !== "all" && year !== "all") {
             const comparisonResponse = await api.get(`/bills/households/${selectedHouseholdId}/compare?month=${month}&year=${year}`);
@@ -88,8 +85,8 @@ function AdminBillingPage() {
           const billResponses = await Promise.all(visibleHouseholds.map((household) => api.get(`/bills/households/${household._id}`)));
           const combinedBills = billResponses
             .flatMap((response) => toArray(response.data?.data ?? response.data))
-            .filter((bill) => matchesBillPeriod(bill, month, year))
-            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+              
+              .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
           setBills(combinedBills);
           setComparison(null);
@@ -111,7 +108,8 @@ function AdminBillingPage() {
     ? households.filter((household) => resolveHouseholdUserId(household) === selectedUserId)
     : households;
   const householdNameMap = new Map(households.map((household) => [household._id, household.name]));
-  const latestBill = bills[0] || null;
+  // Build the year dropdown from the bill records currently loaded for this admin scope.
+  const availableYearOptions = buildYearOptions(bills, (bill) => Number(bill.year));
 
   useEffect(() => {
     if (selectedHousehold) {
@@ -207,12 +205,21 @@ function AdminBillingPage() {
 
   // Billing summary cards stay hidden for user-only mode because the comparison endpoint is household-specific.
   const shouldShowBillingCards = Boolean(selectedHouseholdId && month !== "all" && year !== "all");
-  const totalBillPages = Math.max(1, Math.ceil(bills.length / BILLS_PER_PAGE));
-  const visibleBills = bills.slice((billsPage - 1) * BILLS_PER_PAGE, billsPage * BILLS_PER_PAGE);
+  const filteredBills = bills.filter((bill) => matchesBillPeriod(bill, month, year));
+  const latestBill = filteredBills[0] || null;
+  const totalBillPages = Math.max(1, Math.ceil(filteredBills.length / BILLS_PER_PAGE));
+  const visibleBills = filteredBills.slice((billsPage - 1) * BILLS_PER_PAGE, billsPage * BILLS_PER_PAGE);
 
   useEffect(() => {
     setBillsPage(1);
   }, [selectedUserId, selectedHouseholdId, month, year]);
+
+  useEffect(() => {
+    // If the chosen year disappears after filtering or deletion, fall back to the open-ended year filter.
+    if (year !== "all" && !availableYearOptions.includes(String(year))) {
+      setYear("all");
+    }
+  }, [availableYearOptions, year]);
 
   useEffect(() => {
     if (billsPage > totalBillPages) {
@@ -277,7 +284,9 @@ function AdminBillingPage() {
                       setHouseholdQuery("");
                       setShowUserOptions(false);
                     }}
-                    style={optionButtonStyle}
+                    style={getOptionButtonStyle(false)}
+                    onMouseEnter={(event) => applyOptionHover(event, false)}
+                    onMouseLeave={(event) => clearOptionHover(event, false)}
                   >
                     None
                   </button>
@@ -289,10 +298,9 @@ function AdminBillingPage() {
                         key={user._id}
                         type="button"
                         onMouseDown={() => handleUserSelect(user)}
-                        style={{
-                          ...optionButtonStyle,
-                          background: user._id === selectedUserId ? adminColors.blueSoft : "#ffffff",
-                        }}
+                        style={getOptionButtonStyle(user._id === selectedUserId)}
+                        onMouseEnter={(event) => applyOptionHover(event, user._id === selectedUserId)}
+                        onMouseLeave={(event) => clearOptionHover(event, user._id === selectedUserId)}
                       >
                         {getUserOptionLabel(user)}
                       </button>
@@ -342,7 +350,9 @@ function AdminBillingPage() {
                       setHouseholdQuery("");
                       setShowHouseholdOptions(false);
                     }}
-                    style={optionButtonStyle}
+                    style={getOptionButtonStyle(false)}
+                    onMouseEnter={(event) => applyOptionHover(event, false)}
+                    onMouseLeave={(event) => clearOptionHover(event, false)}
                   >
                     None (All households)
                   </button>
@@ -354,10 +364,9 @@ function AdminBillingPage() {
                         key={household._id}
                         type="button"
                         onMouseDown={() => handleHouseholdSelect(household)}
-                        style={{
-                          ...optionButtonStyle,
-                          background: household._id === selectedHouseholdId ? adminColors.blueSoft : "#ffffff",
-                        }}
+                        style={getOptionButtonStyle(household._id === selectedHouseholdId)}
+                        onMouseEnter={(event) => applyOptionHover(event, household._id === selectedHouseholdId)}
+                        onMouseLeave={(event) => clearOptionHover(event, household._id === selectedHouseholdId)}
                       >
                         {getHouseholdOptionLabel(household)}
                       </button>
@@ -380,7 +389,7 @@ function AdminBillingPage() {
           <label style={labelStyle}>
             Year
             <select style={adminInputStyle} value={year} onChange={(event) => setYear(event.target.value)}>
-              {yearOptions.map((option) => (
+              {availableYearOptions.map((option) => (
                 <option key={option} value={option}>
                   {option === "all" ? "All Years" : option}
                 </option>
@@ -430,7 +439,7 @@ function AdminBillingPage() {
           </span>
         </div>
 
-        {bills.length === 0 ? (
+        {filteredBills.length === 0 ? (
           <Message
             tone="info"
             text={
@@ -463,7 +472,9 @@ function AdminBillingPage() {
                       {!selectedHouseholdId ? <TableCell>{householdNameMap.get(bill.householdId) || "-"}</TableCell> : null}
                       <TableCell>{Number(bill.totalUnits || 0).toFixed(1)} kWh</TableCell>
                       <TableCell>{formatAdminCurrency(bill.totalCost)}</TableCell>
-                      <TableCell style={{ textTransform: "capitalize" }}>{bill.status}</TableCell>
+                      <TableCell>
+                        <StatusBadge bill={bill} />
+                      </TableCell>
                       <TableCell>{bill.paidAt ? new Date(bill.paidAt).toLocaleDateString("en-US") : "-"}</TableCell>
                       <TableCell>
                         <div style={actionRowStyle}>
@@ -531,7 +542,7 @@ function MetricCard({ label, value, tone }) {
   const palette = tonePalettes[tone] || tonePalettes.blue;
 
   return (
-    <div style={{ ...adminCardStyle, padding: "22px", background: palette.background }}>
+    <div style={{ ...adminCardStyle, padding: "22px", background: palette.background, border: `1px solid ${palette.border}` }}>
       <div style={{ color: adminColors.muted, fontSize: "13px", fontWeight: "700", marginBottom: "10px" }}>{label}</div>
       <div style={{ color: adminColors.text, fontSize: "28px", fontWeight: "800" }}>{value}</div>
     </div>
@@ -562,6 +573,32 @@ function TableCell({ children, style = {} }) {
   return <td style={{ padding: "14px", color: adminColors.text, ...style }}>{children}</td>;
 }
 
+// Admin billing uses colored badges so paid, pending, and overdue states are easier to scan in long tables.
+function StatusBadge({ bill }) {
+  const tone = getStatusTone(bill?.status, bill?.dueDate);
+  const label = tone.label.charAt(0).toUpperCase() + tone.label.slice(1);
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: "86px",
+        padding: "6px 12px",
+        borderRadius: "999px",
+        background: tone.background,
+        color: tone.text,
+        border: `1px solid ${tone.border}`,
+        fontSize: "13px",
+        fontWeight: "700",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
 const labelStyle = {
   display: "grid",
   gap: "8px",
@@ -570,9 +607,9 @@ const labelStyle = {
 };
 
 const tonePalettes = {
-  green: { background: "#e8f5ed" },
-  blue: { background: "#eaf2ff" },
-  amber: { background: "#fff3df" },
+  green: { background: "#e8f5ed", border: "rgba(21, 128, 61, 0.4)" },
+  blue: { background: "#eaf2ff", border: "rgba(29, 78, 216, 0.38)" },
+  amber: { background: "#fff3df", border: "rgba(180, 83, 9, 0.4)" },
 };
 
 function toArray(value) {
@@ -653,7 +690,7 @@ const optionListStyle = {
   border: `1px solid ${adminColors.border}`,
   borderRadius: "14px",
   boxShadow: "0 14px 30px rgba(15, 23, 42, 0.12)",
-  maxHeight: "240px",
+  maxHeight: "360px",
   overflowY: "auto",
 };
 
@@ -667,6 +704,24 @@ const optionButtonStyle = {
   cursor: "pointer",
   fontSize: "14px",
 };
+
+function getOptionButtonStyle(selected) {
+  return {
+    ...optionButtonStyle,
+    background: selected ? adminColors.blueSoft : "#ffffff",
+  };
+}
+
+// Give the searchable dropdown rows a clearer hover state without overriding the selected row styling.
+function applyOptionHover(event, selected) {
+  if (!selected) {
+    event.currentTarget.style.background = "#f5f9ff";
+  }
+}
+
+function clearOptionHover(event, selected) {
+  event.currentTarget.style.background = selected ? adminColors.blueSoft : "#ffffff";
+}
 
 const emptyOptionStyle = {
   padding: "12px 14px",
@@ -721,7 +776,6 @@ const monthOptions = [
   { value: "12", label: "Dec" },
 ];
 
-const yearOptions = ["all", ...Array.from({ length: 8 }, (_, index) => String(new Date().getFullYear() - 3 + index))];
 const BILLS_PER_PAGE = 8;
 
 // Admin billing can now filter by month, year, both, or neither when browsing across a user's households.
@@ -729,6 +783,20 @@ function matchesBillPeriod(bill, month, year) {
   const monthMatches = month === "all" || Number(bill.month) === Number(month);
   const yearMatches = year === "all" || Number(bill.year) === Number(year);
   return monthMatches && yearMatches;
+}
+
+function buildYearOptions(records, getYear) {
+  // Collect unique years from the loaded records so the filter reflects real data instead of a fixed date range.
+  const years = Array.from(
+    new Set(
+      records
+        .map(getYear)
+        .filter((value) => Number.isInteger(value))
+        .map((value) => String(value))
+    )
+  ).sort((a, b) => Number(b) - Number(a));
+
+  return ["all", ...years];
 }
 
 export default AdminBillingPage;
