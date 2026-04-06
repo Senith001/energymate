@@ -51,11 +51,13 @@ async function generateBillFromUsage(req, res) {
 async function getBills(req, res) {
   try {
     const { householdId } = req.params;
+    const isAdmin = req.user && (req.user.role === "admin" || req.user.role === "superadmin");
 
+    // Admins can inspect any household, while normal users stay limited to their own bill history.
     let filter = {};
 
-    // Admin sees all bills
-    if (req.user.role === "admin") {
+    // Admin views can browse any household's bill history.
+    if (isAdmin) {
       // If admin specifies householdId, filter by it
       if (householdId) {
         filter.householdId = householdId;

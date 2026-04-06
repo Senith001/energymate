@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { cardStyle, colors, formatDate, Icon } from "../energy/dashboardTheme";
 
 // Usage table actions are passed down from the page so state stays centralized.
@@ -16,6 +16,21 @@ function UsageTableCard({
   monthOptions,
   yearOptions,
 }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
+  const visibleRows = rows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+
+  // Reset paging when the filters change the underlying result set.
+  useEffect(() => {
+    setPage(1);
+  }, [rows.length, monthFilter, yearFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
       <div
@@ -79,7 +94,7 @@ function UsageTableCard({
           </thead>
           <tbody>
             {rows.length ? (
-              rows.map((row) => (
+              visibleRows.map((row) => (
                 <tr key={row._id}>
                   <td style={cellStyle(true)}>{formatDate(row.date)}</td>
                   <td style={cellStyle()}>
@@ -125,6 +140,31 @@ function UsageTableCard({
           </tbody>
         </table>
       </div>
+      {totalPages > 1 ? (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "14px", flexWrap: "wrap" }}>
+          <span style={{ color: colors.muted, fontSize: "14px" }}>
+            Page {page} of {totalPages}
+          </span>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page === 1}
+              style={{ ...pageButtonStyle, opacity: page === 1 ? 0.55 : 1 }}
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page === totalPages}
+              style={{ ...pageButtonStyle, opacity: page === totalPages ? 0.55 : 1 }}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -178,5 +218,17 @@ const selectStyle = {
   fontSize: "14px",
   outline: "none",
 };
+
+const pageButtonStyle = {
+  padding: "9px 14px",
+  borderRadius: "12px",
+  border: `1px solid ${colors.border}`,
+  background: "#ffffff",
+  color: colors.text,
+  fontWeight: "700",
+  cursor: "pointer",
+};
+
+const ROWS_PER_PAGE = 8;
 
 export default UsageTableCard;

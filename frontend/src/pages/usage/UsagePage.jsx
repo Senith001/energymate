@@ -648,6 +648,7 @@ function UsagePage() {
   );
 }
 
+// Keep page-level empty, loading, and error states separate from the main dashboard layout.
 function PageNotice({ loading, error, householdId }) {
   if (loading) {
     return <Banner text="Loading usage dashboard..." tone="info" />;
@@ -664,6 +665,7 @@ function PageNotice({ loading, error, householdId }) {
   return null;
 }
 
+// Reuse one lightweight notice style for loading, empty, and error states.
 function Banner({ text, tone }) {
   const palette = tone === "error" ? { background: colors.redSoft, color: colors.red } : { background: colors.blueSoft, color: colors.blue };
   return (
@@ -673,6 +675,7 @@ function Banner({ text, tone }) {
   );
 }
 
+// Add percentages once so both appliance and room breakdown cards can stay presentation-focused.
 function makePercentageItems(items) {
   const total = items.reduce((sum, item) => sum + item.value, 0);
   return items.map((item) => ({
@@ -681,6 +684,7 @@ function makePercentageItems(items) {
   }));
 }
 
+// Reuse the same responsive grid pattern across cards without repeating inline layout objects.
 function responsiveGrid(minWidth, gap) {
   return {
     display: "grid",
@@ -727,6 +731,7 @@ const selectStyle = {
 
 export default UsagePage;
 
+// Wrap the browser geolocation API so the weather card can fall back cleanly when permission is denied.
 function getBrowserCoordinates() {
   if (typeof window === "undefined" || !navigator.geolocation) {
     return Promise.resolve(null);
