@@ -1,0 +1,211 @@
+{
+  "info": {
+    "_postman_id": "billing-module-postman-collection",
+    "name": "EnergyMate Billing and Tariff API",
+    "description": "Postman collection for the Billing and Tariff component only. This collection expects an existing Postman environment with variables such as baseUrl, userToken, adminToken, householdId, billId, month, and year.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Billing CRUD and Actions",
+      "item": [
+        {
+          "name": "Create Bill - Units",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"householdId\": \"{{householdId}}\",\n  \"month\": {{month}},\n  \"year\": {{year}},\n  \"totalUnits\": 85\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bills",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills"]
+            },
+            "description": "Creates a bill by directly entering total units."
+          }
+        },
+        {
+          "name": "Create Bill - Readings",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"householdId\": \"{{householdId}}\",\n  \"month\": {{month}},\n  \"year\": {{year}},\n  \"previousReading\": 500,\n  \"currentReading\": 585\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bills",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills"]
+            },
+            "description": "Creates a bill from meter readings."
+          }
+        },
+        {
+          "name": "Generate Bill From Usage",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/households/{{householdId}}/generate?month={{month}}&year={{year}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "households", "{{householdId}}", "generate"],
+              "query": [
+                { "key": "month", "value": "{{month}}" },
+                { "key": "year", "value": "{{year}}" }
+              ]
+            },
+            "description": "Generates a bill from recorded usage entries."
+          }
+        },
+        {
+          "name": "Get Bills By Household",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/households/{{householdId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "households", "{{householdId}}"]
+            },
+            "description": "Returns bill history for the selected household."
+          }
+        },
+        {
+          "name": "Get Bill By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/{{billId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "{{billId}}"]
+            },
+            "description": "Fetches one bill by id."
+          }
+        },
+        {
+          "name": "Update Bill",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paid\",\n  \"paidAt\": \"2026-03-31\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/{{billId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "{{billId}}"]
+            },
+            "description": "Updates payment state or bill inputs."
+          }
+        },
+        {
+          "name": "Compare Bills",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/households/{{householdId}}/compare?month={{month}}&year={{year}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "households", "{{householdId}}", "compare"],
+              "query": [
+                { "key": "month", "value": "{{month}}" },
+                { "key": "year", "value": "{{year}}" }
+              ]
+            },
+            "description": "Compares the selected bill period against the previous month."
+          }
+        },
+        {
+          "name": "Regenerate Bill",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/{{billId}}/regenerate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "{{billId}}", "regenerate"]
+            },
+            "description": "Regenerates a bill from the latest usage data."
+          }
+        },
+        {
+          "name": "Delete Bill - Admin",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/{{billId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "{{billId}}"]
+            },
+            "description": "Deletes a bill. This route is restricted to admin roles."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tariff",
+      "item": [
+        {
+          "name": "View Tariff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tariffs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tariffs"]
+            },
+            "description": "Returns the current tariff configuration."
+          }
+        },
+        {
+          "name": "Update Tariff - Admin",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tariffLow\": [\n    { \"upTo\": 30, \"rate\": 4, \"fixedCharge\": 75 },\n    { \"upTo\": 60, \"rate\": 6, \"fixedCharge\": 150 }\n  ],\n  \"tariffHigh\": [\n    { \"upTo\": 90, \"rate\": 18, \"fixedCharge\": 400 },\n    { \"upTo\": 120, \"rate\": 30, \"fixedCharge\": 1000 },\n    { \"upTo\": 180, \"rate\": 42, \"fixedCharge\": 1500 },\n    { \"upTo\": null, \"rate\": 65, \"fixedCharge\": 2000 }\n  ],\n  \"ssclRate\": 0.025\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tariffs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tariffs"]
+            },
+            "description": "Updates tariff slabs and SSCL rate. Admin or superadmin only."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,16 @@ This document covers the automated tests written for the Billing component of th
 - Backend: `Vitest`
 - Backend integration environment: `mongodb-memory-server`
 
+## Environment Configuration
+- frontend unit tests run inside the `frontend` project with the local Vitest configuration
+- backend unit and integration tests run inside the `backend` project with the local Vitest configuration
+- backend integration tests use `mongodb-memory-server`, so they do not use the normal development database
+- performance tests require the backend server to be running and the following PowerShell environment values to be set before execution:
+  - `USER_TOKEN`
+  - `HOUSEHOLD_ID`
+  - `MONTH`
+  - `YEAR`
+
 ## Frontend Unit Tests
 Frontend billing tests cover reusable validation rules for the billing form.
 
@@ -67,6 +77,45 @@ Run from the `backend` folder:
 ```bash
 npm test
 ```
+
+## Performance Tests
+Billing performance testing uses Artillery to apply moderate concurrent load to the main bill history and comparison endpoints.
+
+Files:
+- `backend/tests/performance/billing.performance.yml`
+
+Current billing performance scope:
+- bill history retrieval
+- month-over-month bill comparison
+- tariff retrieval
+
+Run from the project root or backend folder after setting environment values:
+
+```bash
+$env:USER_TOKEN="your-jwt-token"
+$env:HOUSEHOLD_ID="your-household-id"
+$env:MONTH="3"
+$env:YEAR="2026"
+npx artillery run backend/tests/performance/billing.performance.yml
+```
+
+Current billing load profile:
+- warm-up phase: `15` seconds at `1` new virtual user per second
+- steady phase: `30` seconds at `3` new virtual users per second
+
+Recorded billing performance result:
+- total requests: `315`
+- success rate: `100%`
+- failed virtual users: `0`
+- mean response time: `412 ms`
+- median response time: `459.5 ms`
+- p95 response time: `645.6 ms`
+- p99 response time: `757.6 ms`
+
+Interpretation:
+- the billing API remained stable under the configured moderate load
+- no virtual users failed during the run
+- the recorded response times show that the billing history, comparison, and tariff endpoints handled concurrent traffic efficiently
 
 ## Notes
 - Integration tests do not use the normal development database.

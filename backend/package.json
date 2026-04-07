@@ -36,6 +36,7 @@
     "stripe": "^19.1.0"
   },
   "devDependencies": {
+    "artillery": "^2.0.30",
     "mongodb-memory-server": "^10.1.4",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.1",
