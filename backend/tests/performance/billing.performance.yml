@@ -1,0 +1,24 @@
+config:
+  target: "http://localhost:5001"
+  phases:
+    # Start gently so bill history and comparison endpoints can warm their Mongo queries.
+    - duration: 15
+      arrivalRate: 1
+    # Then keep a moderate sustained load on the billing flows.
+    - duration: 30
+      arrivalRate: 3
+  defaults:
+    headers:
+      Authorization: "Bearer {{ $processEnvironment.USER_TOKEN }}"
+      Content-Type: "application/json"
+
+scenarios:
+  # Billing history and month-over-month comparison are the most important read paths in this component.
+  - name: "Billing history and comparison"
+    flow:
+      - get:
+          url: "/api/bills/households/{{ $processEnvironment.HOUSEHOLD_ID }}"
+      - get:
+          url: "/api/bills/households/{{ $processEnvironment.HOUSEHOLD_ID }}/compare?month={{ $processEnvironment.MONTH }}&year={{ $processEnvironment.YEAR }}"
+      - get:
+          url: "/api/tariffs"

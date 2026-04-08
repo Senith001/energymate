@@ -1,0 +1,28 @@
+config:
+  target: "http://localhost:5001"
+  phases:
+    # Warm up the usage endpoints with a light arrival rate first.
+    - duration: 15
+      arrivalRate: 1
+    # Apply a moderate steady load for the actual measurement window.
+    - duration: 30
+      arrivalRate: 3
+  defaults:
+    headers:
+      Authorization: "Bearer {{ $processEnvironment.USER_TOKEN }}"
+      Content-Type: "application/json"
+
+scenarios:
+  # Usage history is the main read-heavy flow used by both the user page and admin inspection page.
+  - name: "Usage history and analytics"
+    flow:
+      - get:
+          url: "/api/usage?householdId={{ $processEnvironment.HOUSEHOLD_ID }}"
+      - get:
+          url: "/api/usage/households/{{ $processEnvironment.HOUSEHOLD_ID }}/monthly-summary?month={{ $processEnvironment.MONTH }}&year={{ $processEnvironment.YEAR }}"
+      - get:
+          url: "/api/usage/households/{{ $processEnvironment.HOUSEHOLD_ID }}/estimate?month={{ $processEnvironment.MONTH }}&year={{ $processEnvironment.YEAR }}"
+      - get:
+          url: "/api/usage/households/{{ $processEnvironment.HOUSEHOLD_ID }}/by-appliances?month={{ $processEnvironment.MONTH }}&year={{ $processEnvironment.YEAR }}"
+      - get:
+          url: "/api/usage/households/{{ $processEnvironment.HOUSEHOLD_ID }}/by-rooms?month={{ $processEnvironment.MONTH }}&year={{ $processEnvironment.YEAR }}"
