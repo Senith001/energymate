@@ -1,0 +1,304 @@
+{
+  "info": {
+    "_postman_id": "usage-module-postman-collection",
+    "name": "EnergyMate Usage API",
+    "description": "Postman collection for the Usage component only. This collection expects an existing Postman environment with variables such as baseUrl, userToken, householdId, usageId, applianceId, logId, month, year, and city.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Usage CRUD",
+      "item": [
+        {
+          "name": "Create Usage - Manual",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"householdId\": \"{{householdId}}\",\n  \"date\": \"2026-03-12\",\n  \"entryType\": \"manual\",\n  \"unitsUsed\": 18.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage"]
+            },
+            "description": "Creates a manual usage entry for the selected household."
+          }
+        },
+        {
+          "name": "Create Usage - Meter",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"householdId\": \"{{householdId}}\",\n  \"date\": \"2026-03-13\",\n  \"entryType\": \"meter\",\n  \"previousReading\": 120,\n  \"currentReading\": 146\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage"]
+            },
+            "description": "Creates a meter-based usage entry."
+          }
+        },
+        {
+          "name": "Get Usage History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage?householdId={{householdId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage"],
+              "query": [
+                { "key": "householdId", "value": "{{householdId}}" }
+              ]
+            },
+            "description": "Returns all usage entries visible to the logged-in user for the selected household."
+          }
+        },
+        {
+          "name": "Get Usage By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/{{usageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "{{usageId}}"]
+            },
+            "description": "Fetches one usage record by id."
+          }
+        },
+        {
+          "name": "Update Usage",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entryType\": \"manual\",\n  \"unitsUsed\": 22\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/{{usageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "{{usageId}}"]
+            },
+            "description": "Updates the selected usage record."
+          }
+        },
+        {
+          "name": "Delete Usage",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/{{usageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "{{usageId}}"]
+            },
+            "description": "Deletes the selected usage record."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usage Analytics",
+      "item": [
+        {
+          "name": "Monthly Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/monthly-summary?month={{month}}&year={{year}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "monthly-summary"],
+              "query": [
+                { "key": "month", "value": "{{month}}" },
+                { "key": "year", "value": "{{year}}" }
+              ]
+            },
+            "description": "Returns monthly usage and cost summary."
+          }
+        },
+        {
+          "name": "Estimate Cost",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/estimate?month={{month}}&year={{year}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "estimate"],
+              "query": [
+                { "key": "month", "value": "{{month}}" },
+                { "key": "year", "value": "{{year}}" }
+              ]
+            },
+            "description": "Returns estimated usage cost for the selected period."
+          }
+        },
+        {
+          "name": "Usage By Appliances",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/by-appliances?month={{month}}&year={{year}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "by-appliances"],
+              "query": [
+                { "key": "month", "value": "{{month}}" },
+                { "key": "year", "value": "{{year}}" }
+              ]
+            },
+            "description": "Returns appliance-wise breakdown of usage."
+          }
+        },
+        {
+          "name": "Usage By Rooms",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/by-rooms?month={{month}}&year={{year}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "by-rooms"],
+              "query": [
+                { "key": "month", "value": "{{month}}" },
+                { "key": "year", "value": "{{year}}" }
+              ]
+            },
+            "description": "Returns room-wise breakdown of usage."
+          }
+        },
+        {
+          "name": "Weather Impact",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/weather-impact?month={{month}}&year={{year}}&city={{city}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "weather-impact"],
+              "query": [
+                { "key": "month", "value": "{{month}}" },
+                { "key": "year", "value": "{{year}}" },
+                { "key": "city", "value": "{{city}}" }
+              ]
+            },
+            "description": "Uses the weather API integration to return weather-based usage insight."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appliance Hours",
+      "item": [
+        {
+          "name": "Create Appliance Hours Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applianceId\": \"{{applianceId}}\",\n  \"date\": \"2026-03-12\",\n  \"hoursUsed\": 4.5,\n  \"source\": \"manual\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/appliance-hours",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "appliance-hours"]
+            },
+            "description": "Creates a daily appliance-hours log."
+          }
+        },
+        {
+          "name": "Get Appliance Hours Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/appliance-hours?month={{month}}&year={{year}}&applianceId={{applianceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "appliance-hours"],
+              "query": [
+                { "key": "month", "value": "{{month}}" },
+                { "key": "year", "value": "{{year}}" },
+                { "key": "applianceId", "value": "{{applianceId}}" }
+              ]
+            },
+            "description": "Returns appliance-hours logs for the selected filters."
+          }
+        },
+        {
+          "name": "Update Appliance Hours Log",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hoursUsed\": 6,\n  \"source\": \"manual\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/appliance-hours/{{logId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "appliance-hours", "{{logId}}"]
+            },
+            "description": "Updates the selected appliance-hours log."
+          }
+        },
+        {
+          "name": "Delete Appliance Hours Log",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usage/households/{{householdId}}/appliance-hours/{{logId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usage", "households", "{{householdId}}", "appliance-hours", "{{logId}}"]
+            },
+            "description": "Deletes the selected appliance-hours log."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,250 @@
+import mongoose from "mongoose";
+import Bill from "../models/bill.js";
+import { success, error } from "../utils/responseFormatter.js";
+import { buildBillFields, createUserBill, generateBill, compareBills, ensurePreviousMonthBill } from "../services/billService.js";
+import { verifyHouseholdOwnership } from "../services/usageService.js";
+
+// CREATE BILL (user enters units or readings)
+async function createBill(req, res) {
+  try {
+    const { householdId, month, year, totalUnits, previousReading, currentReading } = req.body;
+
+    // Verify ownership only for normal users
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const bill = await createUserBill({
+      householdId,
+      month: Number(month),
+      year: Number(year),
+      totalUnits: totalUnits !== undefined ? Number(totalUnits) : undefined,
+      previousReading: previousReading !== undefined ? Number(previousReading) : undefined,
+      currentReading: currentReading !== undefined ? Number(currentReading) : undefined,
+    });
+    return success(res, bill, "Bill created", 201);
+  } catch (err) {
+    return error(res, err.message, 400);
+  }
+}
+
+// GENERATE BILL (auto from usage records)
+async function generateBillFromUsage(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { month, year } = req.query;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const bill = await generateBill(householdId, Number(month), Number(year));
+    return success(res, bill, "Bill generated", 201);
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+// GET ALL BILLS 
+async function getBills(req, res) {
+  try {
+    const { householdId } = req.params;
+    const isAdmin = req.user && (req.user.role === "admin" || req.user.role === "superadmin");
+
+    // Admins can inspect any household, while normal users stay limited to their own bill history.
+    let filter = {};
+
+    // Admin views can browse any household's bill history.
+    if (isAdmin) {
+      // If admin specifies householdId, filter by it
+      if (householdId) {
+        filter.householdId = householdId;
+      }
+    } else {
+      // Users must provide householdId and can only see their own
+      if (!householdId) {
+        return error(res, "householdId is required", 400);
+      }
+
+      // Verify user owns this household
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) {
+        return error(res, "Access denied", 403);
+      }
+
+      filter.householdId = householdId;
+    }
+
+    // Backfill the previous month automatically when billing history is opened after a month rollover.
+    if (filter.householdId) {
+      await ensurePreviousMonthBill(filter.householdId.toString());
+    }
+
+    const bills = await Bill.find(filter).sort({ year: -1, month: -1 });
+
+    return success(res, bills, "Bills fetched");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+// GET BILL BY ID
+async function getBillById(req, res) {
+  try {
+    const bill = await Bill.findById(req.params.id);
+    if (!bill) return error(res, "Bill not found", 404);
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(bill.householdId, req.user._id);
+      if (!household) return error(res, "Access denied", 403);
+    }
+
+    return success(res, bill, "Bill fetched");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+// UPDATE BILL (user can re-enter units or readings)
+async function updateBill(req, res) {
+  try {
+    const bill = await Bill.findById(req.params.id);
+    if (!bill) return error(res, "Bill not found", 404);
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(bill.householdId, req.user._id);
+      if (!household) return error(res, "Access denied", 403);
+    }
+
+    const { totalUnits, previousReading, currentReading, month, year, status, paidAt } = req.body;
+    const nextMonth = month !== undefined ? Number(month) : bill.month;
+    const nextYear = year !== undefined ? Number(year) : bill.year;
+    const readingsChanged = previousReading !== undefined || currentReading !== undefined;
+    const unitsChanged = totalUnits !== undefined && totalUnits !== null;
+    const periodChanged = month !== undefined || year !== undefined;
+
+    // Prepare updates
+    const updates = {};
+    if (month !== undefined) updates.month = nextMonth;
+    if (year !== undefined) updates.year = nextYear;
+    if (status !== undefined) updates.status = status;
+    if (paidAt !== undefined) updates.paidAt = paidAt;
+
+    // Keep payment state consistent even if a client bypasses the frontend form rules.
+    if (status === "paid" && paidAt === undefined) {
+      return error(res, "paidAt is required when marking a bill as paid", 400);
+    }
+
+    if (status === "unpaid" && paidAt !== undefined && paidAt !== null && paidAt !== "") {
+      return error(res, "paidAt must be cleared when a bill is marked as unpaid", 400);
+    }
+
+    // Recalculate the derived bill fields whenever bill inputs or the billing period changes.
+    if (unitsChanged || readingsChanged || periodChanged) {
+      let billFields;
+
+      if (unitsChanged) {
+        billFields = await buildBillFields({
+          month: nextMonth,
+          year: nextYear,
+          totalUnits: Number(totalUnits),
+          previousReading: null,
+          currentReading: null,
+        });
+      } else {
+        const nextPreviousReading = previousReading !== undefined ? Number(previousReading) : bill.previousReading;
+        const nextCurrentReading = currentReading !== undefined ? Number(currentReading) : bill.currentReading;
+
+        if (nextPreviousReading === null || nextCurrentReading === null) {
+          billFields = await buildBillFields({
+            month: nextMonth,
+            year: nextYear,
+            totalUnits: bill.totalUnits,
+            previousReading: null,
+            currentReading: null,
+          });
+        } else {
+          billFields = await buildBillFields({
+            month: nextMonth,
+            year: nextYear,
+            previousReading: nextPreviousReading,
+            currentReading: nextCurrentReading,
+          });
+        }
+      }
+
+      Object.assign(updates, billFields);
+    }
+
+    const updatedBill = await Bill.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    return success(res, updatedBill, "Bill updated");
+  } catch (err) {
+    return error(res, err.message, 400);
+  }
+}
+
+// DELETE BILL 
+async function deleteBill(req, res) {
+  try {
+    const bill = await Bill.findById(req.params.id);
+    if (!bill) return error(res, "Bill not found", 404);
+
+    await Bill.findByIdAndDelete(req.params.id);
+    return success(res, bill, "Bill deleted");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+// COMPARE CURRENT vs PREVIOUS MONTH 
+async function getComparison(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { month, year } = req.query;
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(householdId, req.user._id);
+      if (!household) return error(res, "Household not found or access denied", 403);
+    }
+
+    const comparison = await compareBills(householdId, Number(month), Number(year));
+    return success(res, comparison, "Bill comparison");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+// REGENERATE BILL (recalculate from latest usage data) 
+async function regenerateBill(req, res) {
+  try {
+    const bill = await Bill.findById(req.params.id);
+    if (!bill) return error(res, "Bill not found", 404);
+
+    if (req.user && req.user.role === "user") {
+      const household = await verifyHouseholdOwnership(bill.householdId, req.user._id);
+      if (!household) return error(res, "Access denied", 403);
+    }
+
+    const updated = await generateBill(bill.householdId.toString(), bill.month, bill.year);
+    return success(res, updated, "Bill regenerated");
+  } catch (err) {
+    return error(res, "Server error", 500, err.message);
+  }
+}
+
+export {
+  createBill,
+  generateBillFromUsage,
+  getBills,
+  getBillById,
+  updateBill,
+  deleteBill,
+  getComparison,
+  regenerateBill,
+};
