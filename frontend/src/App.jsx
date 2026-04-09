@@ -10,6 +10,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Auth Pages (Your new files in the subfolder)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import VerifyOtpPage from './pages/auth/VerifyOtpPage';
+import SummaryPage from "./pages/auth/SummaryPage";
 
 //Admin Pages
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
@@ -26,11 +28,11 @@ import UserProfile from "./pages/user/UserProfile";
 
 // Team Member's Pages (Kept in their original location)
 import Dashboard from "./pages/user/Dashboard";
-import HouseholdPage from "./pages/HouseholdPage";
-import RoomsPage from "./pages/RoomsPage";
-import AppliancesPage from "./pages/AppliancesPage";
-import FeedbackPage from "./pages/FeedbackPage";
-import SupportTicketsPage from "./pages/SupportTicketsPage";
+import HouseholdPage from "./pages/household/HouseholdPage";
+import RoomsPage from "./pages/household/RoomsPage";
+import AppliancesPage from "./pages/household/AppliancesPage";
+import FeedbackPage from "./pages/feedback & support/FeedbackPage";
+import SupportTicketsPage from "./pages/feedback & support/SupportTicketsPage";
 import UsagePage from "./pages/usage/UsagePage";
 import BillingPage from "./pages/bill/BillingPage";
 
@@ -55,6 +57,9 @@ function App() {
             <Route path="usage-billing/billing" element={<AdminBillingPage />} />
             <Route path="usage-billing/tariffs" element={<AdminTariffPage />} />
           </Route>
+
+          <Route path="/verify-otp" element={<VerifyOtpPage />} />
+          <Route path="/summary" element={<SummaryPage />} />
 
           {/* 🔵 SECURE USER ROUTES (Wrapped in ProtectedRoute) */}
           <Route element={<ProtectedRoute />}>
