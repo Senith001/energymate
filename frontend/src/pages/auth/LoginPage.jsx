@@ -56,133 +56,86 @@ const handleLogin = async (e) => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Welcome Back to ENERGYMATE</h2>
-        <p style={styles.subtitle}>Log in to manage your electricity usage.</p>
+      <div style={styles.splitCard}>
+        
+        {/* LEFT PANEL */}
+        <div style={styles.leftPanel}>
+          <h1 style={styles.brandTitle}>⚡ ENERGYMATE</h1>
+          <h2 style={styles.welcomeTitle}>Welcome Back!</h2>
+          <p style={styles.welcomeText}>
+            Log in to manage your electricity usage and track your household appliances securely.
+          </p>
+        </div>
 
-        {/* Display backend errors securely to the user */}
-        {error && <div style={styles.errorBox}>{error}</div>}
+        {/* RIGHT PANEL */}
+        <div style={styles.rightPanel}>
+          <h2 style={styles.formTitle}>Login</h2>
+          <p style={styles.formSubtitle}>Please enter your credentials to access your account</p>
 
-        <form onSubmit={handleLogin} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={styles.input}
-              placeholder="e.g., admin@energymate.com"
-            />
-          </div>
+          {/* Display backend errors securely to the user */}
+          {error && <div style={styles.errorBox}>{error}</div>}
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={styles.input}
-              placeholder="••••••••"
-            />
-          </div>
+          <form onSubmit={handleLogin} style={styles.form}>
+            <div style={styles.inputWrapper}>
+              <label style={styles.label}>Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                style={styles.input}
+                placeholder="Enter your email"
+              />
+            </div>
 
-          <button type="submit" disabled={isLoading} style={styles.button}>
-            {isLoading ? "Logging in..." : "Log In"}
-          </button>
-        </form>
+            <div style={styles.inputWrapper}>
+              <label style={styles.label}>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                style={styles.input}
+                placeholder="Enter your password"
+              />
+            </div>
 
-        <p style={styles.footerText}>
-          Don't have an account? <Link to="/register" style={styles.link}>Register here</Link>
-        </p>
+            <div style={styles.actionRow}>
+              <button type="submit" disabled={isLoading} style={{...styles.nextBtn, opacity: isLoading ? 0.7 : 1}}>
+                {isLoading ? "Logging in..." : "Log In"}
+              </button>
+            </div>
+          </form>
+
+          <p style={styles.footerText}>
+            Don't have an account? <Link to="/register" style={styles.link}>Register here</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 };
 
-// Basic inline styling to make it look clean immediately. 
-// You can move this to a CSS file or use Tailwind later!
+// --- STYLES ---
 const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100vh",
-    backgroundColor: "#f4f7f6",
-    fontFamily: "Arial, sans-serif",
-  },
-  card: {
-    backgroundColor: "white",
-    padding: "40px",
-    borderRadius: "8px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-    width: "100%",
-    maxWidth: "400px",
-  },
-  title: {
-    marginTop: 0,
-    color: "#333",
-    textAlign: "center",
-  },
-  subtitle: {
-    color: "#666",
-    textAlign: "center",
-    marginBottom: "24px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  inputGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-  },
-  label: {
-    fontWeight: "bold",
-    fontSize: "14px",
-    color: "#444",
-  },
-  input: {
-    padding: "10px",
-    borderRadius: "4px",
-    border: "1px solid #ccc",
-    fontSize: "16px",
-  },
-  button: {
-    padding: "12px",
-    backgroundColor: "#007bff",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    fontSize: "16px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    marginTop: "8px",
-  },
-  errorBox: {
-    padding: "10px",
-    backgroundColor: "#ffebee",
-    color: "#c62828",
-    border: "1px solid #ffcdd2",
-    borderRadius: "4px",
-    marginBottom: "16px",
-    textAlign: "center",
-    fontSize: "14px",
-  },
-  footerText: {
-    textAlign: "center",
-    marginTop: "24px",
-    fontSize: "14px",
-    color: "#666",
-  },
-  link: {
-    color: "#007bff",
-    textDecoration: "none",
-    fontWeight: "bold",
-  },
+  container: { display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "#ffffff", padding: "20px", fontFamily: "'Inter', Arial, sans-serif" }, 
+  splitCard: { display: "flex", width: "100%", maxWidth: "1000px", background: "linear-gradient(135deg, #0ea5e9, #0284c7)", borderRadius: "16px", overflow: "hidden", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", minHeight: "550px" },
+  leftPanel: { flex: 1, padding: "50px", color: "white", display: "flex", flexDirection: "column", justifyContent: "center" },
+  brandTitle: { fontSize: "24px", fontWeight: "800", letterSpacing: "1px", marginBottom: "40px" },
+  welcomeTitle: { fontSize: "32px", fontWeight: "700", marginBottom: "15px", lineHeight: "1.2" },
+  welcomeText: { fontSize: "16px", lineHeight: "1.6", color: "#e0f2fe" },
+  rightPanel: { flex: 1.3, padding: "40px 50px", display: "flex", flexDirection: "column", backgroundColor: "white", borderRadius: "12px", margin: "10px", justifyContent: "center" },
+  formTitle: { margin: "0 0 5px 0", fontSize: "24px", color: "#1e3a8a", fontWeight: "700" },
+  formSubtitle: { margin: "0 0 30px 0", fontSize: "14px", color: "#64748b" },
+  form: { display: "flex", flexDirection: "column", gap: "20px" },
+  inputWrapper: { display: "flex", flexDirection: "column", gap: "6px" },
+  label: { fontSize: "13px", fontWeight: "600", color: "#475569" },
+  input: { padding: "12px 15px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", outline: "none", transition: "all 0.2s" },
+  actionRow: { display: "flex", justifyContent: "center", alignItems: "center", marginTop: "10px" },
+  nextBtn: { padding: "14px 30px", width: "100%", backgroundColor: "#1d4ed8", color: "white", border: "none", borderRadius: "8px", fontSize: "16px", fontWeight: "600", cursor: "pointer", transition: "0.2s" },
+  errorBox: { padding: "12px", backgroundColor: "#fee2e2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "8px", marginBottom: "20px", textAlign: "center", fontSize: "14px", fontWeight: "500" },
+  footerText: { textAlign: "center", marginTop: "30px", fontSize: "14px", color: "#64748b" },
+  link: { color: "#1d4ed8", textDecoration: "none", fontWeight: "600" },
 };
 
 export default LoginPage;

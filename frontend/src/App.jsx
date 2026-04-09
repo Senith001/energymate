@@ -10,6 +10,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Auth Pages (Your new files in the subfolder)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import VerifyOtpPage from './pages/auth/VerifyOtpPage';
+import SummaryPage from "./pages/auth/SummaryPage";
 
 //Admin Pages
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
@@ -47,6 +49,9 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
           </Route>
+
+          <Route path="/verify-otp" element={<VerifyOtpPage />} />
+          <Route path="/summary" element={<SummaryPage />} />
 
           {/* 🔵 SECURE USER ROUTES (Wrapped in ProtectedRoute) */}
           <Route element={<ProtectedRoute />}>
