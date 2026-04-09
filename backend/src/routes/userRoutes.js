@@ -15,8 +15,7 @@ import {
     getAdminById, 
     getAuditLogs,
     requestAccountDeletion, 
-    confirmAccountDeletion,
-    resendOtp
+    confirmAccountDeletion
 } from "../controllers/userController.js";
 
 import { getMyProfile, updateMyProfile, uploadMyAvatar, deleteMyAvatar } from "../controllers/userController.js";
@@ -29,7 +28,6 @@ const router = express.Router();
 
 router.post("/register", registerValidator, validate, registerUser);
 router.post("/verify-otp", verifyOtp);
-router.post("/resend-otp", resendOtp);
 
 router.post("/login", loginUser); //Common Login route for both users and admins, role is determined during authentication
 
@@ -59,8 +57,6 @@ router.post("/admin/register", registerAdmin);  //This route is for bootstrap su
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPasswordValidator, validate, resetPassword);
 router.put("/me/change-password", protect, changeMyPasswordValidator, validate, changeMyPassword);
-
-
 
 router.get("/me", protect, getMyProfile);
 router.put("/me", protect, updateProfileValidator, validate, updateMyProfile);
