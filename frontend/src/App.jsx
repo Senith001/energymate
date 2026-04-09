@@ -26,11 +26,11 @@ import UserProfile from "./pages/user/UserProfile";
 
 // Team Member's Pages (Kept in their original location)
 import Dashboard from "./pages/user/Dashboard";
-import HouseholdPage from "./pages/HouseholdPage";
-import RoomsPage from "./pages/RoomsPage";
-import AppliancesPage from "./pages/AppliancesPage";
-import FeedbackPage from "./pages/FeedbackPage";
-import SupportTicketsPage from "./pages/SupportTicketsPage";
+import HouseholdPage from "./pages/household/HouseholdPage";
+import RoomsPage from "./pages/household/RoomsPage";
+import AppliancesPage from "./pages/household/AppliancesPage";
+import FeedbackPage from "./pages/feedback & support/FeedbackPage";
+import SupportTicketsPage from "./pages/feedback & support/SupportTicketsPage";
 import UsagePage from "./pages/usage/UsagePage";
 import BillingPage from "./pages/bill/BillingPage";
 
