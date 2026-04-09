@@ -7,7 +7,7 @@ function AdminUsageBillingPage() {
   return (
     <div style={{ display: "grid", gap: "24px" }}>
       <div style={{ display: "grid", gap: "8px" }}>
-        <h1 style={{ margin: 0, color: adminColors.text }}>Usage and Billing</h1>
+        <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Usage and Billing</h1>
         <p style={{ margin: 0, color: adminColors.muted }}>
           Manage household usage monitoring, billing oversight, and tariff settings from one admin workspace.
         </p>

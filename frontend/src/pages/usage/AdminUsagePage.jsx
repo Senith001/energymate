@@ -273,7 +273,7 @@ function AdminUsagePage() {
             Back
           </Link>
         </div>
-        <h1 style={{ margin: 0, color: adminColors.text }}>Usage Monitoring</h1>
+        <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Usage Monitoring</h1>
         <p style={{ margin: 0, color: adminColors.muted }}>
           Review monthly household usage, estimated cost, and appliance or room breakdowns from the admin portal.
         </p>

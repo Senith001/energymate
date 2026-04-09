@@ -17,6 +17,7 @@ import {
   deleteUsage,
   getApplianceHoursLogs,
   getHouseholdAppliances,
+  getHouseholds,
   getEstimatedCost,
   getHouseholdDetails,
   getMonthlySummary,
@@ -32,6 +33,8 @@ import {
 function UsagePage() {
   // Keep the selected household id locally for usage-related API calls.
   const [householdId, setHouseholdId] = useState(localStorage.getItem("selectedHouseholdId") || localStorage.getItem("householdId") || "");
+  const [householdOptions, setHouseholdOptions] = useState([]);
+  const [pendingHouseholdId, setPendingHouseholdId] = useState("");
   const [usages, setUsages] = useState([]);
   const [summary, setSummary] = useState(null);
   const [costInfo, setCostInfo] = useState(null);
@@ -57,7 +60,7 @@ function UsagePage() {
   const [applianceHoursSaving, setApplianceHoursSaving] = useState(false);
   const [applianceHoursError, setApplianceHoursError] = useState("");
   const [editingApplianceLog, setEditingApplianceLog] = useState(null);
-  const [weatherLocationMode, setWeatherLocationMode] = useState(localStorage.getItem("weatherLocationMode") || "browser");
+  const [weatherLocationMode, setWeatherLocationMode] = useState(localStorage.getItem("weatherLocationMode") || "household");
   const [customWeatherCity, setCustomWeatherCity] = useState(localStorage.getItem("customWeatherCity") || "");
 
   useEffect(() => {
@@ -75,17 +78,37 @@ function UsagePage() {
       setLoading(true);
       setError("");
 
-      const usagePayload = await getUsages();
-      const usageRows = usagePayload.data || [];
-      setUsages(usageRows);
-
-      const resolvedHouseholdId =
+      let resolvedHouseholdId =
         householdId ||
         localStorage.getItem("selectedHouseholdId") ||
         localStorage.getItem("householdId") ||
-        usageRows[0]?.householdId ||
         "";
+
+      if (!resolvedHouseholdId) {
+        const householdsPayload = await getHouseholds();
+        const households = Array.isArray(householdsPayload) ? householdsPayload : householdsPayload.data || [];
+
+        if (households.length === 1) {
+          resolvedHouseholdId = households[0]._id;
+          saveHouseholdSelection(households[0]);
+          setHouseholdOptions([]);
+          setPendingHouseholdId("");
+        } else if (households.length > 1) {
+          setHouseholdOptions(households);
+          setPendingHouseholdId("");
+          setLoading(false);
+          return;
+        }
+      }
+
       setHouseholdId(resolvedHouseholdId);
+      setHouseholdOptions([]);
+      setPendingHouseholdId("");
+
+      if (resolvedHouseholdId) {
+        localStorage.setItem("selectedHouseholdId", resolvedHouseholdId);
+        localStorage.setItem("householdId", resolvedHouseholdId);
+      }
 
       if (!resolvedHouseholdId) {
         setLoading(false);
@@ -97,6 +120,28 @@ function UsagePage() {
       setError(err.message || "Unable to load usage dashboard.");
       setLoading(false);
     }
+  }
+
+  function saveHouseholdSelection(household) {
+    if (!household?._id) return;
+
+    localStorage.setItem("selectedHouseholdId", household._id);
+    localStorage.setItem("householdId", household._id);
+
+    if (household.name) {
+      localStorage.setItem("selectedHouseholdName", household.name);
+      localStorage.setItem("householdName", household.name);
+    }
+  }
+
+  function handleSelectHousehold() {
+    const selectedHousehold = householdOptions.find((item) => item._id === pendingHouseholdId);
+    if (!selectedHousehold) return;
+
+    saveHouseholdSelection(selectedHousehold);
+    setHouseholdId(selectedHousehold._id);
+    setHouseholdOptions([]);
+    setPendingHouseholdId("");
   }
 
   async function loadPeriodData(activeHouseholdId, month, year) {
@@ -166,10 +211,21 @@ function UsagePage() {
     }
   }
 
-  // Try browser location first and fall back to the household city stored in the database.
+  // Prefer the household city because the insight is about household energy use, not the viewer's current location.
   async function resolveWeatherLocation(activeHouseholdId) {
-    if (weatherLocationMode === "custom" && customWeatherCity.trim()) {
-      return { city: customWeatherCity.trim() };
+    try {
+      const household = await getHouseholdDetails(activeHouseholdId);
+
+      if (household?.name) {
+        localStorage.setItem("selectedHouseholdName", household.name);
+        localStorage.setItem("householdName", household.name);
+      }
+
+      if (household?.city && weatherLocationMode === "household") {
+        return { city: household.city };
+      }
+    } catch (householdError) {
+      // Keep the final fallback simple if the household lookup is not available yet.
     }
 
     if (weatherLocationMode === "browser") {
@@ -179,19 +235,17 @@ function UsagePage() {
       }
     }
 
+    if (weatherLocationMode === "custom" && customWeatherCity.trim()) {
+      return { city: customWeatherCity.trim() };
+    }
+
     try {
       const household = await getHouseholdDetails(activeHouseholdId);
-
-      if (household?.name) {
-        localStorage.setItem("selectedHouseholdName", household.name);
-        localStorage.setItem("householdName", household.name);
-      }
-
       if (household?.city) {
         return { city: household.city };
       }
     } catch (householdError) {
-      // Keep the final fallback simple if the household lookup is not available yet.
+      // Ignore and fall through to the static fallback city.
     }
 
     return { city: "Colombo" };
@@ -462,10 +516,27 @@ function UsagePage() {
 
   return (
     <div style={{ background: colors.background, padding: "10px" }}>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 style={{ margin: 0, fontSize: "30px", color: colors.text }}>Usage Tracking</h1>
+      <div
+        style={{
+          marginBottom: "18px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: "32px", fontWeight: "700", lineHeight: 1.2, color: colors.text }}>Usage Tracking</h1>
+        {householdOptions.length > 1 ? (
+          <HouseholdSelectorInline
+            households={householdOptions}
+            pendingHouseholdId={pendingHouseholdId}
+            onChange={setPendingHouseholdId}
+            onConfirm={handleSelectHousehold}
+          />
+        ) : null}
       </div>
-      <PageNotice loading={loading} error={error} householdId={householdId} />
+      <PageNotice loading={loading} error={error} householdId={householdId} showSelector={householdOptions.length > 1} />
 
       <div
         style={{
@@ -655,13 +726,17 @@ function UsagePage() {
 }
 
 // Keep page-level empty, loading, and error states separate from the main dashboard layout.
-function PageNotice({ loading, error, householdId }) {
+function PageNotice({ loading, error, householdId, showSelector }) {
   if (loading) {
     return <Banner text="Loading usage dashboard..." tone="info" />;
   }
 
   if (error) {
     return <Banner text={error} tone="error" />;
+  }
+
+  if (showSelector) {
+    return null;
   }
 
   if (!householdId) {
@@ -677,6 +752,37 @@ function Banner({ text, tone }) {
   return (
     <div style={{ ...cardStyle, background: palette.background, color: palette.color, padding: "16px 20px", marginBottom: "22px" }}>
       {text}
+    </div>
+  );
+}
+
+function HouseholdSelectorInline({ households, pendingHouseholdId, onChange, onConfirm }) {
+  return (
+    <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+      <select value={pendingHouseholdId} onChange={(event) => onChange(event.target.value)} style={selectStyle}>
+        <option value="">Choose household</option>
+        {households.map((household) => (
+          <option key={household._id} value={household._id}>
+            {household.name || "Household"}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={onConfirm}
+        disabled={!pendingHouseholdId}
+        style={{
+          border: "none",
+          background: pendingHouseholdId ? colors.green : "#b6c3d1",
+          color: "#ffffff",
+          padding: "10px 16px",
+          borderRadius: "12px",
+          cursor: pendingHouseholdId ? "pointer" : "not-allowed",
+          fontWeight: "700",
+        }}
+      >
+        Continue
+      </button>
     </div>
   );
 }

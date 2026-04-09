@@ -253,7 +253,7 @@ function AdminBillingPage() {
             Back
           </Link>
         </div>
-        <h1 style={{ margin: 0, color: adminColors.text }}>Billing Oversight</h1>
+        <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Billing Oversight</h1>
         <p style={{ margin: 0, color: adminColors.muted }}>
           Inspect household bill history, current amounts, and month-over-month changes from the admin portal.
         </p>

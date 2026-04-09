@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
 import api from "../../services/api";
-import { adminButtonStyle, adminCardStyle, adminColors, adminInputStyle, formatAdminCurrency } from "../../components/energy/adminTheme";
+import {
+  adminButtonStyle,
+  adminCardStyle,
+  adminColors,
+  adminInputStyle,
+  formatAdminCurrency,
+} from "../../components/energy/adminTheme";
 
 function AdminTariffPage() {
   const [form, setForm] = useState(null);
@@ -80,7 +86,7 @@ function AdminTariffPage() {
             Back
           </Link>
         </div>
-        <h1 style={{ margin: 0, color: adminColors.text }}>Tariff Settings</h1>
+        <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Tariff Settings</h1>
         <p style={{ margin: 0, color: adminColors.muted }}>
           Review and update the domestic tariff slabs used by usage estimates, bill generation, and bill previews.
         </p>

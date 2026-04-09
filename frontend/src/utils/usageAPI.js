@@ -64,6 +64,19 @@ export async function getUsages(householdId = null) {
   }
 }
 
+// Read the signed-in user's household list so usage/billing can recover when no household is saved yet.
+export async function getHouseholds() {
+  try {
+    const res = await fetch(`${API_BASE}/households`, {
+      headers: authHeaders(),
+    });
+    return await readJson(res);
+  } catch (err) {
+    console.error("Error fetching households:", err);
+    throw err;
+  }
+}
+
 // Update an existing usage entry.
 export async function updateUsage(id, data) {
   try {
