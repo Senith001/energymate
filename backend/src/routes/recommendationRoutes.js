@@ -5,6 +5,7 @@ import {
   generateEnergyTips,
   generateCostStrategies,
   generatePredictions,
+  clearAiCache,
 
   adminCreateTemplate,
   adminListTemplates,
@@ -19,9 +20,10 @@ import {
 const router = express.Router();
 
 // ================= AI (Gemini) =================
-router.post("/households/:householdId/ai/energy-tips", protect, generateEnergyTips);
-router.post("/households/:householdId/ai/cost-strategies", protect, generateCostStrategies);
-router.post("/households/:householdId/ai/predictions", protect, generatePredictions);
+router.post("/households/:householdId/ai/energy-tips",     protect, generateEnergyTips);
+router.post("/households/:householdId/ai/cost-strategies",  protect, generateCostStrategies);
+router.post("/households/:householdId/ai/predictions",      protect, generatePredictions);
+router.delete("/households/:householdId/ai/cache",          protect, clearAiCache);
 
 // ============== ADMIN: Template CRUD ==============
 router.post("/admin/templates", protect, authorize("admin"), adminCreateTemplate);

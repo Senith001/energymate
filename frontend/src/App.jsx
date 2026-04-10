@@ -16,6 +16,9 @@ import SummaryPage from "./pages/auth/SummaryPage";
 //Admin Pages
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
 
+// Admin Recommendation Pages
+import AdminTemplates from "./pages/recommendation/AdminTemplates";
+
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsagePage from "./pages/usage/AdminUsagePage";
 import AdminUsageBillingPage from "./pages/usage/AdminUsageBillingPage";
@@ -35,6 +38,13 @@ import FeedbackPage from "./pages/feedback & support/FeedbackPage";
 import SupportTicketsPage from "./pages/feedback & support/SupportTicketsPage";
 import UsagePage from "./pages/usage/UsagePage";
 import BillingPage from "./pages/bill/BillingPage";
+
+
+// Recommendation / AI Pages
+import UserRecommendations from "./pages/recommendation/UserRecommendations";
+import EnergyTips from "./pages/recommendation/EnergyTips";
+import CostStrategies from "./pages/recommendation/CostStrategies";
+import Predictions from "./pages/recommendation/Predictions";
 
 function App() {
   return (
@@ -56,6 +66,12 @@ function App() {
             <Route path="usage-billing/usage" element={<AdminUsagePage />} />
             <Route path="usage-billing/billing" element={<AdminBillingPage />} />
             <Route path="usage-billing/tariffs" element={<AdminTariffPage />} />
+
+               {/* Admin Recommendation Routes */}
+              <Route
+                path="recommendations/templates"
+                element={<AdminTemplates />}
+              />
           </Route>
 
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
@@ -78,6 +94,12 @@ function App() {
             <Route path="billing" element={<BillingPage />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="tickets" element={<SupportTicketsPage />} />
+
+             {/* ── Recommendation & AI Routes ─── */}
+                <Route path="recommendations" element={<UserRecommendations />} />
+                <Route path="energy-tips" element={<EnergyTips />} />
+                <Route path="cost-strategies" element={<CostStrategies />} />
+                <Route path="predictions" element={<Predictions />} />
           </Route>
           
           </Route>
