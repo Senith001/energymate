@@ -1,7 +1,20 @@
 import React from "react";
 import { cardStyle, colors } from "../energy/dashboardTheme";
 
-const segmentColors = ["#2a8c5f", "#fbbf24", "#3b82f6", "#ef4444", "#9d4edd", "#3db7b9"];
+const segmentColors = [
+  "#2a8c5f",
+  "#f59e0b",
+  "#2563eb",
+  "#ef4444",
+  "#8b5cf6",
+  "#14b8a6",
+  "#ec4899",
+  "#f97316",
+  "#06b6d4",
+  "#84cc16",
+  "#6366f1",
+  "#a855f7",
+];
 
 function polarToCartesian(cx, cy, r, angle) {
   const rad = ((angle - 90) * Math.PI) / 180;

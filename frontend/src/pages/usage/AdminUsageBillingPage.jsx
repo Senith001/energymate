@@ -85,12 +85,13 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "10px 16px",
+            padding: "8px 14px",
             borderRadius: "14px",
             background: "#ffffff",
             color: accent,
             textDecoration: "none",
             fontWeight: "700",
+            fontSize: "14px",
             border: `1px solid ${accent}`,
           }}
         >

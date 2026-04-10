@@ -101,10 +101,66 @@ function getMonthDateRange(month, year) {
   };
 }
 
+function toDateKey(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().slice(0, 10);
+}
+
+function getMonthDayKeys(month, year) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, index) =>
+    new Date(year, month - 1, index + 1).toISOString().slice(0, 10)
+  );
+}
+
+function allocateProfilesAcrossDays(profiles, actualUsageByDate, dayKeys) {
+  const allocatedUsageByAppliance = new Map();
+  let otherUsage = 0;
+  const hasActualUsage = actualUsageByDate.size > 0;
+
+  profiles.forEach((item) => {
+    allocatedUsageByAppliance.set(item.appliance._id.toString(), 0);
+  });
+
+  dayKeys.forEach((dayKey) => {
+    const dayTotal = profiles.reduce((sum, item) => sum + (item.dailyUsageByDate.get(dayKey) || 0), 0);
+
+    if (!hasActualUsage) {
+      profiles.forEach((item) => {
+        const applianceId = item.appliance._id.toString();
+        allocatedUsageByAppliance.set(
+          applianceId,
+          allocatedUsageByAppliance.get(applianceId) + (item.dailyUsageByDate.get(dayKey) || 0)
+        );
+      });
+      return;
+    }
+
+    const actualUsage = actualUsageByDate.get(dayKey) || 0;
+    const scale = dayTotal > 0 ? Math.min(actualUsage / dayTotal, 1) : 0;
+
+    profiles.forEach((item) => {
+      const applianceId = item.appliance._id.toString();
+      const dayUsage = item.dailyUsageByDate.get(dayKey) || 0;
+      allocatedUsageByAppliance.set(applianceId, allocatedUsageByAppliance.get(applianceId) + dayUsage * scale);
+    });
+
+    if (actualUsage > dayTotal) {
+      otherUsage += actualUsage - dayTotal;
+    }
+  });
+
+  return {
+    allocatedUsageByAppliance,
+    otherUsage: +otherUsage.toFixed(2),
+  };
+}
+
 // Use logged appliance hours when available, and fall back to appliance defaults otherwise.
 async function getMonthlyApplianceProfiles(householdId, month, year) {
-  const monthlyUsage = await getMonthlyTotalUnits(householdId, month, year);
-  const appliances = await Appliance.find({ householdId });
+  const [monthlyUsage, appliances] = await Promise.all([
+    getMonthlyTotalUnits(householdId, month, year),
+    Appliance.find({ householdId }),
+  ]);
 
   if (appliances.length === 0) {
     return {
@@ -114,46 +170,69 @@ async function getMonthlyApplianceProfiles(householdId, month, year) {
       totalUnits: monthlyUsage.totalUnits,
       totalEstimatedUsage: 0,
       allocationFactor: 0,
+      actualUsageByDate: new Map(),
+      dayKeys: [],
       profiles: [],
     };
   }
 
   const { startDate, endDate } = getMonthDateRange(month, year);
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const logs = await ApplianceUsageLog.find({
-    householdId,
-    date: { $gte: startDate, $lte: endDate },
+  const [usageEntries, logs] = await Promise.all([
+    Usage.find({
+      householdId,
+      date: { $gte: startDate, $lte: endDate },
+    }).select("date unitsUsed"),
+    ApplianceUsageLog.find({
+      householdId,
+      date: { $gte: startDate, $lte: endDate },
+    }),
+  ]);
+
+  const actualUsageByDate = new Map();
+  usageEntries.forEach((entry) => {
+    actualUsageByDate.set(toDateKey(entry.date), Number(entry.unitsUsed || 0));
   });
 
-  const loggedHoursByAppliance = new Map();
-
+  const loggedHoursByApplianceAndDate = new Map();
   logs.forEach((log) => {
-    const key = log.applianceId.toString();
-    loggedHoursByAppliance.set(key, (loggedHoursByAppliance.get(key) || 0) + Number(log.hoursUsed || 0));
+    const key = `${log.applianceId.toString()}:${toDateKey(log.date)}`;
+    loggedHoursByApplianceAndDate.set(key, Number(log.hoursUsed || 0));
   });
+
+  const dayKeys = actualUsageByDate.size > 0 ? Array.from(actualUsageByDate.keys()).sort() : getMonthDayKeys(month, year);
 
   const profiles = appliances.map((appliance) => {
     const applianceId = appliance._id.toString();
-    const loggedHours = loggedHoursByAppliance.get(applianceId) || 0;
-    const usedLoggedHours = loggedHoursByAppliance.has(applianceId);
-    // Temporary rule until appliance usageMode is added:
-    // if the user logs this appliance at least once in the month, treat it as manually tracked for that month.
-    // Otherwise, fall back to the appliance's default daily hours.
-    const hoursUsed = usedLoggedHours
-      ? loggedHours
-      : Number(appliance.defaultHoursPerDay || 0) * daysInMonth;
-    // Convert stored appliance metadata into an estimated monthly kWh value.
-    const estimatedUsage =
-      (Number(appliance.wattage || 0) *
-        Number(appliance.quantity || 1) *
-        hoursUsed) /
-      1000;
+    const usageMode = appliance.usageMode || "default";
+    const dailyUsageByDate = new Map();
+    let hoursUsed = 0;
+    let estimatedUsage = 0;
+    let usedLoggedHours = false;
+
+    dayKeys.forEach((dayKey) => {
+      const loggedHours = loggedHoursByApplianceAndDate.get(`${applianceId}:${dayKey}`) || 0;
+      const dayHoursUsed = usageMode === "manual" ? loggedHours : Number(appliance.defaultHoursPerDay || 0);
+      const dayUsage =
+        (Number(appliance.wattage || 0) *
+          Number(appliance.quantity || 1) *
+          dayHoursUsed) /
+        1000;
+
+      if (usageMode === "manual" && loggedHours > 0) {
+        usedLoggedHours = true;
+      }
+
+      dailyUsageByDate.set(dayKey, dayUsage);
+      hoursUsed += dayHoursUsed;
+      estimatedUsage += dayUsage;
+    });
 
     return {
       appliance,
       hoursUsed: +hoursUsed.toFixed(2),
-      estimatedUsage,
-      source: usedLoggedHours ? "logged" : "default",
+      estimatedUsage: +estimatedUsage.toFixed(2),
+      dailyUsageByDate,
+      source: usedLoggedHours ? "logged" : usageMode,
     };
   });
 
@@ -167,6 +246,8 @@ async function getMonthlyApplianceProfiles(householdId, month, year) {
     totalUnits: monthlyUsage.totalUnits,
     totalEstimatedUsage: +totalEstimatedUsage.toFixed(2),
     allocationFactor: +allocationFactor.toFixed(4),
+    actualUsageByDate,
+    dayKeys,
     profiles,
   };
 }
@@ -204,10 +285,15 @@ export async function verifyHouseholdOwnership(householdId, userId) {
  */
 export async function getUsageByAppliances(householdId, month, year) {
   const monthlyProfiles = await getMonthlyApplianceProfiles(householdId, month, year);
-  const hasEstimatedData = monthlyProfiles.profiles.some((item) => item.source === "default");
+  const hasEstimatedData = monthlyProfiles.profiles.some((item) => item.source !== "logged");
+  const namedProfiles = monthlyProfiles.profiles.filter((item) => item.source === "logged" || item.source === "default");
+  const { allocatedUsageByAppliance, otherUsage } = allocateProfilesAcrossDays(
+    namedProfiles,
+    monthlyProfiles.actualUsageByDate,
+    monthlyProfiles.dayKeys
+  );
 
-  // Allocate the real household total across appliance profiles so the chart still sums back to monthly usage.
-  const breakdown = monthlyProfiles.profiles.map((item) => ({
+  const breakdown = namedProfiles.map((item) => ({
     applianceId: item.appliance._id,
     name: item.appliance.name,
     wattage: item.appliance.wattage,
@@ -215,15 +301,11 @@ export async function getUsageByAppliances(householdId, month, year) {
     defaultHoursPerDay: item.appliance.defaultHoursPerDay,
     hoursUsed: item.hoursUsed,
     source: item.source,
-    estimatedUsage: +item.estimatedUsage.toFixed(2),
-    allocatedUsage: +(item.estimatedUsage * monthlyProfiles.allocationFactor).toFixed(2),
+    estimatedUsage: item.estimatedUsage,
+    allocatedUsage: +(allocatedUsageByAppliance.get(item.appliance._id.toString()) || 0).toFixed(2),
   }));
 
-  const allocatedTotal = breakdown.reduce((sum, item) => sum + item.allocatedUsage, 0);
-  const unallocatedUsage = +(monthlyProfiles.totalUnits - allocatedTotal).toFixed(2);
-
-  // Keep any remainder explicit so the appliance chart does not imply every kWh was traced to a named appliance.
-  if (unallocatedUsage > 0.01) {
+  if (otherUsage > 0.01) {
     breakdown.push({
       applianceId: null,
       name: "Other",
@@ -233,7 +315,7 @@ export async function getUsageByAppliances(householdId, month, year) {
       hoursUsed: 0,
       source: "other",
       estimatedUsage: 0,
-      allocatedUsage: unallocatedUsage,
+      allocatedUsage: otherUsage,
     });
   }
 
@@ -246,7 +328,7 @@ export async function getUsageByAppliances(householdId, month, year) {
     allocationFactor: monthlyProfiles.allocationFactor,
     hasEstimatedData,
     isEstimatedOnly: monthlyProfiles.totalUnits === 0 && monthlyProfiles.totalEstimatedUsage > 0,
-    unallocatedUsage: unallocatedUsage > 0 ? unallocatedUsage : 0,
+    unallocatedUsage: otherUsage > 0 ? otherUsage : 0,
     breakdown,
   };
 }
@@ -262,7 +344,7 @@ export async function getUsageByAppliances(householdId, month, year) {
 export async function getUsageByRooms(householdId, month, year) {
   const monthlyProfiles = await getMonthlyApplianceProfiles(householdId, month, year);
   const rooms = await Room.find({ householdId });
-  const hasEstimatedData = monthlyProfiles.profiles.some((item) => item.source === "default");
+  const hasEstimatedData = monthlyProfiles.profiles.some((item) => item.source !== "logged");
 
   if (rooms.length === 0) {
     return {
@@ -278,6 +360,12 @@ export async function getUsageByRooms(householdId, month, year) {
     };
   }
 
+  const { allocatedUsageByAppliance } = allocateProfilesAcrossDays(
+    monthlyProfiles.profiles,
+    monthlyProfiles.actualUsageByDate,
+    monthlyProfiles.dayKeys
+  );
+
   // Room totals are derived from the appliance logs/defaults instead of being stored separately.
   const roomUsages = rooms.map((room) => {
     const roomAppliances = monthlyProfiles.profiles.filter(
@@ -290,6 +378,10 @@ export async function getUsageByRooms(householdId, month, year) {
     return {
       room,
       estimatedUsage,
+      allocatedUsage: roomAppliances.reduce(
+        (sum, item) => sum + (allocatedUsageByAppliance.get(item.appliance._id.toString()) || 0),
+        0
+      ),
       hoursUsed,
       applianceCount: roomAppliances.length,
     };
@@ -298,16 +390,13 @@ export async function getUsageByRooms(householdId, month, year) {
   // Calculate total estimated usage
   const totalEstimatedUsage = roomUsages.reduce((sum, r) => sum + r.estimatedUsage, 0);
 
-  // Allocate actual usage proportionally
-  const allocationFactor = totalEstimatedUsage > 0 ? monthlyProfiles.totalUnits / totalEstimatedUsage : 0;
-
   const breakdown = roomUsages.map((r) => ({
     roomId: r.room._id,
     roomName: r.room.name,
     applianceCount: r.applianceCount,
     hoursUsed: +r.hoursUsed.toFixed(2),
     estimatedUsage: +r.estimatedUsage.toFixed(2),
-    allocatedUsage: +(r.estimatedUsage * allocationFactor).toFixed(2),
+    allocatedUsage: +r.allocatedUsage.toFixed(2),
   }));
 
   return {
@@ -316,7 +405,7 @@ export async function getUsageByRooms(householdId, month, year) {
     year,
     totalUnits: monthlyProfiles.totalUnits,
     totalEstimatedUsage: +totalEstimatedUsage.toFixed(2),
-    allocationFactor: +allocationFactor.toFixed(4),
+    allocationFactor: monthlyProfiles.allocationFactor,
     hasEstimatedData,
     isEstimatedOnly: monthlyProfiles.totalUnits === 0 && monthlyProfiles.totalEstimatedUsage > 0,
     breakdown,

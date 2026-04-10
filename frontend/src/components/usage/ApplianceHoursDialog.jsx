@@ -29,7 +29,7 @@ function ApplianceHoursDialog({
     if (initialLog) {
       setForm({
         applianceId: initialLog.applianceId || "",
-        date: new Date(initialLog.date).toISOString().slice(0, 10),
+        date: toLocalDateInputValue(initialLog.date),
         hoursUsed: String(initialLog.hoursUsed ?? ""),
       });
       return;
@@ -46,7 +46,7 @@ function ApplianceHoursDialog({
     if (!open) return;
 
     // Default the log viewer to the form date so users land on one day's entries instead of the whole month.
-    setSelectedLogDate(initialLog ? new Date(initialLog.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setSelectedLogDate(initialLog ? toLocalDateInputValue(initialLog.date) : toLocalDateInputValue(new Date()));
   }, [open, initialLog]);
 
   const sortedLogs = useMemo(() => {
@@ -56,11 +56,11 @@ function ApplianceHoursDialog({
 
   const visibleLogs = useMemo(() => {
     if (selectedLogDate === "all") return sortedLogs;
-    return sortedLogs.filter((log) => new Date(log.date).toISOString().slice(0, 10) === selectedLogDate);
+    return sortedLogs.filter((log) => toLocalDateInputValue(log.date) === selectedLogDate);
   }, [selectedLogDate, sortedLogs]);
 
   function handleToggleShowAll() {
-    setSelectedLogDate((current) => (current === "all" ? form.date || new Date().toISOString().slice(0, 10) : "all"));
+    setSelectedLogDate((current) => (current === "all" ? form.date || toLocalDateInputValue(new Date()) : "all"));
   }
 
   if (!open) return null;
@@ -311,3 +311,11 @@ const miniButtonStyle = {
 };
 
 export default ApplianceHoursDialog;
+
+function toLocalDateInputValue(value) {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}

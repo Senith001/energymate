@@ -113,6 +113,7 @@ function UsageEntryDialog({
                   style={inputStyle}
                   type="number"
                   min="0"
+                  step="0.1"
                   value={form.previousReading}
                   onChange={(event) => setForm({ ...form, previousReading: event.target.value })}
                 />
@@ -123,6 +124,7 @@ function UsageEntryDialog({
                   style={inputStyle}
                   type="number"
                   min="0"
+                  step="0.1"
                   value={form.currentReading}
                   onChange={(event) => setForm({ ...form, currentReading: event.target.value })}
                 />
@@ -135,6 +137,7 @@ function UsageEntryDialog({
                 style={inputStyle}
                 type="number"
                 min="0"
+                step="0.1"
                 value={form.unitsUsed}
                 onChange={(event) => setForm({ ...form, unitsUsed: event.target.value })}
               />

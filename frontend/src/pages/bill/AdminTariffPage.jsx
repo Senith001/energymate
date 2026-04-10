@@ -121,7 +121,7 @@ function AdminTariffPage() {
                     setMessage("");
                     setError("");
                   }}
-                  style={adminButtonStyle("primary")}
+                  style={smallAdminButtonStyle("primary")}
                 >
                   Edit Tariff
                 </button>
@@ -206,7 +206,7 @@ function AdminTariffPage() {
 
           {editing ? (
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap", paddingTop: "4px" }}>
-              <button type="button" onClick={handleSave} disabled={saving} style={{ ...adminButtonStyle("primary"), opacity: saving ? 0.7 : 1 }}>
+              <button type="button" onClick={handleSave} disabled={saving} style={{ ...smallAdminButtonStyle("primary"), opacity: saving ? 0.7 : 1 }}>
                 {saving ? "Saving..." : "Save Tariff"}
               </button>
               <button
@@ -218,7 +218,7 @@ function AdminTariffPage() {
                   setMessage("");
                   setError("");
                 }}
-                style={adminButtonStyle("secondary")}
+                style={smallAdminButtonStyle("secondary")}
               >
                 Cancel
               </button>
@@ -409,6 +409,7 @@ const backLinkStyle = {
   color: adminColors.text,
   textDecoration: "none",
   fontWeight: "700",
+  fontSize: "14px",
 };
 
 const summaryToneMap = {
@@ -416,5 +417,13 @@ const summaryToneMap = {
   blue: { background: adminColors.blueSoft, border: "rgba(29, 78, 216, 0.38)" },
   amber: { background: adminColors.amberSoft, border: "rgba(180, 83, 9, 0.4)" },
 };
+
+function smallAdminButtonStyle(kind) {
+  return {
+    ...adminButtonStyle(kind),
+    padding: "10px 16px",
+    fontSize: "14px",
+  };
+}
 
 export default AdminTariffPage;

@@ -693,6 +693,7 @@ const backLinkStyle = {
   color: adminColors.text,
   textDecoration: "none",
   fontWeight: "700",
+  fontSize: "14px",
 };
 
 const searchShellStyle = {
@@ -779,13 +780,14 @@ function usageActionButtonStyle(kind) {
       display: "inline-flex",
       alignItems: "center",
       gap: "8px",
-      padding: "9px 14px",
+      padding: "8px 12px",
       borderRadius: "12px",
       border: `1px solid ${adminColors.border}`,
       background: "#ffffff",
       color: adminColors.text,
       cursor: "pointer",
       fontWeight: "700",
+      fontSize: "13px",
     };
   }
 
@@ -794,13 +796,14 @@ function usageActionButtonStyle(kind) {
       display: "inline-flex",
       alignItems: "center",
       gap: "8px",
-      padding: "9px 14px",
+      padding: "8px 12px",
       borderRadius: "12px",
       border: "1px solid #fecaca",
       background: "#fff1f2",
       color: "#dc2626",
       cursor: "pointer",
       fontWeight: "700",
+      fontSize: "13px",
     };
   }
 
@@ -808,13 +811,14 @@ function usageActionButtonStyle(kind) {
     display: "inline-flex",
     alignItems: "center",
     gap: "8px",
-    padding: "9px 14px",
+    padding: "8px 12px",
     borderRadius: "12px",
     border: `1px solid ${adminColors.border}`,
     background: "#ffffff",
     color: adminColors.text,
     cursor: "pointer",
     fontWeight: "700",
+    fontSize: "13px",
   };
 }
 
