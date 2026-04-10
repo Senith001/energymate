@@ -32,7 +32,7 @@ export function BillSummaryContent({ bill, householdName, previewMode = false, f
         <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ display: "grid", gap: "8px" }}>
             <div style={{ color: colors.muted, fontSize: "14px", fontWeight: "600" }}>{householdName || "Household"}</div>
-            <h3 style={{ margin: 0, fontSize: "26px", color: colors.text }}>
+            <h3 style={{ margin: 0, fontSize: "26px", fontWeight: "800", color: colors.text }}>
               {formatMonthYear(bill.month, bill.year)} {previewMode ? "Preview" : "Bill"}
             </h3>
             <div style={{ color: colors.muted }}>

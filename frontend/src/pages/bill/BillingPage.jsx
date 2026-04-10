@@ -524,7 +524,7 @@ function BillingPage() {
 
       <div style={{ ...responsiveGrid("360px", "26px"), marginTop: "26px" }}>
         <ComparisonCard comparison={comparison} />
-        <TariffBreakdownCard breakdown={activeBreakdown} total={latestBill?.totalCost} />
+        <TariffBreakdownCard breakdown={activeBreakdown} fixedCharge={latestBill?.fixedCharge} />
       </div>
 
       <div style={{ marginTop: "26px" }}>
@@ -652,17 +652,39 @@ function SummaryTile({ label, units, cost }) {
 }
 
 // Show the tariff slabs that make up the latest visible bill.
-function TariffBreakdownCard({ breakdown, total }) {
+function TariffBreakdownCard({ breakdown, fixedCharge }) {
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
       <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", fontWeight: "600", color: colors.text }}>Energy Charge Breakdown</h3>
       <div style={{ display: "grid", gap: "12px" }}>
         {breakdown.length ? (
-          breakdown.map((item, index) => (
+          <>
+            {breakdown.map((item, index) => (
+              <div
+                key={`${item.range}-${index}`}
+                style={{
+                  background: "#f4f7fa",
+                  borderRadius: "16px",
+                  padding: "14px 16px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: "700", color: colors.text }}>{item.range}</div>
+                  <div style={{ color: colors.muted, fontSize: "14px" }}>
+                    {Number(item.units || 0).toFixed(1)} units x Rs. {Number(item.rate || 0).toFixed(2)}
+                  </div>
+                </div>
+                <div style={{ fontWeight: "800", color: colors.text }}>{formatCurrency(item.cost)}</div>
+              </div>
+            ))}
+
             <div
-              key={`${item.range}-${index}`}
               style={{
-                background: "#f4f7fa",
+                background: colors.amberSoft,
                 borderRadius: "16px",
                 padding: "14px 16px",
                 display: "flex",
@@ -672,34 +694,17 @@ function TariffBreakdownCard({ breakdown, total }) {
               }}
             >
               <div>
-                <div style={{ fontWeight: "700", color: colors.text }}>{item.range}</div>
+                <div style={{ fontWeight: "700", color: colors.text }}>Fixed Charge</div>
                 <div style={{ color: colors.muted, fontSize: "14px" }}>
-                  {Number(item.units || 0).toFixed(1)} units x Rs. {Number(item.rate || 0).toFixed(2)}
+                  Charged based on the highest tariff slab reached
                 </div>
               </div>
-              <div style={{ fontWeight: "800", color: colors.text }}>{formatCurrency(item.cost)}</div>
+              <div style={{ fontWeight: "800", color: colors.text }}>{formatCurrency(fixedCharge)}</div>
             </div>
-          ))
+          </>
         ) : (
           <div style={{ color: colors.muted }}>Tariff details will appear after a bill is created.</div>
         )}
-
-        <div
-          style={{
-            background: colors.blueSoft,
-            color: colors.blue,
-            borderRadius: "16px",
-            padding: "14px 16px",
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "12px",
-            alignItems: "center",
-            fontWeight: "800",
-          }}
-        >
-          <span>Total</span>
-          <span>{formatCurrency(total)}</span>
-        </div>
       </div>
     </div>
   );

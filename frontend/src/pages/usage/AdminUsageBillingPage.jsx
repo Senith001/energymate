@@ -73,7 +73,7 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
         >
           <Icon size={20} />
         </div>
-        <h3 style={{ margin: 0, color: adminColors.text }}>{title}</h3>
+        <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>{title}</h3>
         <p style={{ margin: 0, color: adminColors.muted, lineHeight: 1.6 }}>{description}</p>
       </div>
 

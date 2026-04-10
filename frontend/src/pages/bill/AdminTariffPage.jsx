@@ -104,7 +104,7 @@ function AdminTariffPage() {
               <div style={{ color: adminColors.muted, fontSize: "13px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase" }}>
                 Domestic Tariff Overview
               </div>
-              <h3 style={{ margin: 0, color: adminColors.text, fontSize: "28px" }}>Current Billing Rules</h3>
+              <h3 style={{ margin: 0, color: adminColors.text, fontSize: "20px", fontWeight: "700" }}>Current Billing Rules</h3>
               <p style={{ margin: 0, color: adminColors.muted, maxWidth: "640px", lineHeight: 1.6 }}>
                 Low usage, high usage, and SSCL values are managed together here so the full tariff stays internally consistent.
               </p>
@@ -162,10 +162,10 @@ function AdminTariffPage() {
                 background: "#f8fafc",
                 display: "grid",
                 gap: "10px",
-                maxWidth: "360px",
+                width: "100%",
               }}
             >
-              <div style={{ color: adminColors.text, fontSize: "16px", fontWeight: "800" }}>SSCL Rate</div>
+              <div style={{ color: adminColors.text, fontSize: "22px", fontWeight: "800", lineHeight: 1.25 }}>SSCL Rate</div>
               <div style={{ color: adminColors.muted, lineHeight: 1.5 }}>
                 This value is applied after the subtotal is calculated from energy and fixed charges.
               </div>
@@ -185,7 +185,7 @@ function AdminTariffPage() {
                 />
               ) : (
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <table style={{ width: "100%", maxWidth: "400px", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${adminColors.border}` }}>
                         <TableHead>Field</TableHead>

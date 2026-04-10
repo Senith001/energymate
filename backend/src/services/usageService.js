@@ -101,10 +101,12 @@ function getMonthDateRange(month, year) {
   };
 }
 
+// Normalize every date to the same YYYY-MM-DD key so daily usage entries and appliance logs can line up.
 function toDateKey(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().slice(0, 10);
 }
 
+// Build the full list of days in the selected month when we need a default day-by-day estimate.
 function getMonthDayKeys(month, year) {
   const daysInMonth = new Date(year, month, 0).getDate();
   return Array.from({ length: daysInMonth }, (_, index) =>
@@ -112,6 +114,8 @@ function getMonthDayKeys(month, year) {
   );
 }
 
+// Allocate appliance usage one day at a time so "Other" can represent the part of daily household usage
+// that named appliances do not explain.
 function allocateProfilesAcrossDays(profiles, actualUsageByDate, dayKeys) {
   const allocatedUsageByAppliance = new Map();
   let otherUsage = 0;
@@ -193,12 +197,15 @@ async function getMonthlyApplianceProfiles(householdId, month, year) {
     actualUsageByDate.set(toDateKey(entry.date), Number(entry.unitsUsed || 0));
   });
 
+  // Keep appliance logs separated by both appliance and day because manual-mode appliances are tracked daily.
   const loggedHoursByApplianceAndDate = new Map();
   logs.forEach((log) => {
     const key = `${log.applianceId.toString()}:${toDateKey(log.date)}`;
     loggedHoursByApplianceAndDate.set(key, Number(log.hoursUsed || 0));
   });
 
+  // If the household already has daily usage entries, only compare against those recorded days.
+  // Otherwise, estimate across the whole month.
   const dayKeys = actualUsageByDate.size > 0 ? Array.from(actualUsageByDate.keys()).sort() : getMonthDayKeys(month, year);
 
   const profiles = appliances.map((appliance) => {
@@ -209,6 +216,7 @@ async function getMonthlyApplianceProfiles(householdId, month, year) {
     let estimatedUsage = 0;
     let usedLoggedHours = false;
 
+    // Build the appliance estimate day by day so default-mode and manual-mode appliances follow the same shape.
     dayKeys.forEach((dayKey) => {
       const loggedHours = loggedHoursByApplianceAndDate.get(`${applianceId}:${dayKey}`) || 0;
       const dayHoursUsed = usageMode === "manual" ? loggedHours : Number(appliance.defaultHoursPerDay || 0);
@@ -286,6 +294,7 @@ export async function verifyHouseholdOwnership(householdId, userId) {
 export async function getUsageByAppliances(householdId, month, year) {
   const monthlyProfiles = await getMonthlyApplianceProfiles(householdId, month, year);
   const hasEstimatedData = monthlyProfiles.profiles.some((item) => item.source !== "logged");
+  // Show named appliances separately, then roll the unexplained daily remainder into "Other".
   const namedProfiles = monthlyProfiles.profiles.filter((item) => item.source === "logged" || item.source === "default");
   const { allocatedUsageByAppliance, otherUsage } = allocateProfilesAcrossDays(
     namedProfiles,
@@ -366,7 +375,7 @@ export async function getUsageByRooms(householdId, month, year) {
     monthlyProfiles.dayKeys
   );
 
-  // Room totals are derived from the appliance logs/defaults instead of being stored separately.
+  // Room totals are built by grouping the already-calculated appliance allocations.
   const roomUsages = rooms.map((room) => {
     const roomAppliances = monthlyProfiles.profiles.filter(
       (item) => item.appliance.roomId && item.appliance.roomId.toString() === room._id.toString()

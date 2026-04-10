@@ -488,7 +488,7 @@ function AdminUsagePage() {
 
       <div style={{ ...adminCardStyle, padding: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
-          <h3 style={{ margin: 0, color: adminColors.text }}>Recent Usage Entries</h3>
+          <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>Recent Usage Entries</h3>
           <span style={{ color: adminColors.muted, fontSize: "14px" }}>
             {selectedHousehold ? "Latest records for the selected household" : selectedUser ? "Recent records across the selected user's households" : "Select a user or household to inspect usage"}
           </span>
@@ -596,7 +596,7 @@ function MetricCard({ label, value, tone }) {
 function BreakdownCard({ title, items, emptyText }) {
   return (
     <div style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "16px" }}>
-      <h3 style={{ margin: 0, color: adminColors.text }}>{title}</h3>
+      <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>{title}</h3>
       {items.length === 0 ? (
         <Message tone="info" text={emptyText} />
       ) : (

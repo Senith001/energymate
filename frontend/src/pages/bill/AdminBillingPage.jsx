@@ -446,7 +446,7 @@ function AdminBillingPage() {
 
       <div style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center" }}>
-          <h3 style={{ margin: 0, color: adminColors.text }}>Bill History</h3>
+          <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>Bill History</h3>
           <span style={{ color: adminColors.muted, fontSize: "14px" }}>
             {selectedHousehold
               ? `${selectedHousehold.name} has ${bills.length} stored bills.`
