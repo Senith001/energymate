@@ -17,7 +17,7 @@ function UsageBars({ title, data }) {
 
   return (
     <div style={{ ...cardStyle, padding: "24px", minHeight: "350px", width: "100%", display: "flex", flexDirection: "column" }}>
-      <h3 style={{ margin: "0 0 28px 0", fontSize: "18px", color: colors.text }}>{title}</h3>
+      <h3 style={{ margin: "0 0 28px 0", fontSize: "18px", fontWeight: "600", color: colors.text }}>{title}</h3>
       {points.length ? (
         <div style={{ width: "100%", overflowX: "auto", flex: 1 }}>
           <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", minWidth: "580px", display: "block" }}>

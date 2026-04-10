@@ -204,6 +204,7 @@ export async function verifyHouseholdOwnership(householdId, userId) {
  */
 export async function getUsageByAppliances(householdId, month, year) {
   const monthlyProfiles = await getMonthlyApplianceProfiles(householdId, month, year);
+  const hasEstimatedData = monthlyProfiles.profiles.some((item) => item.source === "default");
 
   // Allocate the real household total across appliance profiles so the chart still sums back to monthly usage.
   const breakdown = monthlyProfiles.profiles.map((item) => ({
@@ -218,6 +219,24 @@ export async function getUsageByAppliances(householdId, month, year) {
     allocatedUsage: +(item.estimatedUsage * monthlyProfiles.allocationFactor).toFixed(2),
   }));
 
+  const allocatedTotal = breakdown.reduce((sum, item) => sum + item.allocatedUsage, 0);
+  const unallocatedUsage = +(monthlyProfiles.totalUnits - allocatedTotal).toFixed(2);
+
+  // Keep any remainder explicit so the appliance chart does not imply every kWh was traced to a named appliance.
+  if (unallocatedUsage > 0.01) {
+    breakdown.push({
+      applianceId: null,
+      name: "Other",
+      wattage: 0,
+      quantity: 1,
+      defaultHoursPerDay: 0,
+      hoursUsed: 0,
+      source: "other",
+      estimatedUsage: 0,
+      allocatedUsage: unallocatedUsage,
+    });
+  }
+
   return {
     householdId,
     month,
@@ -225,6 +244,9 @@ export async function getUsageByAppliances(householdId, month, year) {
     totalUnits: monthlyProfiles.totalUnits,
     totalEstimatedUsage: monthlyProfiles.totalEstimatedUsage,
     allocationFactor: monthlyProfiles.allocationFactor,
+    hasEstimatedData,
+    isEstimatedOnly: monthlyProfiles.totalUnits === 0 && monthlyProfiles.totalEstimatedUsage > 0,
+    unallocatedUsage: unallocatedUsage > 0 ? unallocatedUsage : 0,
     breakdown,
   };
 }
@@ -240,6 +262,7 @@ export async function getUsageByAppliances(householdId, month, year) {
 export async function getUsageByRooms(householdId, month, year) {
   const monthlyProfiles = await getMonthlyApplianceProfiles(householdId, month, year);
   const rooms = await Room.find({ householdId });
+  const hasEstimatedData = monthlyProfiles.profiles.some((item) => item.source === "default");
 
   if (rooms.length === 0) {
     return {
@@ -249,6 +272,8 @@ export async function getUsageByRooms(householdId, month, year) {
       totalUnits: monthlyProfiles.totalUnits,
       totalEstimatedUsage: 0,
       allocationFactor: 0,
+      hasEstimatedData,
+      isEstimatedOnly: monthlyProfiles.totalUnits === 0 && monthlyProfiles.totalEstimatedUsage > 0,
       breakdown: [],
     };
   }
@@ -292,6 +317,8 @@ export async function getUsageByRooms(householdId, month, year) {
     totalUnits: monthlyProfiles.totalUnits,
     totalEstimatedUsage: +totalEstimatedUsage.toFixed(2),
     allocationFactor: +allocationFactor.toFixed(4),
+    hasEstimatedData,
+    isEstimatedOnly: monthlyProfiles.totalUnits === 0 && monthlyProfiles.totalEstimatedUsage > 0,
     breakdown,
   };
 }

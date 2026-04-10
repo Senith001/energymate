@@ -20,6 +20,7 @@ function ApplianceHoursDialog({
     date: new Date().toISOString().slice(0, 10),
     hoursUsed: "",
   });
+  const [selectedLogDate, setSelectedLogDate] = useState("all");
 
   useEffect(() => {
     if (!open) return;
@@ -41,10 +42,26 @@ function ApplianceHoursDialog({
     }));
   }, [open, appliances, initialLog]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    // Default the log viewer to the form date so users land on one day's entries instead of the whole month.
+    setSelectedLogDate(initialLog ? new Date(initialLog.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+  }, [open, initialLog]);
+
   const sortedLogs = useMemo(() => {
     // Keep the latest log at the top so quick corrections are easy right after saving.
     return [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [logs]);
+
+  const visibleLogs = useMemo(() => {
+    if (selectedLogDate === "all") return sortedLogs;
+    return sortedLogs.filter((log) => new Date(log.date).toISOString().slice(0, 10) === selectedLogDate);
+  }, [selectedLogDate, sortedLogs]);
+
+  function handleToggleShowAll() {
+    setSelectedLogDate((current) => (current === "all" ? form.date || new Date().toISOString().slice(0, 10) : "all"));
+  }
 
   if (!open) return null;
 
@@ -181,9 +198,28 @@ function ApplianceHoursDialog({
             Logged Hours for {selectedPeriod.label}
           </div>
 
-          {sortedLogs.length ? (
+          <div style={{ display: "grid", gap: "8px", marginBottom: "14px" }}>
+            <span style={{ fontWeight: "700", color: colors.text }}>View Logs for Date</span>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                type="date"
+                value={selectedLogDate === "all" ? "" : selectedLogDate}
+                onChange={(event) => setSelectedLogDate(event.target.value || "all")}
+                style={{ ...inputStyle, minWidth: "210px", width: "auto" }}
+              />
+              <button
+                type="button"
+                onClick={handleToggleShowAll}
+                style={ghostButtonStyle}
+              >
+                {selectedLogDate === "all" ? "Show Today" : "Show All"}
+              </button>
+            </div>
+          </div>
+
+          {visibleLogs.length ? (
             <div style={{ display: "grid", gap: "10px" }}>
-              {sortedLogs.map((log) => {
+              {visibleLogs.map((log) => {
                 const applianceName = appliances.find((item) => item._id === log.applianceId)?.name || "Appliance";
                 return (
                   <div
@@ -222,7 +258,11 @@ function ApplianceHoursDialog({
               })}
             </div>
           ) : (
-            <div style={{ color: colors.muted }}>No appliance-hour logs yet for this period.</div>
+            <div style={{ color: colors.muted }}>
+              {sortedLogs.length
+                ? "No appliance-hour logs match the selected date."
+                : "No appliance-hour logs yet for this period."}
+            </div>
           )}
         </div>
       </div>

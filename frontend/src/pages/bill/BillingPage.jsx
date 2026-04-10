@@ -613,7 +613,7 @@ function ComparisonCard({ comparison }) {
 
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>Month Comparison</h3>
+      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", fontWeight: "600", color: colors.text }}>Month Comparison</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
         <SummaryTile label={previous ? formatMonthYear(previous.month, previous.year) : "Previous"} units={previous?.totalUnits} cost={previous?.totalCost} />
         <SummaryTile label={current ? formatMonthYear(current.month, current.year) : "Current"} units={current?.totalUnits} cost={current?.totalCost} />
@@ -655,7 +655,7 @@ function SummaryTile({ label, units, cost }) {
 function TariffBreakdownCard({ breakdown, total }) {
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>Energy Charge Breakdown</h3>
+      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", fontWeight: "600", color: colors.text }}>Energy Charge Breakdown</h3>
       <div style={{ display: "grid", gap: "12px" }}>
         {breakdown.length ? (
           breakdown.map((item, index) => (

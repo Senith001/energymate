@@ -40,6 +40,8 @@ function UsagePage() {
   const [costInfo, setCostInfo] = useState(null);
   const [applianceBreakdown, setApplianceBreakdown] = useState([]);
   const [roomBreakdown, setRoomBreakdown] = useState([]);
+  const [applianceBreakdownMeta, setApplianceBreakdownMeta] = useState({ hasEstimatedData: false, isEstimatedOnly: false, unallocatedUsage: 0 });
+  const [roomBreakdownMeta, setRoomBreakdownMeta] = useState({ hasEstimatedData: false, isEstimatedOnly: false });
   const [weatherInfo, setWeatherInfo] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [loading, setLoading] = useState(true);
@@ -166,22 +168,32 @@ function UsagePage() {
           source: item.source,
         }))
       );
+      setApplianceBreakdownMeta({
+        hasEstimatedData: Boolean(appliancesPayload.data?.hasEstimatedData),
+        isEstimatedOnly: Boolean(appliancesPayload.data?.isEstimatedOnly),
+        unallocatedUsage: Number(appliancesPayload.data?.unallocatedUsage || 0),
+      });
       setRoomBreakdown(
         (roomsPayload.data?.breakdown || []).map((item) => ({
           roomName: item.roomName,
           value: item.allocatedUsage || 0,
         }))
       );
+      setRoomBreakdownMeta({
+        hasEstimatedData: Boolean(roomsPayload.data?.hasEstimatedData),
+        isEstimatedOnly: Boolean(roomsPayload.data?.isEstimatedOnly),
+      });
       setUsages(usagePayload.data || []);
       await loadApplianceHoursData(activeHouseholdId, month, year);
 
       try {
         const weatherLocation = await resolveWeatherLocation(activeHouseholdId);
-        const weatherPayload = await getWeatherImpact(activeHouseholdId, month, year, weatherLocation);
+        const weatherPayload = await getWeatherImpact(activeHouseholdId, month, year, weatherLocation.request);
         // Keep only the weather fields used by this page.
         setWeatherInfo({
           weather: weatherPayload.data?.weather || null,
           insight: weatherPayload.data?.insight || "Weather insight is unavailable right now.",
+          sourceLabel: weatherLocation.sourceLabel,
         });
       } catch (weatherError) {
         setWeatherInfo(null);
@@ -222,7 +234,7 @@ function UsagePage() {
       }
 
       if (household?.city && weatherLocationMode === "household") {
-        return { city: household.city };
+        return { request: { city: household.city }, sourceLabel: "Household City" };
       }
     } catch (householdError) {
       // Keep the final fallback simple if the household lookup is not available yet.
@@ -231,24 +243,24 @@ function UsagePage() {
     if (weatherLocationMode === "browser") {
       const browserLocation = await getBrowserCoordinates();
       if (browserLocation) {
-        return browserLocation;
+        return { request: browserLocation, sourceLabel: "Current Location" };
       }
     }
 
     if (weatherLocationMode === "custom" && customWeatherCity.trim()) {
-      return { city: customWeatherCity.trim() };
+      return { request: { city: customWeatherCity.trim() }, sourceLabel: "Custom City" };
     }
 
     try {
       const household = await getHouseholdDetails(activeHouseholdId);
       if (household?.city) {
-        return { city: household.city };
+        return { request: { city: household.city }, sourceLabel: "Household City" };
       }
     } catch (householdError) {
       // Ignore and fall through to the static fallback city.
     }
 
-    return { city: "Colombo" };
+    return { request: { city: "Colombo" }, sourceLabel: "Fallback City" };
   }
 
   // Save the selected weather location mode for later visits.
@@ -510,6 +522,7 @@ function UsagePage() {
   const dailyAverage = summary?.entries ? totalUnits / summary.entries : 0;
   const weather = weatherInfo?.weather || null;
   const weatherTip = weatherInfo?.insight || "Weather insight is unavailable right now.";
+  const weatherSourceLabel = weatherInfo?.sourceLabel || "Household City";
   // Prefer a saved household label so the header never falls back to the raw object id.
   const householdLabel = localStorage.getItem("selectedHouseholdName") || localStorage.getItem("householdName") || "Household";
   const degreeSymbol = String.fromCharCode(176);
@@ -630,6 +643,7 @@ function UsagePage() {
             city={weather?.city || "Colombo"}
             weather={weather}
             tip={weatherTip}
+            sourceLabel={weatherSourceLabel}
             locationMode={weatherLocationMode}
             customCity={customWeatherCity}
             onLocationModeChange={handleWeatherLocationModeChange}
@@ -644,7 +658,7 @@ function UsagePage() {
 
       <div style={{ ...responsiveGrid("360px", "26px"), marginTop: "26px" }}>
         <BreakdownDonut
-          title="Usage by Appliance"
+          title={`Usage by Appliance - ${formatMonthYear(selectedPeriod.month, selectedPeriod.year)}`}
           items={applianceItems}
           labelKey="name"
           actionLabel="Log Hours"
@@ -654,7 +668,11 @@ function UsagePage() {
             setApplianceHoursOpen(true);
           }}
         />
-        <ProgressBreakdown title="Usage by Room" items={roomItems} labelKey="roomName" />
+        <ProgressBreakdown
+          title={`Usage by Room - ${formatMonthYear(selectedPeriod.month, selectedPeriod.year)}`}
+          items={roomItems}
+          labelKey="roomName"
+        />
       </div>
 
       <div style={{ marginTop: "26px" }}>
