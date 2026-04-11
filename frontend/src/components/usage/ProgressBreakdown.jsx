@@ -3,10 +3,13 @@ import { cardStyle, colors } from "../energy/dashboardTheme";
 
 const fills = [colors.green, "#fbbf24", "#4f8df7", "#ef4444", "#9d4edd", "#3db7b9"];
 
-function ProgressBreakdown({ title, items, labelKey, unitLabel = "kWh" }) {
+function ProgressBreakdown({ title, items, labelKey, unitLabel = "kWh", helperText }) {
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>{title}</h3>
+      <div style={{ display: "grid", gap: "6px", marginBottom: "22px" }}>
+        <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: colors.text }}>{title}</h3>
+        {helperText ? <div style={{ color: colors.muted, fontSize: "13px", lineHeight: 1.5 }}>{helperText}</div> : null}
+      </div>
       <div style={{ display: "grid", gap: "18px" }}>
         {items.length ? (
           items.map((item, index) => (

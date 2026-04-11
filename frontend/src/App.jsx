@@ -24,6 +24,7 @@ import AdminTemplates from "./pages/recommendation/AdminTemplates";
 import AdminPosts from "./pages/admin/AdminPosts";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
 import AdminHouseholdPage from "./pages/admin/AdminHouseholdPage";
 import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
@@ -31,6 +32,8 @@ import AdminUsagePage from "./pages/usage/AdminUsagePage";
 import AdminUsageBillingPage from "./pages/usage/AdminUsageBillingPage";
 import AdminBillingPage from "./pages/bill/AdminBillingPage";
 import AdminTariffPage from "./pages/bill/AdminTariffPage";
+
+import SuperadminSetup from "./pages/admin/SuperadminSetup";
 
 //User Pages
 import UserProfile from "./pages/user/UserProfile";
@@ -65,8 +68,11 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/news/:id" element={<PostDetails />} />
+          <Route path="/verify-otp" element={<VerifyOtpPage />} />
+          <Route path="/summary" element={<SummaryPage />} />
+          <Route path="/admin-setup-bootstrap" element={<SuperadminSetup />} />
 
-          {/* Protected AI Hub Route (outside MainLayout so it has its own full-page style) */}
+          {/* Protected AI Hub Route */}
           <Route element={<ProtectedRoute />}>
             <Route path="/ai" element={<AIHubPage />} />
           </Route>
@@ -77,6 +83,7 @@ function App() {
           {/* Protected Admin Layout Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} /> 
             <Route path="households" element={<AdminHouseholdPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="support" element={<AdminSupportPage />} />

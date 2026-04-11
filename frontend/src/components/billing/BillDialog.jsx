@@ -225,6 +225,7 @@ function BillDialog({
                       style={inputStyle}
                       type="number"
                       min="0"
+                      step="0.1"
                       value={form.previousReading}
                       onChange={(event) => updateForm({ previousReading: event.target.value })}
                     />
@@ -235,6 +236,7 @@ function BillDialog({
                       style={inputStyle}
                       type="number"
                       min="0"
+                      step="0.1"
                       value={form.currentReading}
                       onChange={(event) => updateForm({ currentReading: event.target.value })}
                     />
@@ -247,6 +249,7 @@ function BillDialog({
                     style={inputStyle}
                     type="number"
                     min="0"
+                    step="0.1"
                     value={form.totalUnits}
                     onChange={(event) => updateForm({ totalUnits: event.target.value })}
                   />

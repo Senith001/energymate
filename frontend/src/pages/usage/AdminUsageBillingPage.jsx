@@ -7,7 +7,7 @@ function AdminUsageBillingPage() {
   return (
     <div style={{ display: "grid", gap: "24px" }}>
       <div style={{ display: "grid", gap: "8px" }}>
-        <h1 style={{ margin: 0, color: adminColors.text }}>Usage and Billing</h1>
+        <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Usage and Billing</h1>
         <p style={{ margin: 0, color: adminColors.muted }}>
           Manage household usage monitoring, billing oversight, and tariff settings from one admin workspace.
         </p>
@@ -73,7 +73,7 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
         >
           <Icon size={20} />
         </div>
-        <h3 style={{ margin: 0, color: adminColors.text }}>{title}</h3>
+        <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>{title}</h3>
         <p style={{ margin: 0, color: adminColors.muted, lineHeight: 1.6 }}>{description}</p>
       </div>
 
@@ -85,12 +85,13 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "10px 16px",
+            padding: "8px 14px",
             borderRadius: "14px",
             background: "#ffffff",
             color: accent,
             textDecoration: "none",
             fontWeight: "700",
+            fontSize: "14px",
             border: `1px solid ${accent}`,
           }}
         >

@@ -46,7 +46,7 @@ function UsageTableCard({
           flexWrap: "wrap",
         }}
       >
-        <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Usage Records</h3>
+        <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: colors.text }}>Usage History</h3>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
           {/* Keep the records table open to all entries by default, with date/month/year filters for faster lookup. */}
           <select value={dayFilter} onChange={(event) => onDayFilterChange(event.target.value)} style={selectStyle}>

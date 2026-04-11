@@ -8,12 +8,14 @@ import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone } fro
 import { useAuth } from "../../context/AuthContext";
 import { validateBillForm } from "../../utils/billingValidation";
 import { createBill, generateBill, getBillById, getBillComparison, getBills, regenerateBill, updateBill } from "../../utils/billingAPI";
-import { getHouseholdDetails, getUsages } from "../../utils/usageAPI";
+import { getHouseholdDetails, getHouseholds } from "../../utils/usageAPI";
 
 function BillingPage() {
   const { user } = useAuth();
   // Keep the selected household id locally for billing-related API calls.
   const [householdId, setHouseholdId] = useState(localStorage.getItem("selectedHouseholdId") || localStorage.getItem("householdId") || "");
+  const [householdOptions, setHouseholdOptions] = useState([]);
+  const [pendingHouseholdId, setPendingHouseholdId] = useState("");
   const [bills, setBills] = useState([]);
   const [comparison, setComparison] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
@@ -56,10 +58,29 @@ function BillingPage() {
 
       let resolvedHouseholdId = householdId;
       if (!resolvedHouseholdId) {
-        // Billing still borrows the existing usage context until household selection is wired in centrally.
-        const usagePayload = await getUsages();
-        resolvedHouseholdId = usagePayload.data?.[0]?.householdId || "";
-        setHouseholdId(resolvedHouseholdId);
+        // Billing now resolves the household directly instead of borrowing one indirectly from usage records.
+        const householdsPayload = await getHouseholds();
+        const households = Array.isArray(householdsPayload) ? householdsPayload : householdsPayload.data || [];
+
+        if (households.length === 1) {
+          resolvedHouseholdId = households[0]._id;
+          saveHouseholdSelection(households[0]);
+          setHouseholdOptions([]);
+          setPendingHouseholdId("");
+        } else if (households.length > 1) {
+          setHouseholdOptions(households);
+          setPendingHouseholdId("");
+          setLoading(false);
+          return;
+        }
+      }
+
+      setHouseholdId(resolvedHouseholdId);
+      setHouseholdOptions([]);
+      setPendingHouseholdId("");
+      if (resolvedHouseholdId) {
+        localStorage.setItem("selectedHouseholdId", resolvedHouseholdId);
+        localStorage.setItem("householdId", resolvedHouseholdId);
       }
 
       if (!resolvedHouseholdId) {
@@ -67,6 +88,7 @@ function BillingPage() {
         return;
       }
 
+      // Once one household is resolved, keep the rest of the page driven by that selected context.
       await loadHouseholdName(resolvedHouseholdId);
 
       const billsPayload = await getBills(resolvedHouseholdId);
@@ -82,6 +104,31 @@ function BillingPage() {
       setError(err.message || "Unable to load billing dashboard.");
       setLoading(false);
     }
+  }
+
+  function saveHouseholdSelection(household) {
+    if (!household?._id) return;
+
+    localStorage.setItem("selectedHouseholdId", household._id);
+    localStorage.setItem("householdId", household._id);
+
+    if (household.name) {
+      localStorage.setItem("selectedHouseholdName", household.name);
+      localStorage.setItem("householdName", household.name);
+    }
+  }
+
+  async function handleSelectHousehold() {
+    const selectedHousehold = householdOptions.find((item) => item._id === pendingHouseholdId);
+    if (!selectedHousehold) return;
+
+    // Save the user's choice so billing and usage can reopen with the same household context later.
+    saveHouseholdSelection(selectedHousehold);
+    setHouseholdId(selectedHousehold._id);
+    setHouseholdName(selectedHousehold.name || "Household");
+    setHouseholdOptions([]);
+    setPendingHouseholdId("");
+    await loadComparison(selectedHousehold._id, selectedPeriod.month, selectedPeriod.year);
   }
 
   // Borrow the temporary household lookup from usage until the shared household API is exposed centrally.
@@ -375,10 +422,28 @@ function BillingPage() {
   }, [bills]);
   return (
     <div style={{ background: colors.background, padding: "10px" }}>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 style={{ margin: 0, fontSize: "30px", color: colors.text }}>Billing and Cost Analysis</h1>
+      <div
+        style={{
+          marginBottom: "18px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: "32px", fontWeight: "700", lineHeight: 1.2, color: colors.text }}>Billing and Cost Analysis</h1>
+        {householdOptions.length > 1 ? (
+          // Show the selector only when the user owns multiple households and billing cannot safely guess one.
+          <HouseholdSelectorInline
+            households={householdOptions}
+            pendingHouseholdId={pendingHouseholdId}
+            onChange={setPendingHouseholdId}
+            onConfirm={handleSelectHousehold}
+          />
+        ) : null}
       </div>
-      <PageNotice loading={loading} error={error} householdId={householdId} period={selectedPeriod} billsCount={bills.length} />
+      <PageNotice loading={loading} error={error} householdId={householdId} period={selectedPeriod} billsCount={bills.length} showSelector={householdOptions.length > 1} />
 
       {householdId ? (
         <div
@@ -459,7 +524,7 @@ function BillingPage() {
 
       <div style={{ ...responsiveGrid("360px", "26px"), marginTop: "26px" }}>
         <ComparisonCard comparison={comparison} />
-        <TariffBreakdownCard breakdown={activeBreakdown} total={latestBill?.totalCost} />
+        <TariffBreakdownCard breakdown={activeBreakdown} fixedCharge={latestBill?.fixedCharge} />
       </div>
 
       <div style={{ marginTop: "26px" }}>
@@ -548,7 +613,7 @@ function ComparisonCard({ comparison }) {
 
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>Month Comparison</h3>
+      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", fontWeight: "600", color: colors.text }}>Month Comparison</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
         <SummaryTile label={previous ? formatMonthYear(previous.month, previous.year) : "Previous"} units={previous?.totalUnits} cost={previous?.totalCost} />
         <SummaryTile label={current ? formatMonthYear(current.month, current.year) : "Current"} units={current?.totalUnits} cost={current?.totalCost} />
@@ -587,17 +652,39 @@ function SummaryTile({ label, units, cost }) {
 }
 
 // Show the tariff slabs that make up the latest visible bill.
-function TariffBreakdownCard({ breakdown, total }) {
+function TariffBreakdownCard({ breakdown, fixedCharge }) {
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
-      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", color: colors.text }}>Energy Charge Breakdown</h3>
+      <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", fontWeight: "600", color: colors.text }}>Energy Charge Breakdown</h3>
       <div style={{ display: "grid", gap: "12px" }}>
         {breakdown.length ? (
-          breakdown.map((item, index) => (
+          <>
+            {breakdown.map((item, index) => (
+              <div
+                key={`${item.range}-${index}`}
+                style={{
+                  background: "#f4f7fa",
+                  borderRadius: "16px",
+                  padding: "14px 16px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: "700", color: colors.text }}>{item.range}</div>
+                  <div style={{ color: colors.muted, fontSize: "14px" }}>
+                    {Number(item.units || 0).toFixed(1)} units x Rs. {Number(item.rate || 0).toFixed(2)}
+                  </div>
+                </div>
+                <div style={{ fontWeight: "800", color: colors.text }}>{formatCurrency(item.cost)}</div>
+              </div>
+            ))}
+
             <div
-              key={`${item.range}-${index}`}
               style={{
-                background: "#f4f7fa",
+                background: colors.amberSoft,
                 borderRadius: "16px",
                 padding: "14px 16px",
                 display: "flex",
@@ -607,47 +694,34 @@ function TariffBreakdownCard({ breakdown, total }) {
               }}
             >
               <div>
-                <div style={{ fontWeight: "700", color: colors.text }}>{item.range}</div>
+                <div style={{ fontWeight: "700", color: colors.text }}>Fixed Charge</div>
                 <div style={{ color: colors.muted, fontSize: "14px" }}>
-                  {Number(item.units || 0).toFixed(1)} units x Rs. {Number(item.rate || 0).toFixed(2)}
+                  Charged based on the highest tariff slab reached
                 </div>
               </div>
-              <div style={{ fontWeight: "800", color: colors.text }}>{formatCurrency(item.cost)}</div>
+              <div style={{ fontWeight: "800", color: colors.text }}>{formatCurrency(fixedCharge)}</div>
             </div>
-          ))
+          </>
         ) : (
           <div style={{ color: colors.muted }}>Tariff details will appear after a bill is created.</div>
         )}
-
-        <div
-          style={{
-            background: colors.blueSoft,
-            color: colors.blue,
-            borderRadius: "16px",
-            padding: "14px 16px",
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "12px",
-            alignItems: "center",
-            fontWeight: "800",
-          }}
-        >
-          <span>Total</span>
-          <span>{formatCurrency(total)}</span>
-        </div>
       </div>
     </div>
   );
 }
 
 // Keep page-level empty and loading states separate from the billing header card.
-function PageNotice({ loading, error, householdId, period, billsCount }) {
+function PageNotice({ loading, error, householdId, period, billsCount, showSelector }) {
   if (loading) {
     return <Banner text="Loading billing dashboard..." tone="info" />;
   }
 
   if (error) {
     return <Banner text={error} tone="error" />;
+  }
+
+  if (showSelector) {
+    return null;
   }
 
   if (!householdId) {
@@ -667,6 +741,37 @@ function Banner({ text, tone }) {
   return (
     <div style={{ ...cardStyle, background: palette.background, color: palette.color, padding: "16px 20px", marginBottom: "22px" }}>
       {text}
+    </div>
+  );
+}
+
+function HouseholdSelectorInline({ households, pendingHouseholdId, onChange, onConfirm }) {
+  return (
+    <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+      <select value={pendingHouseholdId} onChange={(event) => onChange(event.target.value)} style={selectorStyle}>
+        <option value="">Choose household</option>
+        {households.map((household) => (
+          <option key={household._id} value={household._id}>
+            {household.name || "Household"}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={onConfirm}
+        disabled={!pendingHouseholdId}
+        style={{
+          border: "none",
+          background: pendingHouseholdId ? colors.green : "#b6c3d1",
+          color: "#ffffff",
+          padding: "10px 16px",
+          borderRadius: "12px",
+          cursor: pendingHouseholdId ? "pointer" : "not-allowed",
+          fontWeight: "700",
+        }}
+      >
+        Continue
+      </button>
     </div>
   );
 }
@@ -700,6 +805,17 @@ const TABLE_YEAR_FILTERS = (years) => [
   { value: "all", label: "All Years" },
   ...years.map((year) => ({ value: String(year), label: String(year) })),
 ];
+
+const selectorStyle = {
+  minWidth: "190px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid #d7dee7",
+  background: "#ffffff",
+  color: colors.text,
+  fontSize: "14px",
+  outline: "none",
+};
 
 export default BillingPage;
 

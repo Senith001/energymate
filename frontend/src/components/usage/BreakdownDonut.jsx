@@ -1,7 +1,20 @@
 import React from "react";
 import { cardStyle, colors } from "../energy/dashboardTheme";
 
-const segmentColors = ["#2a8c5f", "#fbbf24", "#3b82f6", "#ef4444", "#9d4edd", "#3db7b9"];
+const segmentColors = [
+  "#2a8c5f",
+  "#f59e0b",
+  "#2563eb",
+  "#ef4444",
+  "#8b5cf6",
+  "#14b8a6",
+  "#ec4899",
+  "#f97316",
+  "#06b6d4",
+  "#84cc16",
+  "#6366f1",
+  "#a855f7",
+];
 
 function polarToCartesian(cx, cy, r, angle) {
   const rad = ((angle - 90) * Math.PI) / 180;
@@ -15,14 +28,17 @@ function donutArc(cx, cy, r, startAngle, endAngle) {
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 }
 
-function BreakdownDonut({ title, items, labelKey, actionLabel, onAction }) {
+function BreakdownDonut({ title, items, labelKey, helperText, actionLabel, onAction }) {
   const total = items.reduce((sum, item) => sum + item.value, 0);
   let start = 0;
 
   return (
     <div style={{ ...cardStyle, padding: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "22px", flexWrap: "wrap" }}>
-        <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>{title}</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "22px" }}>
+        <div style={{ display: "grid", gap: "6px", flex: 1, minWidth: 0 }}>
+          <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: colors.text }}>{title}</h3>
+          {helperText ? <div style={{ color: colors.muted, fontSize: "13px", lineHeight: 1.5 }}>{helperText}</div> : null}
+        </div>
         {onAction ? (
           <button
             type="button"
@@ -36,6 +52,7 @@ function BreakdownDonut({ title, items, labelKey, actionLabel, onAction }) {
               borderRadius: "12px",
               fontWeight: "700",
               cursor: "pointer",
+              flexShrink: 0,
             }}
           >
             {actionLabel || "Action"}
@@ -83,7 +100,9 @@ function BreakdownDonut({ title, items, labelKey, actionLabel, onAction }) {
                   />
                   <span>{item[labelKey]}</span>
                 </div>
-                <strong>{item.percentage.toFixed(1)}%</strong>
+                <strong style={{ fontSize: "13px", fontWeight: "600", color: colors.muted }}>
+                  {item.value.toFixed(1)} kWh ({item.percentage.toFixed(1)}%)
+                </strong>
               </div>
             ))
           ) : (

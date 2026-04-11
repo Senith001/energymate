@@ -107,6 +107,7 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
                   style={inputStyle}
                   type="number"
                   min="0"
+                  step="0.1"
                   value={form.previousReading}
                   onChange={(event) => setForm({ ...form, previousReading: event.target.value })}
                 />
@@ -117,6 +118,7 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
                   style={inputStyle}
                   type="number"
                   min="0"
+                  step="0.1"
                   value={form.currentReading}
                   onChange={(event) => setForm({ ...form, currentReading: event.target.value })}
                 />
@@ -129,6 +131,7 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
                 style={inputStyle}
                 type="number"
                 min="0"
+                step="0.1"
                 value={form.totalUnits}
                 onChange={(event) => setForm({ ...form, totalUnits: event.target.value })}
               />
