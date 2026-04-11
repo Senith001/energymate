@@ -49,7 +49,7 @@ function BillingTableCard({
           flexWrap: "wrap",
         }}
       >
-        <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Bill History</h3>
+        <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: colors.text }}>Bill History</h3>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
           {/* Keep the bill history open by default, with optional month and year filters. */}
           <select value={monthFilter} onChange={(event) => onMonthFilterChange(event.target.value)} style={selectStyle}>

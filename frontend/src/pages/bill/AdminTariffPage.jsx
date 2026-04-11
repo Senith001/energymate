@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
 import api from "../../services/api";
-import { adminButtonStyle, adminCardStyle, adminColors, adminInputStyle, formatAdminCurrency } from "../../components/energy/adminTheme";
+import {
+  adminButtonStyle,
+  adminCardStyle,
+  adminColors,
+  adminInputStyle,
+  formatAdminCurrency,
+} from "../../components/energy/adminTheme";
 
 function AdminTariffPage() {
   const [form, setForm] = useState(null);
@@ -80,7 +86,7 @@ function AdminTariffPage() {
             Back
           </Link>
         </div>
-        <h1 style={{ margin: 0, color: adminColors.text }}>Tariff Settings</h1>
+        <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Tariff Settings</h1>
         <p style={{ margin: 0, color: adminColors.muted }}>
           Review and update the domestic tariff slabs used by usage estimates, bill generation, and bill previews.
         </p>
@@ -98,7 +104,7 @@ function AdminTariffPage() {
               <div style={{ color: adminColors.muted, fontSize: "13px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase" }}>
                 Domestic Tariff Overview
               </div>
-              <h3 style={{ margin: 0, color: adminColors.text, fontSize: "28px" }}>Current Billing Rules</h3>
+              <h3 style={{ margin: 0, color: adminColors.text, fontSize: "20px", fontWeight: "700" }}>Current Billing Rules</h3>
               <p style={{ margin: 0, color: adminColors.muted, maxWidth: "640px", lineHeight: 1.6 }}>
                 Low usage, high usage, and SSCL values are managed together here so the full tariff stays internally consistent.
               </p>
@@ -115,7 +121,7 @@ function AdminTariffPage() {
                     setMessage("");
                     setError("");
                   }}
-                  style={adminButtonStyle("primary")}
+                  style={smallAdminButtonStyle("primary")}
                 >
                   Edit Tariff
                 </button>
@@ -156,10 +162,10 @@ function AdminTariffPage() {
                 background: "#f8fafc",
                 display: "grid",
                 gap: "10px",
-                maxWidth: "360px",
+                width: "100%",
               }}
             >
-              <div style={{ color: adminColors.text, fontSize: "16px", fontWeight: "800" }}>SSCL Rate</div>
+              <div style={{ color: adminColors.text, fontSize: "22px", fontWeight: "800", lineHeight: 1.25 }}>SSCL Rate</div>
               <div style={{ color: adminColors.muted, lineHeight: 1.5 }}>
                 This value is applied after the subtotal is calculated from energy and fixed charges.
               </div>
@@ -179,7 +185,7 @@ function AdminTariffPage() {
                 />
               ) : (
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <table style={{ width: "100%", maxWidth: "400px", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${adminColors.border}` }}>
                         <TableHead>Field</TableHead>
@@ -200,7 +206,7 @@ function AdminTariffPage() {
 
           {editing ? (
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap", paddingTop: "4px" }}>
-              <button type="button" onClick={handleSave} disabled={saving} style={{ ...adminButtonStyle("primary"), opacity: saving ? 0.7 : 1 }}>
+              <button type="button" onClick={handleSave} disabled={saving} style={{ ...smallAdminButtonStyle("primary"), opacity: saving ? 0.7 : 1 }}>
                 {saving ? "Saving..." : "Save Tariff"}
               </button>
               <button
@@ -212,7 +218,7 @@ function AdminTariffPage() {
                   setMessage("");
                   setError("");
                 }}
-                style={adminButtonStyle("secondary")}
+                style={smallAdminButtonStyle("secondary")}
               >
                 Cancel
               </button>
@@ -403,6 +409,7 @@ const backLinkStyle = {
   color: adminColors.text,
   textDecoration: "none",
   fontWeight: "700",
+  fontSize: "14px",
 };
 
 const summaryToneMap = {
@@ -410,5 +417,13 @@ const summaryToneMap = {
   blue: { background: adminColors.blueSoft, border: "rgba(29, 78, 216, 0.38)" },
   amber: { background: adminColors.amberSoft, border: "rgba(180, 83, 9, 0.4)" },
 };
+
+function smallAdminButtonStyle(kind) {
+  return {
+    ...adminButtonStyle(kind),
+    padding: "10px 16px",
+    fontSize: "14px",
+  };
+}
 
 export default AdminTariffPage;

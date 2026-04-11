@@ -5,6 +5,7 @@ function WeatherInsightCard({
   city,
   weather,
   tip,
+  sourceLabel,
   locationMode,
   customCity,
   onLocationModeChange,
@@ -19,7 +20,7 @@ function WeatherInsightCard({
   return (
     <div style={{ ...cardStyle, padding: "24px", position: "relative", minHeight: "350px", width: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "22px" }}>
-        <h3 style={{ margin: 0, fontSize: "18px", color: colors.text }}>Weather Impact</h3>
+        <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: colors.text }}>Weather Impact</h3>
         <div style={{ position: "relative" }}>
           <button
             type="button"
@@ -105,7 +106,18 @@ function WeatherInsightCard({
         <div style={{ fontSize: "22px", fontWeight: "800", color: colors.text, marginBottom: "6px" }}>
           {details.temperature != null ? `${details.temperature}${String.fromCharCode(176)}C` : "-"}
         </div>
-        <div style={{ color: colors.muted, marginBottom: "18px" }}>{details.description || "Current conditions unavailable"}</div>
+        <div style={{ color: colors.muted, marginBottom: "4px" }}>{details.description || "Current conditions unavailable"}</div>
+        <div
+          style={{
+            marginTop: 0,
+            marginBottom: "12px",
+            color: tone.main,
+            fontSize: "13px",
+            fontWeight: "400",
+          }}
+        >
+          location: {sourceLabel || "Household City"}
+        </div>
 
         <div style={{ display: "flex", gap: "18px", flexWrap: "wrap", justifyContent: "center", color: colors.muted }}>
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
