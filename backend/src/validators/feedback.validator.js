@@ -1,13 +1,14 @@
 import { body, param } from "express-validator";
 
 export const createFeedbackValidator = [
-  body("name").trim().notEmpty().withMessage("name is required"),
-  body("email").trim().isEmail().withMessage("valid email is required"),
+  body("name").optional().trim(),
+  body("email").optional().trim().isEmail().withMessage("valid email is required"),
+  body("subject").trim().notEmpty().withMessage("subject is required"),
   body("message").trim().notEmpty().withMessage("message is required"),
-  body("type")
+  body("category")
     .optional()
-    .isIn(["bug", "suggestion", "complaint", "other"])
-    .withMessage("type must be bug/suggestion/complaint/other"),
+    .isIn(["Dashboard", "Rooms", "Appliances", "Support", "Other"])
+    .withMessage("invalid category"),
   body("rating")
     .optional()
     .isInt({ min: 1, max: 5 })
@@ -22,6 +23,6 @@ export const updateFeedbackStatusValidator = [
   param("id").isMongoId().withMessage("invalid feedback id"),
   body("status")
     .notEmpty()
-    .isIn(["new", "in_progress", "resolved"])
-    .withMessage("status must be new/in_progress/resolved"),
+    .isIn(["Submitted", "Reviewed"])
+    .withMessage("status must be Submitted/Reviewed"),
 ];

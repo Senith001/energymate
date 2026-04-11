@@ -10,13 +10,14 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Auth Pages (Your new files in the subfolder)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import VerifyOtpPage from './pages/auth/VerifyOtpPage';
-import SummaryPage from "./pages/auth/SummaryPage";
 
 //Admin Pages
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
+
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import UserManagement from "./pages/admin/UserManagement"; // ✅ Imported User Management
+import AdminHouseholdPage from "./pages/admin/AdminHouseholdPage";
+import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage";
+import AdminSupportPage from "./pages/admin/AdminSupportPage";
 import AdminUsagePage from "./pages/usage/AdminUsagePage";
 import AdminUsageBillingPage from "./pages/usage/AdminUsageBillingPage";
 import AdminBillingPage from "./pages/bill/AdminBillingPage";
@@ -24,6 +25,7 @@ import AdminTariffPage from "./pages/bill/AdminTariffPage";
 
 //User Pages
 import UserProfile from "./pages/user/UserProfile";
+
 
 // Team Member's Pages (Kept in their original location)
 import Dashboard from "./pages/user/Dashboard";
@@ -44,16 +46,16 @@ function App() {
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/verify-otp" element={<VerifyOtpPage />} />
-          <Route path="/summary" element={<SummaryPage />} />
 
           {/* Admin Login Route */}
           <Route path="/admin-portal" element={<AdminLoginPage />} />
 
-          {/* 🔴 SECURE ADMIN ROUTES (Nested inside AdminLayout) */}
+          {/* Protected Admin Layout Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} /> {/* ✅ Added User Management Route */}
+            <Route path="households" element={<AdminHouseholdPage />} />
+            <Route path="feedback" element={<AdminFeedbackPage />} />
+            <Route path="support" element={<AdminSupportPage />} />
             <Route path="usage-billing" element={<AdminUsageBillingPage />} />
             <Route path="usage-billing/usage" element={<AdminUsagePage />} />
             <Route path="usage-billing/billing" element={<AdminBillingPage />} />
@@ -62,20 +64,30 @@ function App() {
 
           {/* 🔵 SECURE USER ROUTES (Wrapped in ProtectedRoute) */}
           <Route element={<ProtectedRoute />}>
+          
             <Route path="/profile" element={<UserProfile />} />
 
+
+
             {/* Protected Main Layout Routes */}
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="households" element={<HouseholdPage />} />
-              <Route path="rooms" element={<RoomsPage />} />
-              <Route path="appliances" element={<AppliancesPage />} />
-              <Route path="usage" element={<UsagePage />} />
-              <Route path="billing" element={<BillingPage />} />
-              <Route path="feedback" element={<FeedbackPage />} />
-              <Route path="tickets" element={<SupportTicketsPage />} />
-            </Route>
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="households" element={<HouseholdPage />} />
+            <Route path="rooms" element={<RoomsPage />} />
+            <Route path="appliances" element={<AppliancesPage />} />
+            <Route path="usage" element={<UsagePage />} />
+            <Route path="billing" element={<BillingPage />} />
+            <Route path="feedback" element={<FeedbackPage />} />
+            <Route path="tickets" element={<SupportTicketsPage />} />
           </Route>
+          
+          </Route>
+
+          
+
+          
+
+          
 
         </Routes>
       </BrowserRouter>

@@ -1,419 +1,314 @@
 import React, { useEffect, useState } from "react";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 function SupportTicketsPage() {
-  const defaultTickets = [
-    {
-      id: "T001",
-      subject: "Appliance not updating",
-      category: "Appliance Issue",
-      priority: "High",
-      description: "The appliance usage data is not updating correctly.",
-      date: "2026-04-01",
-      status: "Open",
-    },
-    {
-      id: "T002",
-      subject: "Room details missing",
-      category: "Room Issue",
-      priority: "Medium",
-      description: "One room is not visible on dashboard.",
-      date: "2026-03-29",
-      status: "In Progress",
-    },
-  ];
-
+  const { user } = useAuth();
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState("Appliance Issue");
   const [priority, setPriority] = useState("High");
   const [description, setDescription] = useState("");
-  const [editId, setEditId] = useState(null);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [tickets, setTickets] = useState(() => {
-    const savedTickets = localStorage.getItem("supportTickets");
-    return savedTickets ? JSON.parse(savedTickets) : defaultTickets;
-  });
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get("/support/my");
+      setTickets(response.data);
+    } catch (error) {
+      console.error("Failed to fetch tickets:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    localStorage.setItem("supportTickets", JSON.stringify(tickets));
-  }, [tickets]);
-
-  const pageCard = {
-    background: "#ffffff",
-    borderRadius: "24px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-    padding: "24px",
-  };
-
-  const fieldCard = (bg) => ({
-    background: bg,
-    borderRadius: "18px",
-    padding: "18px",
-  });
-
-  const inputStyle = {
-    width: "100%",
-    padding: "14px 16px",
-    borderRadius: "14px",
-    border: "1px solid #d1d5db",
-    fontSize: "16px",
-    outline: "none",
-    boxSizing: "border-box",
-    background: "#ffffff",
-  };
-
-  const badgeStyle = (bg, color = "#111827") => ({
-    display: "inline-block",
-    background: bg,
-    color,
-    borderRadius: "999px",
-    padding: "8px 16px",
-    fontWeight: "700",
-    fontSize: "15px",
-  });
-
-  const buttonStyle = {
-    border: "none",
-    borderRadius: "10px",
-    padding: "8px 12px",
-    cursor: "pointer",
-    color: "white",
-    fontWeight: "600",
-  };
-
-  const getStatusBadge = (status) => {
-    if (status === "Open") return badgeStyle("#fef3c7", "#b45309");
-    if (status === "In Progress") return badgeStyle("#dbeafe", "#1d4ed8");
-    if (status === "Resolved") return badgeStyle("#dff3e8", "#166534");
-    return badgeStyle("#e5e7eb", "#374151");
-  };
+    fetchTickets();
+  }, []);
 
   const resetForm = () => {
     setSubject("");
     setCategory("Appliance Issue");
     setPriority("High");
     setDescription("");
-    setEditId(null);
   };
 
-  const handleSaveTicket = () => {
+  const handleSaveTicket = async () => {
     if (subject.trim() === "" || description.trim() === "") {
       alert("Please fill all fields");
       return;
     }
 
-    if (editId) {
-      const updatedTickets = tickets.map((ticket) =>
-        ticket.id === editId
-          ? {
-              ...ticket,
-              subject,
-              category,
-              priority,
-              description,
-            }
-          : ticket
-      );
-
-      setTickets(updatedTickets);
-      alert("Ticket updated successfully");
-    } else {
-      const newTicket = {
-        id: `T${String(tickets.length + 1).padStart(3, "0")}`,
+    try {
+      const payload = {
+        name: user?.name || "User",
+        email: user?.email || "",
         subject,
         category,
         priority,
         description,
-        date: new Date().toISOString().split("T")[0],
-        status: "Open",
       };
 
-      setTickets([newTicket, ...tickets]);
+      await api.post("/support", payload);
       alert("Support ticket created successfully");
+      
+      resetForm();
+      fetchTickets();
+    } catch (error) {
+      console.error("Failed to save ticket:", error);
+      alert("Error saving ticket. Please try again.");
     }
-
-    resetForm();
   };
 
-  const handleEditTicket = (ticket) => {
-    setSubject(ticket.subject);
-    setCategory(ticket.category);
-    setPriority(ticket.priority);
-    setDescription(ticket.description);
-    setEditId(ticket.id);
+  const containerStyle = {
+    background: "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)",
+    minHeight: "100vh",
+    padding: "40px",
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+    color: "#1e293b",
   };
 
-  const handleDeleteTicket = (id) => {
-    const updatedTickets = tickets.filter((ticket) => ticket.id !== id);
-    setTickets(updatedTickets);
+  const glassPanel = {
+    background: "rgba(255, 255, 255, 0.7)",
+    backdropFilter: "blur(12px)",
+    WebkitBackdropFilter: "blur(12px)",
+    borderRadius: "32px",
+    border: "1px solid rgba(255, 255, 255, 0.4)",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.04)",
+    padding: "32px",
+    marginBottom: "32px",
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    const updatedTickets = tickets.map((ticket) =>
-      ticket.id === id ? { ...ticket, status: newStatus } : ticket
-    );
-    setTickets(updatedTickets);
+  const fieldCard = () => ({
+    background: "white",
+    borderRadius: "20px",
+    padding: "24px",
+    border: "1px solid #f1f5f9",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
+  });
+
+  const inputStyle = {
+    width: "100%",
+    padding: "16px 20px",
+    borderRadius: "16px",
+    border: "2px solid #f1f5f9",
+    fontSize: "17px",
+    fontWeight: "500",
+    outline: "none",
+    boxSizing: "border-box",
+    background: "#f8fafc",
+    transition: "border-color 0.2s, box-shadow 0.2s",
+    marginTop: "10px",
   };
+
+  const badgeStyle = (bg, color) => ({
+    display: "inline-block",
+    background: bg,
+    color,
+    borderRadius: "12px",
+    padding: "8px 16px",
+    fontWeight: "800",
+    fontSize: "14px",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+    boxShadow: `0 4px 12px ${bg}44`,
+  });
+
+  const getStatusBadge = (status) => {
+    if (status === "Open") return badgeStyle("#fef3c7", "#b45309");
+    if (status === "In Progress") return badgeStyle("#dbeafe", "#1d4ed8");
+    if (status === "Resolved") return badgeStyle("#dcfce7", "#166534");
+    return badgeStyle("#f1f5f9", "#475569");
+  };
+
+  if (loading) return (
+    <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: "50px", animation: "pulse 2s infinite" }}>🎫</div>
+        <h2 style={{ fontWeight: "600", color: "#059669" }}>Syncing Ticket Central...</h2>
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{ background: "#f3f4f6", minHeight: "100vh", padding: "10px" }}>
+    <div style={containerStyle}>
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "20px",
-          flexWrap: "wrap",
+          alignItems: "flex-end",
+          marginBottom: "48px",
           gap: "16px",
         }}
       >
         <div>
+          <span style={{ background: "#dcfce7", color: "#166534", padding: "6px 14px", borderRadius: "999px", fontSize: "14px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px" }}>
+            Issue Tracking
+          </span>
           <h1
             style={{
-              fontSize: "48px",
-              fontWeight: "800",
-              margin: "0 0 8px 0",
-              color: "#111827",
+              fontSize: "56px",
+              fontWeight: "900",
+              margin: "12px 0 8px 0",
+              color: "#0f172a",
+              letterSpacing: "-1px"
             }}
           >
             Support Tickets
           </h1>
-          <p style={{ margin: 0, fontSize: "20px", color: "#374151" }}>
-            Create and track your own support requests 🎫
+          <p style={{ margin: 0, fontSize: "22px", color: "#64748b" }}>
+            Report technical issues and track resolutions 
           </p>
         </div>
 
         <button
           onClick={handleSaveTicket}
           style={{
-            background: "#0b8f3a",
-            color: "white",
+            background: "linear-gradient(to right, #10b981, #059669)", 
+            color: "white", 
             border: "none",
-            borderRadius: "16px",
-            padding: "16px 24px",
+            borderRadius: "20px",
+            padding: "18px 36px",
             fontSize: "18px",
             fontWeight: "700",
             cursor: "pointer",
-            boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+            boxShadow: "0 10px 25px rgba(16, 185, 129, 0.4)",
           }}
         >
-          {editId ? "Update Ticket" : "Create Ticket"}
+          Create New Ticket
         </button>
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.25fr 0.75fr",
-          gap: "20px",
+          gridTemplateColumns: "1.2fr 0.8fr",
+          gap: "32px",
         }}
       >
-        <div style={pageCard}>
+        <div style={glassPanel}>
           <h2
             style={{
-              fontSize: "30px",
-              margin: "0 0 18px 0",
-              color: "#111827",
+              fontSize: "32px",
+              fontWeight: "900",
+              margin: "0 0 32px 0",
+              color: "#0f172a",
+              letterSpacing: "-1px"
             }}
           >
-            {editId ? "Edit Ticket" : "Create New Ticket"}
+            File a Request
           </h2>
 
-          <div style={{ display: "grid", gap: "18px" }}>
-            <div style={fieldCard("#fbf5e7")}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "10px",
-                  fontWeight: "700",
-                  color: "#111827",
-                }}
-              >
-                Subject
-              </label>
+          <div style={{ display: "grid", gap: "24px" }}>
+            <div style={fieldCard()}>
+              <label style={{ fontWeight: "800", color: "#475569", fontSize: "14px", textTransform: "uppercase" }}>Ticket Subject</label>
               <input
                 type="text"
-                placeholder="Enter ticket subject"
+                placeholder="Briefly describe the issue"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 style={inputStyle}
               />
             </div>
 
-            <div style={fieldCard("#e8f7ed")}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "10px",
-                  fontWeight: "700",
-                  color: "#111827",
-                }}
-              >
-                Issue Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                style={inputStyle}
-              >
-                <option>Appliance Issue</option>
-                <option>Room Issue</option>
-                <option>Energy Target Issue</option>
-                <option>Billing Issue</option>
-                <option>Other</option>
-              </select>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+              <div style={fieldCard()}>
+                <label style={{ fontWeight: "800", color: "#475569", fontSize: "14px", textTransform: "uppercase" }}>Category</label>
+                <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
+                  <option>Appliance Issue</option>
+                  <option>Room Issue</option>
+                  <option>Energy Target Issue</option>
+                  <option>Billing Issue</option>
+                  <option>Other</option>
+                </select>
+              </div>
+
+              <div style={fieldCard()}>
+                <label style={{ fontWeight: "800", color: "#475569", fontSize: "14px", textTransform: "uppercase" }}>Urgency Level</label>
+                <select value={priority} onChange={(e) => setPriority(e.target.value)} style={inputStyle}>
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+              </div>
             </div>
 
-            <div style={fieldCard("#eef2ff")}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "10px",
-                  fontWeight: "700",
-                  color: "#111827",
-                }}
-              >
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                style={inputStyle}
-              >
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
-              </select>
-            </div>
-
-            <div style={fieldCard("#fdf2f8")}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "10px",
-                  fontWeight: "700",
-                  color: "#111827",
-                }}
-              >
-                Description
-              </label>
+            <div style={fieldCard()}>
+              <label style={{ fontWeight: "800", color: "#475569", fontSize: "14px", textTransform: "uppercase" }}>Full Description</label>
               <textarea
-                rows="6"
-                placeholder="Describe your issue"
+                rows="5"
+                placeholder="Provide as much detail as possible..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 style={{ ...inputStyle, resize: "none" }}
               ></textarea>
             </div>
-
-            {editId && (
-              <button
-                onClick={resetForm}
-                style={{
-                  background: "#d1d5db",
-                  color: "#111827",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "12px 18px",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel Edit
-              </button>
-            )}
           </div>
         </div>
 
-        <div style={pageCard}>
+        <div style={glassPanel}>
           <h2
             style={{
               fontSize: "28px",
-              margin: "0 0 18px 0",
-              color: "#111827",
+              fontWeight: "900",
+              margin: "0 0 24px 0",
+              color: "#0f172a",
+              letterSpacing: "-1px"
             }}
           >
-            Your Recent Tickets
+            Active Monitoring
           </h2>
 
-          {tickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              style={{
-                background: "#fbf5e7",
-                borderRadius: "18px",
-                padding: "18px",
-                marginBottom: "14px",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 10px 0",
-                  fontSize: "22px",
-                  color: "#111827",
-                }}
-              >
-                {ticket.id} - {ticket.subject}
-              </h3>
-
-              <p style={{ margin: "0 0 8px 0", color: "#374151" }}>
-                Category: {ticket.category}
-              </p>
-
-              <p style={{ margin: "0 0 8px 0", color: "#374151" }}>
-                Priority: {ticket.priority}
-              </p>
-
-              <p style={{ margin: "0 0 8px 0", color: "#374151" }}>
-                Created: {ticket.date}
-              </p>
-
-              <p style={{ margin: "0 0 10px 0", color: "#374151" }}>
-                {ticket.description}
-              </p>
-
-              <div style={{ marginBottom: "12px" }}>
-                <span style={getStatusBadge(ticket.status)}>{ticket.status}</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {tickets.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>
+                No active tickets in your queue.
               </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  flexWrap: "wrap",
-                  marginBottom: "10px",
-                }}
-              >
-                <button
-                  onClick={() => handleEditTicket(ticket)}
-                  style={{ ...buttonStyle, background: "#2563eb" }}
+            ) : (
+              tickets.map((ticket) => (
+                <div
+                  key={ticket._id}
+                  style={{
+                    background: "white",
+                    borderRadius: "24px",
+                    padding: "24px",
+                    border: "1px solid #f1f5f9",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
+                  }}
                 >
-                  Edit
-                </button>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+                    <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: "#1e293b" }}>{ticket.subject}</h3>
+                    <span style={{ 
+                      fontSize: "12px", 
+                      fontWeight: "700", 
+                      background: ticket.priority === "High" ? "#fee2e2" : "#f1f5f9",
+                      color: ticket.priority === "High" ? "#991b1b" : "#475569",
+                      padding: "4px 10px",
+                      borderRadius: "8px"
+                    }}>
+                      {ticket.priority}
+                    </span>
+                  </div>
 
-                <button
-                  onClick={() => handleDeleteTicket(ticket.id)}
-                  style={{ ...buttonStyle, background: "#dc2626" }}
-                >
-                  Delete
-                </button>
+                  <p style={{ margin: "0 0 8px 0", color: "#64748b", fontSize: "14px", fontWeight: "600" }}>
+                    Category: {ticket.category}
+                  </p>
 
-                <button
-                  onClick={() => handleStatusChange(ticket.id, "In Progress")}
-                  style={{ ...buttonStyle, background: "#1d4ed8" }}
-                >
-                  In Progress
-                </button>
+                  <p style={{ margin: "0 0 16px 0", color: "#475569", fontSize: "15px", lineHeight: "1.5" }}>
+                    {ticket.description}
+                  </p>
 
-                <button
-                  onClick={() => handleStatusChange(ticket.id, "Resolved")}
-                  style={{ ...buttonStyle, background: "#15803d" }}
-                >
-                  Resolve
-                </button>
-              </div>
-            </div>
-          ))}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f1f5f9", paddingTop: "16px" }}>
+                    <span style={{ color: "#94a3b8", fontSize: "13px", fontWeight: "600" }}>
+                      {new Date(ticket.createdAt).toLocaleDateString()}
+                    </span>
+                    <span style={getStatusBadge(ticket.status || "Open")}>{ticket.status || "Open"}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

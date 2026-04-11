@@ -1,0 +1,143 @@
+import React, { useEffect, useState } from "react";
+import api from "../../services/api";
+
+const AdminSupportPage = () => {
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get("/support");
+      setTickets(response.data);
+    } catch (error) {
+      console.error("Failed to fetch tickets", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const handleUpdateStatus = async (id, status) => {
+    try {
+      await api.patch(`/support/${id}/status`, { status });
+      fetchTickets();
+    } catch (error) {
+      console.error("Failed to update status", error);
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    if (priority === "High") return "#ef4444";
+    if (priority === "Medium") return "#f59e0b";
+    return "#10b981";
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>Support Ticket Oversight</h1>
+        <p style={styles.subtitle}>Track and resolve system-wide user support requests 🎫</p>
+      </div>
+
+      <div style={styles.card}>
+        <h3 style={styles.cardTitle}>Tickets Management ({tickets.length})</h3>
+        
+        {loading ? (
+          <p style={{ color: "#fca5a5" }}>Loading tickets...</p>
+        ) : tickets.length === 0 ? (
+          <p style={{ color: "#fca5a5" }}>No support tickets found.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={styles.tableHeader}>
+                  <th style={styles.th}>Date</th>
+                  <th style={styles.th}>User</th>
+                  <th style={styles.th}>Subject & Description</th>
+                  <th style={styles.th}>Priority</th>
+                  <th style={styles.th}>Status</th>
+                  <th style={styles.th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tickets.map((t) => (
+                  <tr key={t._id} style={styles.tableRow}>
+                    <td style={styles.td}>{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td style={styles.td}>
+                      <div style={{ fontWeight: "bold" }}>{t.userId?.name || "Unknown User"}</div>
+                      <div style={{ fontSize: "12px", color: "#fca5a5" }}>{t.userId?.email || ""}</div>
+                    </td>
+                    <td style={styles.td}>
+                      <div style={{ fontWeight: "bold", color: "#fca5a5" }}>{t.subject}</div>
+                      <div style={{ fontSize: "13px", marginTop: "4px" }}>{t.description}</div>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{ 
+                        color: getPriorityColor(t.priority), 
+                        fontWeight: "800",
+                        fontSize: "13px"
+                      }}>
+                        {t.priority}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{ 
+                        ...styles.statusBadge, 
+                        background: t.status === "Resolved" ? "#064e3b" : t.status === "In Progress" ? "#1e3a8a" : "#450a0a",
+                        color: t.status === "Resolved" ? "#d1fae5" : t.status === "In Progress" ? "#bfdbfe" : "#fca5a5"
+                      }}>
+                        {t.status}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        {t.status === "Open" && (
+                          <button 
+                            onClick={() => handleUpdateStatus(t._id, "In Progress")}
+                            style={{ ...styles.actionBtn, background: "#1e3a8a" }}
+                          >
+                            In Progress
+                          </button>
+                        )}
+                        {t.status !== "Resolved" && (
+                          <button 
+                            onClick={() => handleUpdateStatus(t._id, "Resolved")}
+                            style={{ ...styles.actionBtn, background: "#064e3b" }}
+                          >
+                            Resolve
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const styles = {
+  container: { padding: "10px", color: "white" },
+  header: { marginBottom: "30px", borderBottom: "1px solid #450a0a", paddingBottom: "20px" },
+  title: { margin: "0 0 10px 0", color: "#f87171" },
+  subtitle: { margin: 0, color: "#fca5a5" },
+  card: { backgroundColor: "#2b0909", padding: "24px", borderRadius: "15px", border: "1px solid #450a0a" },
+  cardTitle: { marginTop: 0, color: "#f9fafb", borderBottom: "1px solid #450a0a", paddingBottom: "15px", marginBottom: "20px" },
+  table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
+  tableHeader: { backgroundColor: "#450a0a" },
+  th: { padding: "15px", color: "#fca5a5", fontSize: "14px", textTransform: "uppercase" },
+  tableRow: { borderBottom: "1px solid #450a0a" },
+  td: { padding: "15px", color: "#e5e7eb", fontSize: "15px" },
+  statusBadge: { padding: "6px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: "bold" },
+  actionBtn: { padding: "8px 12px", border: "none", borderRadius: "8px", color: "white", cursor: "pointer", fontSize: "12px", fontWeight: "700" }
+};
+
+export default AdminSupportPage;
