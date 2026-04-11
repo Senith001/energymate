@@ -1,11 +1,9 @@
 import Room from "../models/Room.js";
-import { getReqUserId } from "../utils/authHelpers.js";
 
 export const createRoom = async (req, res) => {
   try {
     const { householdId } = req.params;
-    const userId = getReqUserId(req);
-    const room = new Room({ householdId, userId, ...req.body });
+    const room = new Room({ householdId, ...req.body });
     const saved = await room.save();
     res.status(201).json(saved);
   } catch (error) {

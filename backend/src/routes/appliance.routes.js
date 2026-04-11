@@ -1,12 +1,9 @@
 import express from "express";
-import { protect } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 import * as applianceController from "../controllers/appliance.controller.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { createApplianceValidator, updateApplianceValidator } from "../validators/appliance.validator.js";
-
-router.use(protect);
 
 router.post("/households/:householdId/appliances", createApplianceValidator, validate, applianceController.createAppliance);
 router.get("/households/:householdId/appliances", applianceController.getAppliancesByHousehold);

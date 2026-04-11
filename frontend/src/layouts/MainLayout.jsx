@@ -30,10 +30,9 @@ function MainLayout() {
       <div
         style={{
           flex: 1,
-          padding: "40px",
+          padding: "30px",
           boxSizing: "border-box",
-          overflowY: "auto",
-          background: "#f8fafc", // Softer slate-50 background
+          overflowX: "auto",
         }}
       >
         <Navbar />

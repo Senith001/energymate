@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Otp from "../models/Otp.js";
@@ -32,11 +32,11 @@ const handleError = (err, res, next) => {
 
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body || {};
+    const { name, email, password, phone } = req.body || {};
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone) {
       return res.status(400).json({
-        message: "name, email, password are required",
+        message: "name, email, password, and phone are required",
       });
     }
 
@@ -61,6 +61,7 @@ export const registerUser = async (req, res, next) => {
           name: name.trim(),
           email: normalizedEmail,
           password: hashedPassword,
+          phone: phone.trim(),
           role: "user",
         });
       }
@@ -71,6 +72,7 @@ export const registerUser = async (req, res, next) => {
         name: name.trim(),
         email: normalizedEmail,
         password: hashedPassword,
+        phone: phone.trim(),
         role: "user",
       });
     }
@@ -78,7 +80,7 @@ export const registerUser = async (req, res, next) => {
     // 🔹 Generate OTP (6 digits)
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     const otpHash = await bcrypt.hash(otp, 10);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 10 mins
 
     // Cleanup: remove old unused VERIFY_EMAIL OTPs for this user
     // (Since we deleted the user above, this is mostly for brand new users, but good to keep)
@@ -104,7 +106,7 @@ export const registerUser = async (req, res, next) => {
       html: `
         <p>Hello ${user.name},</p>
         <p>Your OTP is: <b>${otp}</b></p>
-        <p>This code expires in 10 minutes.</p>
+        <p>This code expires in 1 minute.</p>
       `,
     });
 
@@ -114,6 +116,87 @@ export const registerUser = async (req, res, next) => {
       message: "User registered successfully. OTP sent to email.",
       userId: user.userId, // This will now be the properly updated, chronological ID!
     });
+  } catch (err) {
+    return handleError(err, res, next);
+  }
+};
+
+//========================================================================
+// ================= RESEND REGISTRATION OTP =============================
+//========================================================================
+
+export const resendOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required to resend OTP." });
+    }
+
+    // 1. Find the user requesting the OTP
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this email." });
+    }
+
+    // Optional but recommended: Check if they are already verified
+    // if (user.isVerified) {
+    //   return res.status(400).json({ message: "This account is already verified. Please log in." });
+    // }
+
+    // 2. CHECK FOR UNEXPIRED OTP (The Cooldown Logic)
+    // Look for an OTP that belongs to this user, is for email verification,
+    // hasn't been used, and has an expiration date GREATER than right now.
+    const activeOtp = await Otp.findOne({
+      userId: user._id,
+      purpose: "VERIFY_EMAIL",
+      usedAt: null,
+      expiresAt: { $gt: new Date() } 
+    });
+
+    if (activeOtp) {
+      return res.status(429).json({ 
+        message: "Your previous OTP is still valid. Please wait for it to expire before requesting a new one." 
+      });
+    }
+
+    // 3. Generate a new 6-digit OTP
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = await bcrypt.hash(otp, 10);
+    
+    // Set expiration to 1 minute from now (matching your React frontend timer)
+    const expiresAt = new Date(Date.now() + 1 * 60 * 1000); 
+
+    // 4. Delete any expired or old verification OTPs for this user to keep the DB clean
+    await Otp.deleteMany({
+      userId: user._id,
+      purpose: "VERIFY_EMAIL"
+    });
+
+    // 5. Save the new OTP to the database
+    await Otp.create({
+      userId: user._id,
+      purpose: "VERIFY_EMAIL",
+      otpHash,
+      expiresAt,
+    });
+
+    // 6. Send the new email
+    await sendEmail({
+      to: user.email,
+      subject: "ENERGYMATE - New Verification Code",
+      html: `
+        <p>Hello ${user.name},</p>
+        <p>You requested a new confirmation code for your EnergyMate account.</p>
+        <p>Your new 6-digit code is: <b>${otp}</b></p>
+        <p>This code will expire in 1 minute. If you did not request this, please ignore this email.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      message: "A new OTP has been successfully sent to your email.",
+    });
+
   } catch (err) {
     return handleError(err, res, next);
   }
