@@ -36,13 +36,21 @@ function UsagePage() {
   const [householdOptions, setHouseholdOptions] = useState([]);
   const [pendingHouseholdId, setPendingHouseholdId] = useState("");
   const [usages, setUsages] = useState([]);
+
+  // Summary cards use this monthly snapshot from the backend.
   const [summary, setSummary] = useState(null);
+
+  // Estimated cost is loaded separately so the cost card stays independent from raw usage totals.
   const [costInfo, setCostInfo] = useState(null);
+
+  // These two arrays feed the appliance and room breakdown cards.
   const [applianceBreakdown, setApplianceBreakdown] = useState([]);
   const [roomBreakdown, setRoomBreakdown] = useState([]);
-  const [applianceBreakdownMeta, setApplianceBreakdownMeta] = useState({ hasEstimatedData: false, isEstimatedOnly: false, unallocatedUsage: 0 });
-  const [roomBreakdownMeta, setRoomBreakdownMeta] = useState({ hasEstimatedData: false, isEstimatedOnly: false });
+
+  // Weather data and the generated insight power the weather impact card.
   const [weatherInfo, setWeatherInfo] = useState(null);
+  
+  // Default the dashboard to the current month and year when the page first opens.
   const [selectedPeriod, setSelectedPeriod] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -150,7 +158,7 @@ function UsagePage() {
     try {
       setLoading(true);
 
-      // Load the main dashboard slices together so the page updates as one period snapshot.
+      // Load the main usage dashboard data in parallel so all cards refresh together for the selected month.
       const [summaryPayload, costPayload, appliancesPayload, roomsPayload, usagePayload] = await Promise.all([
         getMonthlySummary(activeHouseholdId, month, year),
         getEstimatedCost(activeHouseholdId, month, year),
@@ -159,8 +167,11 @@ function UsagePage() {
         getUsages(activeHouseholdId),
       ]);
 
+      // Save the monthly summary used by the "This Month" and daily-average cards.
       setSummary(summaryPayload.data);
+      // Save the bill-style estimate shown in the estimated cost card.
       setCostInfo(costPayload.data);
+      // Convert backend appliance data into the simple shape expected by the chart component.
       setApplianceBreakdown(
         (appliancesPayload.data?.breakdown || []).map((item) => ({
           name: item.name,
@@ -168,21 +179,14 @@ function UsagePage() {
           source: item.source,
         }))
       );
-      setApplianceBreakdownMeta({
-        hasEstimatedData: Boolean(appliancesPayload.data?.hasEstimatedData),
-        isEstimatedOnly: Boolean(appliancesPayload.data?.isEstimatedOnly),
-        unallocatedUsage: Number(appliancesPayload.data?.unallocatedUsage || 0),
-      });
+      // Convert backend room data into the shape expected by the progress breakdown component.
       setRoomBreakdown(
         (roomsPayload.data?.breakdown || []).map((item) => ({
           roomName: item.roomName,
           value: item.allocatedUsage || 0,
         }))
       );
-      setRoomBreakdownMeta({
-        hasEstimatedData: Boolean(roomsPayload.data?.hasEstimatedData),
-        isEstimatedOnly: Boolean(roomsPayload.data?.isEstimatedOnly),
-      });
+      // Keep the full usage history for the table and the 7-day chart.
       setUsages(usagePayload.data || []);
       await loadApplianceHoursData(activeHouseholdId, month, year);
 
@@ -510,6 +514,7 @@ function UsagePage() {
     years.add(new Date().getFullYear());
     return Array.from(years).sort((a, b) => b - a);
   }, [usages]);
+  // The top "This Month" card reads its main value from the monthly summary response.
   const totalUnits = summary?.totalUnits || 0;
   const previousMonthUsage = usages
     .filter((item) => {
