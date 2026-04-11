@@ -28,8 +28,9 @@ app.use(morgan("dev"));
 
 app.use(cors({
   origin: [
-    "http://localhost:5173", 
-    "http://127.0.0.1:5173", 
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://energymate.vercel.app",
     process.env.CLIENT_URL // Keep this so it works when you host it online!
   ],
   credentials: true,
