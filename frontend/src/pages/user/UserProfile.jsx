@@ -20,7 +20,6 @@ const UserProfile = () => {
   const [formData, setFormData] = useState({
     name: "", email: "", phone: "", address: "", city: "",
   });
-  const [errors, setErrors] = useState({});
   const [userId, setUserId] = useState("");
   const [createdAt, setCreatedAt] = useState("");
   const [avatar, setAvatar] = useState(null);
@@ -79,64 +78,12 @@ const UserProfile = () => {
   };
 
   // --- HANDLERS ---
-  const validateField = (name, value) => {
-    let error = null;
-    switch (name) {
-      case "name":
-        if (!value.trim()) error = "Name is required";
-        else if (value.trim().length > 30) error = "Name must not exceed 30 characters";
-        else if (!/^[A-Za-z ]+$/.test(value.trim())) error = "Name cannot contain special characters/digits";
-        break;
-      case "phone":
-        if (!value.trim()) error = "Mobile number is required";
-        else if (!/^(0[0-9]{9}|(77|76|74|78|75|71|70|72)[0-9]{7})$/.test(value.trim())) error = "Invalid mobile number";
-        break;
-      case "address":
-        if (!value.trim()) error = "Address is required";
-        else if (!/^[A-Za-z0-9/\-, ]+$/.test(value.trim())) error = "Address can only contain letters, numbers, '/', and '-'";
-        else if (value.trim().length > 100) error = "Address must not exceed 100 characters";
-        break;
-      case "city":
-        if (!value.trim()) error = "City is required";
-        else if (value.trim().length > 50) error = "City must not exceed 50 characters";
-        else if (!/^[A-Za-z ]+$/.test(value.trim())) error = "City can only contain English letters and spaces";
-        break;
-      default:
-        break;
-    }
-    return error;
-  };
-
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    const fieldError = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: fieldError }));
-  };
-
+  const handleProfileChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setMessage({ type: "", text: "" });
-
-    // Pre-submit validation
-    let formIsValid = true;
-    const newErrors = {};
-    Object.keys(formData).forEach((key) => {
-      if(key === "email") return;
-      const err = validateField(key, formData[key]);
-      if (err) {
-        newErrors[key] = err;
-        formIsValid = false;
-      }
-    });
-
-    if (!formIsValid) {
-      setErrors(newErrors);
-      return;
-    }
-
     try {
       const { email, ...updateData } = formData;
       const res = await api.put("/users/me", updateData);
@@ -308,8 +255,7 @@ const UserProfile = () => {
                   <div style={styles.formGrid}>
                     <div style={styles.inputGroup}>
                       <label style={styles.label}>Full name</label>
-                      <input name="name" value={formData.name} onChange={handleProfileChange} style={{...styles.input, borderColor: errors.name ? "#ef4444" : "#d1d5db"}} />
-                      {errors.name && <span style={styles.errorText}>{errors.name}</span>}
+                      <input name="name" value={formData.name} onChange={handleProfileChange} style={styles.input} />
                     </div>
                     <div style={styles.inputGroup}>
                       <label style={styles.label}>Email (Read Only)</label>
@@ -317,18 +263,15 @@ const UserProfile = () => {
                     </div>
                     <div style={styles.inputGroup}>
                       <label style={styles.label}>Phone Number</label>
-                      <input name="phone" value={formData.phone} onChange={handleProfileChange} style={{...styles.input, borderColor: errors.phone ? "#ef4444" : "#d1d5db"}} />
-                      {errors.phone && <span style={styles.errorText}>{errors.phone}</span>}
+                      <input name="phone" value={formData.phone} onChange={handleProfileChange} style={styles.input} />
                     </div>
                     <div style={styles.inputGroup}>
                       <label style={styles.label}>City</label>
-                      <input name="city" value={formData.city} onChange={handleProfileChange} style={{...styles.input, borderColor: errors.city ? "#ef4444" : "#d1d5db"}} />
-                      {errors.city && <span style={styles.errorText}>{errors.city}</span>}
+                      <input name="city" value={formData.city} onChange={handleProfileChange} style={styles.input} />
                     </div>
                     <div style={{ ...styles.inputGroup, gridColumn: "span 2" }}>
                       <label style={styles.label}>Address</label>
-                      <input name="address" value={formData.address} onChange={handleProfileChange} style={{...styles.input, borderColor: errors.address ? "#ef4444" : "#d1d5db"}} />
-                      {errors.address && <span style={styles.errorText}>{errors.address}</span>}
+                      <input name="address" value={formData.address} onChange={handleProfileChange} style={styles.input} />
                     </div>
                   </div>
                   <div style={styles.actionRow}>
@@ -516,8 +459,7 @@ const styles = {
   formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "25px", marginBottom: "40px" },
   inputGroup: { display: "flex", flexDirection: "column", gap: "8px" },
   label: { fontSize: "13px", fontWeight: "600", color: "#374151" },
-  input: { padding: "12px 15px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "14px", outline: "none", transition: "border-color 0.2s" },
-  errorText: { color: "#ef4444", fontSize: "12px", marginTop: "2px", fontWeight: "500" },
+  input: { padding: "12px 15px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "14px", outline: "none" },
   actionRow: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e5e7eb", paddingTop: "20px" },
   deleteBtn: { padding: "10px 20px", backgroundColor: "#ef4444", color: "white", border: "none", borderRadius: "6px", fontWeight: "500", cursor: "pointer" },
   resetBtn: { padding: "10px 25px", backgroundColor: "#9ca3af", color: "white", border: "none", borderRadius: "6px", fontWeight: "500", cursor: "pointer" },

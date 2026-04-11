@@ -1,514 +1,903 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api";
+import {
+  FaRegQuestionCircle,
+  FaSync,
+  FaRobot,
+  FaCouch,
+  FaUtensils,
+  FaBed,
+  FaBath,
+  FaBolt,
+  FaLeaf,
+  FaWallet,
+  FaLightbulb,
+  FaHome,
+  FaPlug,
+  FaArrowUp,
+} from "react-icons/fa";
 
 function Dashboard() {
-  const cardStyle = {
-    background: "#ffffff",
-    borderRadius: "24px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-    padding: "24px",
+  const { user } = useAuth();
+  
+  // State for Real Data
+  const [household, setHousehold] = useState(null);
+  const [summary, setSummary] = useState({ totalUnits: 0, totalCost: 0 });
+  const [rooms, setRooms] = useState([]);
+  const [appliances, setAppliances] = useState([]);
+  const [aiTip, setAiTip] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+
+        // 1. Fetch Households
+        const hRes = await api.get("/households");
+        if (hRes.data && hRes.data.length > 0) {
+          // Find the household that actually has content (if the first one is empty)
+          // We'll prioritize the newest updated one (already sorted by backend now)
+          let targetHousehold = hRes.data[0];
+          
+          setHousehold(targetHousehold);
+
+          // 2. Fetch Aggregated Metrics individually to ensure resilience
+          const [summRes, roomsRes, appsRes, aiRes] = await Promise.all([
+            api.get(`/households/${targetHousehold._id}/monthly-summary`, { params: { month, year } }).catch(() => null),
+            api.get(`/households/${targetHousehold._id}/rooms`).catch(() => null),
+            api.get(`/households/${targetHousehold._id}/by-appliances`, { params: { month, year } }).catch(() => null),
+            api.post(`/households/${targetHousehold._id}/ai/energy-tips`).catch(() => null)
+          ]);
+
+          if (summRes && summRes.data && summRes.data.success) {
+            setSummary(prev => ({ ...prev, ...summRes.data.data }));
+          }
+          
+          if (roomsRes && roomsRes.data) {
+            setRooms(roomsRes.data);
+          }
+
+          if (appsRes && appsRes.data && appsRes.data.success) {
+            const breakdown = appsRes.data.data.breakdown || [];
+            if (breakdown.length > 0) {
+              setAppliances(breakdown);
+            } else {
+              // Fallback: If breakdown is empty, fetch raw appliances for this household
+              api.get(`/households/${targetHousehold._id}/appliances`).then(res => {
+                if (res.data) setAppliances(res.data);
+              });
+            }
+            setSummary(prev => ({ ...prev, totalEstimatedUsage: appsRes.data.data.totalEstimatedUsage }));
+          } else {
+            // Error Fallback: Fetch raw appliances directly
+            api.get(`/households/${targetHousehold._id}/appliances`).then(res => {
+              if (res.data) setAppliances(res.data);
+            });
+          }
+
+
+          if (aiRes && aiRes.data && aiRes.data.success) {
+            setAiTip(aiRes.data.data.tips[0]);
+          }
+        }
+
+    } catch (err) {
+      console.error("Dashboard data fetch failed", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const topStatStyle = {
-    background: "#ffffff",
-    borderRadius: "18px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-    padding: "18px 24px",
-    minWidth: "190px",
+  const getPercent = (value, target) => {
+    if (!target) return 0;
+    return Math.min(Math.round((value / target) * 100), 100);
   };
 
-  const roomCardStyle = (bg) => ({
-    background: bg,
-    borderRadius: "20px",
-    padding: "18px 20px",
-    marginBottom: "14px",
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-  });
+  const getGaugeColor = (percent) => {
+    if (percent < 70) return "#10b981"; // Green
+    if (percent < 90) return "#f59e0b"; // Amber
+    return "#ef4444"; // Red
+  };
 
-  const usageBadgeStyle = (bg, color = "#111827") => ({
-    display: "inline-block",
-    background: bg,
-    color,
-    borderRadius: "999px",
-    padding: "8px 16px",
-    fontWeight: "700",
-    fontSize: "16px",
-  });
+  const getRoomStyle = (name) => {
+    const lower = (name || "").toLowerCase();
+    if (lower.includes("living")) return { icon: <FaCouch />, bg: "#f0fdf4", accent: "#10b981" };
+    if (lower.includes("kitchen")) return { icon: <FaUtensils />, bg: "#fffbeb", accent: "#f59e0b" };
+    if (lower.includes("bed")) return { icon: <FaBed />, bg: "#fdf2f8", accent: "#ec4899" };
+    if (lower.includes("bath")) return { icon: <FaBath />, bg: "#eff6ff", accent: "#3b82f6" };
+    return { icon: <FaHome />, bg: "#f8fafc", accent: "#64748b" };
+  };
+
+  if (loading) {
+    return <div style={{ minHeight: "80vh", display: "flex", justifyContent: "center", alignItems: "center", color: "#64748b", fontSize: "18px" }}>
+      Processing Live Metrics... ⚡
+    </div>;
+  }
+
+  const powerPercent = getPercent(summary.isProjected ? summary.totalEstimatedUsage : summary.totalUnits, household?.monthlyKwhTarget || 150);
+  const costPercent = getPercent(summary.isProjected ? summary.projectedCost : summary.totalCost, household?.monthlyCostTarget || 6500);
 
   return (
-    <div style={{ background: "#f3f4f6", minHeight: "100vh", padding: "10px" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "20px",
-          flexWrap: "wrap",
-          marginBottom: "20px",
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: "54px",
-              fontWeight: "800",
-              margin: "0 0 8px 0",
-              color: "#111827",
-            }}
-          >
-            Dashboard
-          </h1>
-          <p
-            style={{
-              fontSize: "20px",
-              margin: 0,
-              color: "#374151",
-            }}
-          >
-            Welcome to your Household Energy Monitor 👋
-          </p>
+    <div style={styles.dashboardContainer}>
+      {/* Header Section */}
+      <div style={styles.header}>
+        <div style={styles.welcomeInfo}>
+          <h1 style={styles.greeting}>Hello, {user?.name || "Member"}!</h1>
+          <p style={styles.subGreeting}>Your home is operating with {powerPercent < 80 ? "optimal" : "moderate"} efficiency today.</p>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "14px",
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={topStatStyle}>
-            <div style={{ fontSize: "18px", color: "#166534", fontWeight: "700", marginBottom: "6px" }}>
-              Total Members
-            </div>
-            <div style={{ fontSize: "28px", fontWeight: "800" }}>5</div>
+        <div style={styles.topStats}>
+          <div style={styles.headerStat}>
+            <span style={styles.statLabel}>Family</span>
+            <span style={styles.statValue}>{household?.occupants || 1} Members</span>
           </div>
-
-          <div style={topStatStyle}>
-            <div style={{ fontSize: "18px", color: "#d97706", fontWeight: "700", marginBottom: "6px" }}>
-              Monthly Budget
-            </div>
-            <div style={{ fontSize: "28px", fontWeight: "800" }}>LKR 6,500</div>
+          <div style={styles.divider} />
+          <div style={styles.headerStat}>
+            <span style={styles.statLabel}>Target</span>
+            <span style={styles.statValue}>LKR {household?.monthlyCostTarget?.toLocaleString() || "0"}</span>
           </div>
-
-          <button
-            style={{
-              background: "#0b8f3a",
-              color: "white",
-              border: "none",
-              borderRadius: "16px",
-              padding: "18px 24px",
-              fontSize: "18px",
-              fontWeight: "700",
-              cursor: "pointer",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-            }}
-          >
-            + Add Appliance
+          <button style={styles.refreshBtn} onClick={fetchDashboardData}>
+            <FaSync />
           </button>
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.2fr 1.1fr 1fr",
-          gap: "20px",
-          marginBottom: "20px",
-        }}
-      >
-        <div style={cardStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "14px",
-            }}
-          >
-            <h2 style={{ fontSize: "28px", margin: 0, color: "#111827" }}>
-              Monthly Energy Usage
-            </h2>
-            <div style={{ fontSize: "28px" }}>✨</div>
+      {/* Hero Stats Grid */}
+      <div style={styles.heroGrid}>
+        {/* Main Consumption Gauge (Glassmorphism) */}
+        <div style={styles.gaugeCard}>
+          <div style={styles.cardHeader}>
+            <div style={styles.cardIconBox}><FaBolt /></div>
+            <h2 style={styles.cardTitle}>Current Consumption</h2>
+            <FaRegQuestionCircle style={styles.infoIcon} />
           </div>
 
-          <div
-            style={{
-              width: "280px",
-              height: "140px",
-              borderTopLeftRadius: "280px",
-              borderTopRightRadius: "280px",
-              border: "28px solid #e5e7eb",
-              borderBottom: "0",
-              margin: "18px auto 10px auto",
-              position: "relative",
-              background:
-                "conic-gradient(from 180deg, #22c55e 0deg 72deg, #facc15 72deg 126deg, #f59e0b 126deg 152deg, #ef4444 152deg 180deg, transparent 180deg 360deg)",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "78%",
-                transform: "translate(-50%, -50%)",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: "50px", fontWeight: "800", lineHeight: 1 }}>
-                120
-              </div>
-              <div style={{ fontSize: "22px", color: "#111827" }}>kWh</div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              width: "280px",
-              margin: "0 auto",
-              color: "#4b5563",
-              fontSize: "18px",
-            }}
-          >
-            <span>0</span>
-            <span>300</span>
-          </div>
-
-          <div style={{ marginTop: "18px", fontSize: "18px", color: "#111827" }}>
-            <span style={{ color: "#f59e0b", fontWeight: "800" }}>—</span> Target: 150 kWh
-          </div>
-        </div>
-
-        <div style={cardStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "14px",
-            }}
-          >
-            <h2 style={{ fontSize: "28px", margin: 0, color: "#111827" }}>
-              Monthly Cost
-            </h2>
-            <div
-              style={{
-                width: "58px",
-                height: "58px",
-                borderRadius: "50%",
-                background: "#e8f7ed",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                fontSize: "28px",
-              }}
-            >
-              💵
-            </div>
-          </div>
-
-          <div
-            style={{
-              fontSize: "54px",
-              fontWeight: "800",
-              color: "#111827",
-              marginBottom: "14px",
-            }}
-          >
-            LKR 5,240
-          </div>
-
-          <div
-            style={{
-              display: "inline-block",
-              background: "#e8f7ed",
-              color: "#15803d",
-              padding: "8px 16px",
-              borderRadius: "999px",
-              fontWeight: "700",
-              marginBottom: "18px",
-            }}
-          >
-            ↓ 15% vs Last Month
-          </div>
-
-          <div style={{ marginTop: "10px" }}>
-            <svg viewBox="0 0 420 150" style={{ width: "100%", height: "150px" }}>
-              <defs>
-                <linearGradient id="greenFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22c55e" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#22c55e" stopOpacity="0.03" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M20 110 C70 85, 110 130, 160 88 S245 72, 300 95 S360 70, 400 55"
+          <div style={styles.gaugeContainer}>
+            <svg width="220" height="220" viewBox="0 0 220 220">
+              {/* Background Track */}
+              <circle cx="110" cy="110" r="95" fill="none" stroke="#f1f5f9" strokeWidth="12" />
+              {/* Progress Track */}
+              <circle
+                cx="110"
+                cy="110"
+                r="95"
                 fill="none"
-                stroke="#16a34a"
-                strokeWidth="5"
+                stroke={getGaugeColor(powerPercent)}
+                strokeWidth="12"
+                strokeDasharray={`${(powerPercent / 100) * 597} 597`}
                 strokeLinecap="round"
+                transform="rotate(-90 110 110)"
+                style={{ transition: "stroke-dasharray 1s ease-in-out, stroke 0.5s ease" }}
               />
-              <path
-                d="M20 110 C70 85, 110 130, 160 88 S245 72, 300 95 S360 70, 400 55 L400 140 L20 140 Z"
-                fill="url(#greenFill)"
-              />
-              <circle cx="100" cy="112" r="6" fill="white" stroke="#16a34a" strokeWidth="3" />
-              <circle cx="220" cy="78" r="6" fill="white" stroke="#16a34a" strokeWidth="3" />
-              <circle cx="312" cy="92" r="6" fill="#d1d5db" />
-              <circle cx="400" cy="55" r="6" fill="white" stroke="#16a34a" strokeWidth="3" />
+              {/* Inner Text */}
+              <text x="110" y="105" textAnchor="middle" style={styles.gaugeLabel}>{summary.isProjected ? "PROJECTED" : "LIVE UNITS"}</text>
+              <text x="110" y="135" textAnchor="middle" style={styles.gaugeValue}>{summary.isProjected ? summary.totalEstimatedUsage : summary.totalUnits}</text>
+              <text x="110" y="160" textAnchor="middle" style={styles.gaugeUnit}>kWh / MONTH</text>
             </svg>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: "18px",
-                color: "#6b7280",
-                marginTop: "-8px",
-              }}
-            >
-              <span>Jan</span>
-              <span>Feb</span>
-              <span>Mar</span>
-              <span>Apr</span>
+          </div>
+
+          <div style={styles.gaugeFooter}>
+            <div style={styles.footerStat}>
+              <FaArrowUp style={{ color: "#ef4444", marginBottom: "4px" }} />
+              <span style={styles.footerVal}>+12%</span>
+              <span style={styles.footerLab}>vs Last Week</span>
+            </div>
+            <div style={styles.footerDivider} />
+            <div style={styles.footerStat}>
+              <FaLeaf style={{ color: "#10b981", marginBottom: "4px" }} />
+              <span style={styles.footerVal}>A+ Grade</span>
+              <span style={styles.footerLab}>Home Rating</span>
             </div>
           </div>
         </div>
 
-        <div style={cardStyle}>
-          <h2 style={{ fontSize: "28px", margin: "0 0 24px 0", color: "#111827" }}>
-            Energy Targets
-          </h2>
+        {/* Projection and Insight Section */}
+        <div style={styles.rightHeroCol}>
+          {/* Cost Projection Card */}
+          <div style={styles.financeCard}>
+            <div style={styles.financeHeader}>
+              <div style={styles.estMeta}>
+                <h3 style={styles.estTitle}>Total Estimate</h3>
+                <span style={styles.estDate}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+              </div>
+              <div style={styles.financeIcon}><FaWallet /></div>
+            </div>
+            
+            <div style={styles.estMain}>
+              <span style={styles.currency}>LKR</span>
+              <span style={styles.mainValue}>{(summary.isProjected ? summary.projectedCost : summary.totalCost)?.toLocaleString()}</span>
+            </div>
 
-          <div style={{ marginBottom: "28px" }}>
-            <div style={{ color: "#374151", fontSize: "18px", marginBottom: "8px" }}>
-              Monthly kWh Target
-            </div>
-            <div style={{ fontSize: "24px", fontWeight: "800", marginBottom: "10px" }}>
-              150 kWh
-            </div>
-            <div style={{ height: "10px", background: "#e5e7eb", borderRadius: "999px" }}>
-              <div
-                style={{
-                  width: "68%",
-                  height: "10px",
-                  background: "#16a34a",
-                  borderRadius: "999px",
-                }}
-              ></div>
+            <div style={styles.budgetStatus}>
+              <div style={styles.statusRow}>
+                <span style={styles.statusLabel}>Budget Status</span>
+                <span style={styles.statusBadge}>{summary.isProjected ? "BASED ON PROFILE" : "ACTUAL BILL"}</span>
+              </div>
+              <div style={styles.progressBar}>
+                <div style={{ ...styles.progressFill, width: `${costPercent}%`, background: getGaugeColor(costPercent) }} />
+              </div>
             </div>
           </div>
 
-          <div style={{ marginBottom: "28px" }}>
-            <div style={{ color: "#374151", fontSize: "18px", marginBottom: "8px" }}>
-              Monthly Cost Target
+          <div style={styles.pulseCard}>
+            <div style={styles.pulseHeader}>
+              <h3 style={styles.pulseTitle}>Efficiency Pulse</h3>
+              <div style={styles.viewBadge}>
+                <span style={styles.pulseDot} /> LIVE
+              </div>
             </div>
-            <div style={{ fontSize: "24px", fontWeight: "800", marginBottom: "10px" }}>
-              LKR 6,500
+            <div style={styles.pulseChartArea}>
+               <svg width="100%" height="60" viewBox="0 0 300 60" style={styles.svgPulse}>
+                 <path 
+                  d={summary.totalUnits > 0 ? "M0 45 Q 40 10, 80 35 T 160 25 T 240 40 T 300 15" : "M0 30 L 300 30"}
+                  fill="none" 
+                  stroke="#10b981" 
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  style={styles.pathAnimation}
+                />
+                <circle cx="300" cy={summary.totalUnits > 0 ? 15 : 30} r="4" fill="#10b981" />
+                <circle cx="300" cy={summary.totalUnits > 0 ? 15 : 30} r="8" fill="#10b981" fillOpacity="0.2">
+                  <animate attributeName="r" from="4" to="12" dur="1.5s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" from="0.6" to="0" dur="1.5s" repeatCount="indefinite" />
+                </circle>
+               </svg>
             </div>
-            <div style={{ height: "10px", background: "#e5e7eb", borderRadius: "999px" }}>
-              <div
-                style={{
-                  width: "76%",
-                  height: "10px",
-                  background: "#16a34a",
-                  borderRadius: "999px",
-                }}
-              ></div>
+            <div style={styles.pulseStats}>
+              <div style={styles.pulseItem}>
+                <span style={styles.pulseLab}>Power Quota</span>
+                <span style={{ ...styles.pulseVal, color: getGaugeColor(powerPercent) }}>{powerPercent}%</span>
+              </div>
+              <div style={styles.pulseItem}>
+                <span style={styles.pulseLab}>Finance Limit</span>
+                <span style={{ ...styles.pulseVal, color: getGaugeColor(costPercent) }}>{costPercent}%</span>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: "14px",
-            }}
-          >
-            <span style={{ fontSize: "18px", color: "#374151" }}>Currency</span>
-            <div
-              style={{
-                background: "#f3f4f6",
-                borderRadius: "14px",
-                padding: "10px 18px",
-                fontWeight: "700",
-                fontSize: "20px",
-              }}
-            >
-              LKR ▼
+      <div style={styles.secondaryGrid}>
+        <div style={styles.roomSection}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Smart Residence</h2>
+            <button style={styles.linkButton}>View All Rooms</button>
+          </div>
+          
+          <div style={styles.roomScroll}>
+            {rooms.length > 0 ? (
+              rooms.map((room) => {
+                const style = getRoomStyle(room.name);
+                return (
+                  <div key={room._id} style={styles.roomCard}>
+                    <div style={{ ...styles.roomIcon, color: style.accent }}>{style.icon}</div>
+                    <div style={styles.roomInfo}>
+                      <h4 style={styles.roomName}>{room.name}</h4>
+                      <p style={styles.roomDetail}>Connected</p>
+                    </div>
+                    <div style={styles.roomBadge}>Active</div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: "20px", color: "#94a3b8", fontSize: "14px", background: "#f8fafc", borderRadius: "16px", width: "100%" }}>
+                No rooms found in your household.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={styles.insightCard}>
+          <div style={styles.aiHeader}>
+            <div style={styles.aiTag}><FaRobot style={{marginRight: "6px"}} /> AI ANALYST</div>
+            <h3 style={styles.insightTitle}>Performance Insight</h3>
+          </div>
+          <p style={styles.insightText}>
+            {aiTip ? aiTip.tip : "Your home usage is looking stable. Keep monitoring your high-wattage appliances during peak hours."}
+          </p>
+          <div style={styles.insightAction}>
+            <div style={styles.tagGroup}>
+              <span style={styles.tag}>#EnergySaving</span>
+              <span style={styles.tag}>#Optimization</span>
             </div>
+            <FaLightbulb style={{color: "#f59e0b"}} />
           </div>
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.8fr 0.8fr",
-          gap: "20px",
-        }}
-      >
-        <div style={cardStyle}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "0.9fr 1.4fr",
-              gap: "20px",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                }}
-              >
-                <h2 style={{ fontSize: "28px", margin: 0 }}>Rooms</h2>
-                <button
-                  style={{
-                    background: "#ffffff",
-                    border: "2px solid #d1d5db",
-                    borderRadius: "14px",
-                    padding: "10px 18px",
-                    color: "#15803d",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-                  }}
-                >
-                  + Add Room
-                </button>
-              </div>
-
-              <div style={roomCardStyle("#fbf1db")}>
-                <div style={{ fontSize: "36px" }}>🛋️</div>
-                <div>
-                  <div style={{ fontSize: "20px", fontWeight: "800" }}>Living Room</div>
-                  <div style={{ color: "#4b5563", fontSize: "18px" }}>3 appliances</div>
-                </div>
-              </div>
-
-              <div style={roomCardStyle("#e4f1ea")}>
-                <div style={{ fontSize: "36px" }}>🍴</div>
-                <div>
-                  <div style={{ fontSize: "20px", fontWeight: "800" }}>Kitchen</div>
-                  <div style={{ color: "#4b5563", fontSize: "18px" }}>2 appliances</div>
-                </div>
-              </div>
-
-              <div style={roomCardStyle("#f8e9e9")}>
-                <div style={{ fontSize: "36px" }}>🛏️</div>
-                <div>
-                  <div style={{ fontSize: "20px", fontWeight: "800" }}>Bed Room</div>
-                  <div style={{ color: "#4b5563", fontSize: "18px" }}>1 appliance</div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                }}
-              >
-                <h2 style={{ fontSize: "28px", margin: 0 }}>Appliances</h2>
-                <button
-                  style={{
-                    background: "#ffffff",
-                    border: "2px solid #d1d5db",
-                    borderRadius: "14px",
-                    padding: "10px 18px",
-                    color: "#15803d",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-                  }}
-                >
-                  + Add Appliance
-                </button>
-              </div>
-
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
-                    <th style={{ padding: "14px", borderRadius: "10px 0 0 10px" }}>Name</th>
-                    <th style={{ padding: "14px" }}>Wattage</th>
-                    <th style={{ padding: "14px" }}>Daily Usage</th>
-                    <th style={{ padding: "14px", borderRadius: "0 10px 10px 0" }}>Cost/mo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                    <td style={{ padding: "16px 14px" }}>Rice Cooker</td>
-                    <td style={{ padding: "16px 14px" }}>700 W</td>
-                    <td style={{ padding: "16px 14px" }}>
-                      <span style={usageBadgeStyle("#fbf1db")}>1.5 hrs</span>
-                    </td>
-                    <td style={{ padding: "16px 14px" }}>LKR 1,260</td>
-                  </tr>
-
-                  <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                    <td style={{ padding: "16px 14px" }}>Refrigerator</td>
-                    <td style={{ padding: "16px 14px" }}>150 W</td>
-                    <td style={{ padding: "16px 14px" }}>
-                      <span style={usageBadgeStyle("#dff3e8", "#166534")}>24 hrs</span>
-                    </td>
-                    <td style={{ padding: "16px 14px" }}>LKR 3,240</td>
-                  </tr>
-
-                  <tr>
-                    <td style={{ padding: "16px 14px" }}>AC (1.5 Ton)</td>
-                    <td style={{ padding: "16px 14px" }}>1800 W</td>
-                    <td style={{ padding: "16px 14px" }}>
-                      <span style={usageBadgeStyle("#fbf1db")}>5 hrs</span>
-                    </td>
-                    <td style={{ padding: "16px 14px" }}>LKR 2,700</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+      {/* Activity Table (Unit Distribution) */}
+      <div style={styles.activityCard}>
+        <div style={styles.headerWithAction}>
+          <h2 style={styles.sectionTitle}>Unit Distribution Breakdown</h2>
+          <div style={styles.dropdownPlaceholder}>Monthly Aggregate</div>
         </div>
 
-        <div style={{ ...cardStyle, background: "#fbf5e7" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "18px",
-            }}
-          >
-            <h2 style={{ fontSize: "28px", margin: 0 }}>Energy Tips</h2>
-            <div style={{ fontSize: "34px" }}>💡</div>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Equipment Name</th>
+              <th style={styles.th}>Power Rating</th>
+              <th style={styles.th}>Usage Hours</th>
+              <th style={styles.th}>Unit Share</th>
+              <th style={styles.th}>Est. Monthly LKR</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(appliances.length > 0 ? appliances : []).map((app, i) => (
+              <tr key={app.applianceId || i} style={styles.tr}>
+                <td style={styles.td}>
+                  <div style={styles.appCell}>
+                    <div style={styles.appIcon}><FaPlug /></div>
+                    {app.name}
+                  </div>
+                </td>
+                <td style={styles.td}>{app.wattage}W</td>
+                <td style={styles.td}>{app.hoursUsed} hrs</td>
+                <td style={styles.td}>
+                  <div style={styles.unitBar}>
+                    <div style={{ 
+                      ...styles.unitFill, 
+                      width: `${Math.max(5, Math.min(((app.allocatedUsage || app.estimatedUsage) / (summary.totalUnits || summary.totalEstimatedUsage || 1)) * 100, 100))}%`,
+                      background: app.allocatedUsage > 0 ? "#3b82f6" : "#cbd5e1"
+                    }} />
+                  </div>
+                  <span style={styles.unitText}>{app.allocatedUsage > 0 ? `${app.allocatedUsage} kWh` : `Est. ${app.estimatedUsage} kWh`}</span>
+                </td>
+                <td style={{ ...styles.td, fontWeight: "700", color: "#1e293b" }}>
+                  LKR {app.allocatedUsage > 0 
+                    ? Math.round(app.allocatedUsage * (summary.totalCost / (summary.totalUnits || 1))).toLocaleString()
+                    : Math.round(app.estimatedUsage * 10).toLocaleString() + "*"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {appliances.length === 0 && (
+          <div style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>
+            Add appliances to see your consumption breakdown!
           </div>
-
-          <div style={{ fontSize: "20px", marginBottom: "18px" }}>✅ Turn off unused lights</div>
-          <div style={{ fontSize: "20px", marginBottom: "18px" }}>✅ Use energy-saving TV</div>
-          <div style={{ fontSize: "20px", marginBottom: "18px" }}>✅ Maintain Refrigerator</div>
-        </div>
+        )}
       </div>
 
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: "20px",
-          color: "#374151",
-          fontSize: "18px",
-        }}
-      >
-        © 2025 PowerSave | Save Energy, Save Money! 🌱
-      </div>
     </div>
   );
 }
+
+const styles = {
+  dashboardContainer: {
+    paddingBottom: "40px",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "32px",
+    flexWrap: "wrap",
+    gap: "20px",
+  },
+  greeting: {
+    fontSize: "32px",
+    fontWeight: "800",
+    color: "#0f172a",
+    margin: "0 0 4px 0",
+    letterSpacing: "-0.5px",
+  },
+  subGreeting: {
+    fontSize: "16px",
+    color: "#64748b",
+    margin: 0,
+  },
+  topStats: {
+    display: "flex",
+    alignItems: "center",
+    background: "white",
+    padding: "10px 20px",
+    borderRadius: "16px",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+    gap: "20px",
+  },
+  headerStat: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  statLabel: {
+    fontSize: "11px",
+    fontWeight: "700",
+    color: "#94a3b8",
+    textTransform: "uppercase",
+  },
+  statValue: {
+    fontSize: "15px",
+    fontWeight: "700",
+    color: "#1e293b",
+  },
+  divider: {
+    width: "1px",
+    height: "24px",
+    background: "#e2e8f0",
+  },
+  refreshBtn: {
+    background: "#f1f5f9",
+    border: "none",
+    width: "36px",
+    height: "36px",
+    borderRadius: "10px",
+    color: "#64748b",
+    cursor: "pointer",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  heroGrid: {
+    display: "grid",
+    gridTemplateColumns: "minmax(340px, 400px) 1fr",
+    gap: "24px",
+    marginBottom: "24px",
+    flexWrap: "wrap",
+  },
+  gaugeCard: {
+    background: "rgba(255, 255, 255, 0.7)",
+    backdropFilter: "blur(20px)",
+    borderRadius: "32px",
+    padding: "32px",
+    border: "1px solid rgba(255, 255, 255, 0.4)",
+    boxShadow: "0 20px 50px -12px rgba(16, 185, 129, 0.15)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  cardHeader: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "20px",
+  },
+  cardIconBox: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "12px",
+    background: "#dcfce7",
+    color: "#059669",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: "12px",
+  },
+  cardTitle: {
+    flex: 1,
+    fontSize: "18px",
+    fontWeight: "700",
+    color: "#1e293b",
+    margin: 0,
+  },
+  infoIcon: {
+    color: "#cbd5e1",
+    cursor: "pointer",
+  },
+  gaugeContainer: {
+    position: "relative",
+    margin: "12px 0",
+  },
+  gaugeLabel: {
+    fontSize: "11px",
+    fontWeight: "800",
+    fill: "#94a3b8",
+    letterSpacing: "1px",
+  },
+  gaugeValue: {
+    fontSize: "44px",
+    fontWeight: "900",
+    fill: "#0f172a",
+  },
+  gaugeUnit: {
+    fontSize: "12px",
+    fontWeight: "700",
+    fill: "#64748b",
+  },
+  gaugeFooter: {
+    width: "100%",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: "20px",
+    padding: "20px",
+    background: "white",
+    borderRadius: "20px",
+  },
+  footerStat: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  footerVal: {
+    fontSize: "16px",
+    fontWeight: "800",
+    color: "#1e293b",
+  },
+  footerLab: {
+    fontSize: "10px",
+    fontWeight: "600",
+    color: "#94a3b8",
+    textTransform: "uppercase",
+  },
+  footerDivider: {
+    width: "1px",
+    height: "30px",
+    background: "#f1f5f9",
+  },
+  rightHeroCol: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "24px",
+  },
+  financeCard: {
+    background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+    borderRadius: "32px",
+    padding: "32px",
+    color: "white",
+    boxShadow: "0 20px 40px -12px rgba(15, 23, 42, 0.3)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "24px",
+  },
+  financeHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  financeTitle: {
+    fontSize: "16px",
+    fontWeight: "600",
+    color: "#94a3b8",
+    margin: "0 0 4px 0",
+  },
+  financeDate: {
+    fontSize: "13px",
+    color: "#64748b",
+    margin: 0,
+  },
+  financeIcon: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "16px",
+    background: "rgba(255,255,255,0.05)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: "20px",
+    color: "#10b981",
+  },
+  currency: {
+    fontSize: "20px",
+    fontWeight: "600",
+    color: "#64748b",
+    marginRight: "8px",
+  },
+  mainValue: {
+    fontSize: "48px",
+    fontWeight: "800",
+    letterSpacing: "-1px",
+  },
+  budgetStatus: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  statusRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statusLabel: {
+    fontSize: "13px",
+    color: "#94a3b8",
+  },
+  statusBadge: {
+    padding: "4px 8px",
+    fontSize: "10px",
+    fontWeight: "800",
+    borderRadius: "6px",
+    background: "rgba(255,255,255,0.1)",
+    color: "#10b981",
+  },
+  estMain: {
+    display: "flex",
+    alignItems: "baseline",
+  },
+  estMeta: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  estTitle: {
+    fontSize: "16px",
+    fontWeight: "600",
+    color: "#94a3b8",
+    margin: "0 0 4px 0",
+  },
+  estDate: {
+    fontSize: "13px",
+    color: "#64748b",
+    margin: 0,
+  },
+  progressBar: {
+    height: "8px",
+    background: "rgba(255,255,255,0.1)",
+    borderRadius: "4px",
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: "4px",
+    transition: "width 1s ease-in-out",
+  },
+  pulseCard: {
+    background: "white",
+    borderRadius: "32px",
+    padding: "24px 32px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    border: "1px solid #f1f5f9",
+  },
+  pulseHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  pulseTitle: {
+    fontSize: "16px",
+    fontWeight: "700",
+    color: "#1e293b",
+    margin: 0,
+  },
+  viewBadge: {
+    padding: "4px 10px",
+    background: "#fef2f2",
+    color: "#ef4444",
+    borderRadius: "8px",
+    fontSize: "11px",
+    fontWeight: "800",
+    display: "flex",
+    alignItems: "center",
+  },
+  pulseStats: {
+    display: "flex",
+    gap: "32px",
+  },
+  pulseItem: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+  },
+  pulseLab: {
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "#94a3b8",
+  },
+  pulseVal: {
+    fontSize: "18px",
+    fontWeight: "800",
+    color: "#10b981",
+  },
+  secondaryGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "24px",
+    marginBottom: "24px",
+  },
+  roomSection: {
+    background: "white",
+    borderRadius: "32px",
+    padding: "32px",
+    border: "1px solid #f1f5f9",
+  },
+  sectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "24px",
+  },
+  sectionTitle: {
+    fontSize: "20px",
+    fontWeight: "800",
+    color: "#1e293b",
+    margin: 0,
+  },
+  linkButton: {
+    background: "none",
+    border: "none",
+    color: "#10b981",
+    fontSize: "14px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+  roomScroll: {
+    display: "flex",
+    gap: "16px",
+    overflowX: "auto",
+    paddingBottom: "10px",
+  },
+  roomCard: {
+    minWidth: "160px",
+    padding: "20px",
+    background: "#f8fafc",
+    borderRadius: "24px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    border: "1px solid #f1f5f9",
+  },
+  roomIcon: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "14px",
+    background: "white",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    color: "#64748b",
+    fontSize: "18px",
+  },
+  roomName: {
+    fontSize: "15px",
+    fontWeight: "700",
+    color: "#334155",
+    margin: 0,
+  },
+  roomDetail: {
+    fontSize: "11px",
+    color: "#94a3b8",
+    margin: 0,
+  },
+  roomBadge: {
+    alignSelf: "flex-start",
+    padding: "2px 8px",
+    borderRadius: "6px",
+    background: "#dcfce7",
+    color: "#166534",
+    fontSize: "10px",
+    fontWeight: "800",
+  },
+  insightCard: {
+    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    borderRadius: "32px",
+    padding: "32px",
+    color: "white",
+    display: "flex",
+    flexDirection: "column",
+    boxShadow: "0 20px 40px -10px rgba(16, 185, 129, 0.25)",
+  },
+  aiHeader: {
+    marginBottom: "16px",
+  },
+  aiTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "4px 12px",
+    background: "rgba(255,255,255,0.2)",
+    borderRadius: "8px",
+    fontSize: "11px",
+    fontWeight: "800",
+    letterSpacing: "0.5px",
+    marginBottom: "12px",
+  },
+  insightTitle: {
+    fontSize: "24px",
+    fontWeight: "800",
+    margin: 0,
+  },
+  insightText: {
+    fontSize: "15px",
+    lineHeight: "1.6",
+    color: "rgba(255,255,255,0.9)",
+    margin: "0 0 24px 0",
+    flex: 1,
+  },
+  insightAction: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: "16px",
+    borderTop: "1px solid rgba(255,255,255,0.1)",
+  },
+  tagGroup: {
+    display: "flex",
+    gap: "8px",
+  },
+  tag: {
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.6)",
+  },
+  activityCard: {
+    background: "white",
+    borderRadius: "32px",
+    padding: "32px",
+    border: "1px solid #f1f5f9",
+  },
+  headerWithAction: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "32px",
+  },
+  dropdownPlaceholder: {
+    padding: "10px 16px",
+    background: "#f1f5f9",
+    borderRadius: "12px",
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#64748b",
+    display: "flex",
+    alignItems: "center",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "separate",
+    borderSpacing: "0 12px",
+  },
+  th: {
+    padding: "0 12px 12px 12px",
+    textAlign: "left",
+    fontSize: "11px",
+    fontWeight: "700",
+    color: "#94a3b8",
+    textTransform: "uppercase",
+  },
+  tr: {
+    transition: "transform 0.2s ease",
+    ":hover": {
+      transform: "translateY(-2px)",
+    }
+  },
+  td: {
+    padding: "16px 12px",
+    background: "#f8fafc",
+    borderTop: "1px solid #f1f5f9",
+    borderBottom: "1px solid #f1f5f9",
+    fontSize: "14px",
+    color: "#334155",
+  },
+  appCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    fontWeight: "600",
+  },
+  appIcon: {
+    padding: "8px",
+    background: "white",
+    borderRadius: "8px",
+    fontSize: "14px",
+    color: "#64748b",
+  },
+  unitBar: {
+    width: "120px",
+    height: "6px",
+    background: "#e2e8f0",
+    borderRadius: "3px",
+    marginBottom: "6px",
+    overflow: "hidden",
+  },
+  unitFill: {
+    height: "100%",
+    background: "#3b82f6",
+    borderRadius: "3px",
+  },
+  unitText: {
+    fontSize: "12px",
+    fontWeight: "700",
+    color: "#64748b",
+  },
+};
 
 export default Dashboard;
