@@ -14,15 +14,16 @@ const genAI = new GoogleGenerativeAI(apiKey);
 /* ═══════════════════════════════════════════════════════╗
    CORE: low-level generate call
 ╚══════════════════════════════════════════════════════ */
+
 function getModel() {
-  return genAI.getGenerativeModel({ model: MODEL });
+  return genAI.getGenerativeModel({ model: MODEL }, { apiVersion: "v1beta" });
 }
 
 function extractText(result) {
   try {
     const t = result?.response?.text?.();
     if (t?.trim()) return t.trim();
-  } catch (_) {}
+  } catch (_) { }
   const parts = result?.response?.candidates?.[0]?.content?.parts || [];
   return parts.map((p) => p?.text || "").join("").trim();
 }
@@ -40,34 +41,44 @@ function wait(ms) {
 }
 
 /**
- * Core generator — requests JSON output, retries with back-off.
- * Returns a parsed JavaScript object/array on success.
- */
-/**
  * Attempts to recover a partial JSON array when Gemini truncates mid-string.
  * Scans for complete objects `{ ... }` and returns what it can parse.
  */
 function partialJsonRecovery(raw) {
-  // If raw already parses — great
-  try { return JSON.parse(raw); } catch (_) {}
+  try {
+    return JSON.parse(raw);
+  } catch (_) { }
 
-  // For arrays: try extracting complete objects one by one
   const objects = [];
-  let depth = 0, inStr = false, escape = false, start = -1;
+  let depth = 0,
+    inStr = false,
+    escape = false,
+    start = -1;
   for (let i = 0; i < raw.length; i++) {
     const ch = raw[i];
-    if (escape) { escape = false; continue; }
-    if (ch === '\\' && inStr) { escape = true; continue; }
-    if (ch === '"') { inStr = !inStr; continue; }
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\" && inStr) {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inStr = !inStr;
+      continue;
+    }
     if (inStr) continue;
-    if (ch === '{') { if (depth === 0) start = i; depth++; }
-    else if (ch === '}') {
+    if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === "}") {
       depth--;
       if (depth === 0 && start !== -1) {
         try {
           const obj = JSON.parse(raw.slice(start, i + 1));
           objects.push(obj);
-        } catch (_) {}
+        } catch (_) { }
         start = -1;
       }
     }
@@ -75,7 +86,10 @@ function partialJsonRecovery(raw) {
   return objects.length > 0 ? objects : null;
 }
 
-async function generateJSON(prompt, { maxOutputTokens = 2500, temperature = 0.3, retries = 3 } = {}) {
+async function generateJSON(
+  prompt,
+  { maxOutputTokens = 2500, temperature = 0.3, retries = 3 } = {}
+) {
   const model = getModel();
   let lastErr;
 
@@ -85,7 +99,7 @@ async function generateJSON(prompt, { maxOutputTokens = 2500, temperature = 0.3,
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: "application/json",
-          maxOutputTokens,           // ← NEVER reduce on retry; same budget every time
+          maxOutputTokens,
           temperature: attempt === retries ? 0 : temperature,
         },
       });
@@ -95,14 +109,16 @@ async function generateJSON(prompt, { maxOutputTokens = 2500, temperature = 0.3,
 
       if (!raw) throw new Error("Gemini returned empty response");
 
-      // Try normal parse first; fall back to partial recovery for truncated arrays
       let parsed;
       try {
         parsed = JSON.parse(raw);
       } catch (parseErr) {
         parsed = partialJsonRecovery(raw);
-        if (!parsed) throw parseErr;   // re-throw original error if recovery fails
-        console.warn(`⚠️  Gemini attempt ${attempt}: partial recovery extracted ${Array.isArray(parsed) ? parsed.length : 1} item(s)`);
+        if (!parsed) throw parseErr;
+        console.warn(
+          `⚠️  Gemini attempt ${attempt}: partial recovery extracted ${Array.isArray(parsed) ? parsed.length : 1
+          } item(s)`
+        );
       }
 
       return parsed;
@@ -111,7 +127,11 @@ async function generateJSON(prompt, { maxOutputTokens = 2500, temperature = 0.3,
       const msg = String(err?.message || "");
       console.warn(`⚠️  Gemini attempt ${attempt} failed:`, msg.slice(0, 120));
 
-      if (msg.includes("429") || msg.includes("quota") || msg.includes("Too Many Requests")) {
+      if (
+        msg.includes("429") ||
+        msg.includes("quota") ||
+        msg.includes("Too Many Requests")
+      ) {
         throw Object.assign(err, { isQuotaError: true });
       }
 
@@ -131,16 +151,17 @@ function buildSummary(billHistory = [], applianceUsage = []) {
     return a.month - b.month;
   });
 
-  const last  = sorted[sorted.length - 1] || null;
+  const last = sorted[sorted.length - 1] || null;
   const last3 = sorted.slice(-3);
   const last6 = sorted.slice(-6);
 
   const avg = (arr, key) =>
     arr.length > 0
-      ? Math.round(arr.reduce((s, b) => s + (Number(b[key]) || 0), 0) / arr.length)
+      ? Math.round(
+        arr.reduce((s, b) => s + (Number(b[key]) || 0), 0) / arr.length
+      )
       : 0;
 
-  // Trend: upward / downward / stable
   let trend = "stable";
   if (last3.length >= 2) {
     const first = Number(last3[0]?.totalUnits || 0);
@@ -153,10 +174,20 @@ function buildSummary(billHistory = [], applianceUsage = []) {
     monthsOfHistory: sorted.length,
     trend,
     lastMonth: last
-      ? { period: `${last.year}-${String(last.month).padStart(2, "0")}`, units: last.totalUnits, costLKR: last.totalCost }
+      ? {
+        period: `${last.year}-${String(last.month).padStart(2, "0")}`,
+        units: last.totalUnits,
+        costLKR: last.totalCost,
+      }
       : null,
-    avgLast3Months: { units: avg(last3, "totalUnits"), costLKR: avg(last3, "totalCost") },
-    avgLast6Months: { units: avg(last6, "totalUnits"), costLKR: avg(last6, "totalCost") },
+    avgLast3Months: {
+      units: avg(last3, "totalUnits"),
+      costLKR: avg(last3, "totalCost"),
+    },
+    avgLast6Months: {
+      units: avg(last6, "totalUnits"),
+      costLKR: avg(last6, "totalCost"),
+    },
     appliances: (applianceUsage || []).slice(0, 8).map((a) => ({
       name: a?.name ?? "Unknown",
       wattage: a?.wattage ?? null,
@@ -178,8 +209,17 @@ function validateTip(t) {
   );
 }
 
+// FIX: strengthened — also checks that details array exists and is non-empty
 function validateStrategy(s) {
-  return s && typeof s.title === "string" && typeof s.summary === "string";
+  return (
+    s &&
+    typeof s.title === "string" &&
+    s.title.length > 0 &&
+    typeof s.summary === "string" &&
+    s.summary.length > 0 &&
+    Array.isArray(s.details) &&
+    s.details.length > 0
+  );
 }
 
 function validatePrediction(p) {
@@ -195,13 +235,15 @@ function validatePrediction(p) {
    ENERGY TIPS
 ╚══════════════════════════════════════════════════════ */
 export async function getEnergyTipsFromGemini(billHistory, applianceUsage) {
-  if (!Array.isArray(billHistory))  billHistory  = [];
+  if (!Array.isArray(billHistory)) billHistory = [];
   if (!Array.isArray(applianceUsage)) applianceUsage = [];
 
-  const validBills = billHistory.filter(b => b.totalUnits > 0);
+  const validBills = billHistory.filter((b) => b.totalUnits > 0);
 
   if (validBills.length === 0 && applianceUsage.length === 0) {
-    throw new Error("No usage data available. Please add billing records with actual usage (> 0 units) or appliances first.");
+    throw new Error(
+      "No usage data available. Please add billing records with actual usage (> 0 units) or appliances first."
+    );
   }
 
   const summary = buildSummary(validBills, applianceUsage);
@@ -227,10 +269,16 @@ Rules: 5 distinct tips, realistic savings, short field values (see char limits),
 Data: ${JSON.stringify(summary)}
 `.trim();
 
-  const result = await generateJSON(prompt, { maxOutputTokens: 2500, temperature: 0.3 });
+  const result = await generateJSON(prompt, {
+    maxOutputTokens: 2500,
+    temperature: 0.3,
+  });
 
-  // Accept array directly or { tips: [] } wrapper
-  const tips = Array.isArray(result) ? result : (Array.isArray(result?.tips) ? result.tips : []);
+  const tips = Array.isArray(result)
+    ? result
+    : Array.isArray(result?.tips)
+      ? result.tips
+      : [];
 
   const valid = tips.filter(validateTip).slice(0, 5);
   if (valid.length === 0) {
@@ -244,50 +292,59 @@ Data: ${JSON.stringify(summary)}
    COST STRATEGIES
 ╚══════════════════════════════════════════════════════ */
 export async function getCostStrategiesFromGemini(billHistory, applianceUsage) {
-  if (!Array.isArray(billHistory))  billHistory  = [];
+  if (!Array.isArray(billHistory)) billHistory = [];
   if (!Array.isArray(applianceUsage)) applianceUsage = [];
 
-  const validBills = billHistory.filter(b => b.totalUnits > 0);
+  const validBills = billHistory.filter((b) => b.totalUnits > 0);
 
   if (validBills.length === 0 && applianceUsage.length === 0) {
-    throw new Error("No usage data available. Please add billing records with actual usage (> 0 units) or appliances first.");
+    throw new Error(
+      "No usage data available. Please add billing records with actual usage (> 0 units) or appliances first."
+    );
   }
 
   const summary = buildSummary(validBills, applianceUsage);
 
   const prompt = `
 You are an energy cost advisor for Sri Lanka (LKR).
-Return ONLY a single JSON object. No extra text.
+Return ONLY a single JSON object. No extra text. Keep ALL string values very short.
 
 {
-  "title": "<70 chars>",
-  "summary": "<200 chars>",
-  "details": ["step1 <80 chars>", "step2 <80 chars>", "step3 <80 chars>"],
+  "title": "<40 chars",
+  "summary": "<100 chars>",
+  "details": ["<50 chars>", "<50 chars>", "<50 chars>"],
   "expectedSavings": { "unitsPerMonth": <int>, "costLKR": <int> },
-  "timeframe": "<20 chars>",
+  "timeframe": "<15 chars>",
   "difficulty": "Easy"|"Medium"|"Hard",
   "priority": "High"|"Medium"|"Low",
   "learnMore": "https://www.ceb.lk/energy-saving-tips/en"
 }
 
-Rules: specific to this household, realistic savings, keep values short.
-
 Data: ${JSON.stringify(summary)}
 `.trim();
 
-  const result = await generateJSON(prompt, { maxOutputTokens: 1200, temperature: 0.3 });
+  const result = await generateJSON(prompt, {
+    maxOutputTokens: 2500,  // was 1200 — too low, causes truncation every time
+    temperature: 0.3,
+  });
 
-  let parsedObject = result;
-  // If Gemini accidentally wraps the object in an array
-  if (Array.isArray(result) && result.length > 0) {
-    parsedObject = result[0];
-  } else if (result?.strategy && Array.isArray(result.strategy)) {
-    parsedObject = result.strategy[0];
-  }
+  // FIX: unwrap array if Gemini accidentally wraps the object
+  let parsedObject = Array.isArray(result) && result.length > 0
+    ? result[0]
+    : result;
 
-  const strategy = parsedObject?.strategy || parsedObject?.costStrategy || (validateStrategy(parsedObject) ? parsedObject : null);
-  
-  if (!strategy || !validateStrategy(strategy)) {
+  // FIX: validate the top-level object directly first, then check nested wrappers
+  // Previously it only checked nested keys and always fell through to null
+  const strategy = validateStrategy(parsedObject)
+    ? parsedObject
+    : validateStrategy(parsedObject?.strategy)
+      ? parsedObject.strategy
+      : validateStrategy(parsedObject?.costStrategy)
+        ? parsedObject.costStrategy
+        : null;
+
+  if (!strategy) {
+    console.error("❌ Invalid strategy object from Gemini:", JSON.stringify(parsedObject, null, 2));
     throw new Error("Gemini returned an invalid cost strategy. Please try again.");
   }
 
@@ -300,10 +357,12 @@ Data: ${JSON.stringify(summary)}
 export async function getPredictionFromGemini(billHistory) {
   if (!Array.isArray(billHistory)) billHistory = [];
 
-  const validBills = billHistory.filter(b => b.totalUnits > 0);
+  const validBills = billHistory.filter((b) => b.totalUnits > 0);
 
   if (validBills.length === 0) {
-    throw new Error("We need at least one month of actual electricity usage (> 0 units) to generate a realistic prediction.");
+    throw new Error(
+      "We need at least one month of actual electricity usage (> 0 units) to generate a realistic prediction."
+    );
   }
 
   const sorted = [...validBills].sort((a, b) => {
@@ -311,13 +370,14 @@ export async function getPredictionFromGemini(billHistory) {
     return a.month - b.month;
   });
 
-  const recent   = sorted.slice(-12);
-  const last     = recent[recent.length - 1] || {};
-  const baseYear  = Number(last?.year)  || new Date().getFullYear();
+  const recent = sorted.slice(-12);
+  const last = recent[recent.length - 1] || {};
+  const baseYear = Number(last?.year) || new Date().getFullYear();
   const baseMonth = Number(last?.month) || new Date().getMonth() + 1;
-  const baseline  = Number(last?.totalUnits ?? last?.consumption ?? 100);
+  const baseline = Number(last?.totalUnits ?? last?.consumption ?? 100);
 
-  const last3 = recent.slice(-3)
+  const last3 = recent
+    .slice(-3)
     .map((b) => Number(b?.totalUnits ?? b?.consumption ?? 0))
     .filter((n) => Number.isFinite(n) && n > 0);
   const avg3 = last3.length
@@ -327,12 +387,14 @@ export async function getPredictionFromGemini(billHistory) {
   const minOk = Math.max(20, Math.round(avg3 * 0.4));
   const maxOk = Math.round(avg3 * 1.8);
 
-  // Build the next 12 month labels for the prompt
   const nextMonths = [];
   for (let i = 1; i <= 12; i++) {
     let mm = baseMonth + i;
     let yy = baseYear;
-    while (mm > 12) { mm -= 12; yy += 1; }
+    while (mm > 12) {
+      mm -= 12;
+      yy += 1;
+    }
     nextMonths.push(`${yy}-${String(mm).padStart(2, "0")}`);
   }
 
@@ -357,25 +419,39 @@ Rules:
 - predictedConsumption between ${minOk} and ${maxOk}.
 - Keep all string values SHORT (see char limits above).
 
-Bill history: ${JSON.stringify(recent.map((b) => ({ p: `${b.year}-${String(b.month).padStart(2,"0")}`, u: b.totalUnits })))}
+Bill history: ${JSON.stringify(
+    recent.map((b) => ({
+      p: `${b.year}-${String(b.month).padStart(2, "0")}`,
+      u: b.totalUnits,
+    }))
+  )}
 `.trim();
 
-  const result = await generateJSON(prompt, { maxOutputTokens: 1800, temperature: 0.2 });
+  const result = await generateJSON(prompt, {
+    maxOutputTokens: 1800,
+    temperature: 0.2,
+  });
 
-  // Validate and clamp prediction table
-  let predictionTable = Array.isArray(result?.predictionTable) ? result.predictionTable : [];
+  let predictionTable = Array.isArray(result?.predictionTable)
+    ? result.predictionTable
+    : [];
   predictionTable = predictionTable
     .filter(validatePrediction)
     .map((p) => ({
-      year:                 Number(p.year),
-      month:                Number(p.month),
-      predictedConsumption: Math.min(maxOk, Math.max(minOk, Math.round(p.predictedConsumption))),
+      year: Number(p.year),
+      month: Number(p.month),
+      predictedConsumption: Math.min(
+        maxOk,
+        Math.max(minOk, Math.round(p.predictedConsumption))
+      ),
     }))
     .slice(0, 12);
 
-  // Always guarantee 12 months, filling missing with avg
   const valueMap = new Map(
-    predictionTable.map((p) => [`${p.year}-${String(p.month).padStart(2, "0")}`, p.predictedConsumption])
+    predictionTable.map((p) => [
+      `${p.year}-${String(p.month).padStart(2, "0")}`,
+      p.predictedConsumption,
+    ])
   );
 
   const finalTable = nextMonths.map((label) => {
@@ -384,54 +460,68 @@ Bill history: ${JSON.stringify(recent.map((b) => ({ p: `${b.year}-${String(b.mon
     return { year: yy, month: mm, predictedConsumption: v ?? avg3 };
   });
 
-  // Insights
   const rawInsights = Array.isArray(result?.insights)
-    ? result.insights.filter((i) => i?.title && i?.description).slice(0, 4)
+    ? result.insights
+      .filter((i) => i?.title && i?.description)
+      .slice(0, 4)
     : [];
 
-  // If Gemini didn't provide enough insights, add data-driven ones
   const trendText =
     last3.length >= 2
-      ? last3[last3.length - 1] > last3[0] * 1.05 ? "upward"
-        : last3[last3.length - 1] < last3[0] * 0.95 ? "downward"
-        : "stable"
+      ? last3[last3.length - 1] > last3[0] * 1.05
+        ? "upward"
+        : last3[last3.length - 1] < last3[0] * 0.95
+          ? "downward"
+          : "stable"
       : "stable";
 
-  const insights = rawInsights.length >= 2 ? rawInsights : [
-    {
-      title: "Usage Trend",
-      description: `Your consumption trend is ${trendText}. ${
-        trendText === "upward" ? "Consider auditing high-wattage appliances."
-          : trendText === "downward" ? "Great progress — keep your energy-saving habits."
-          : "Usage is stable. Small changes can still reduce costs."
-      }`,
-    },
-    {
-      title: "Peak Month",
-      description: (() => {
-        const peak = finalTable.reduce((a, b) => a.predictedConsumption > b.predictedConsumption ? a : b);
-        return `Highest predicted consumption: ${peak.predictedConsumption} kWh in ${peak.year}-${String(peak.month).padStart(2, "0")}. Plan ahead to manage usage.`;
-      })(),
-    },
-    {
-      title: "Best Month",
-      description: (() => {
-        const low = finalTable.reduce((a, b) => a.predictedConsumption < b.predictedConsumption ? a : b);
-        return `Lowest predicted: ${low.predictedConsumption} kWh in ${low.year}-${String(low.month).padStart(2, "0")}. Maintain these habits.`;
-      })(),
-    },
-    {
-      title: "Action",
-      description: "Reduce AC/heater/geyser hours by 1–2 hours daily to cut next month's kWh by up to 15%.",
-    },
-  ];
+  const insights =
+    rawInsights.length >= 2
+      ? rawInsights
+      : [
+        {
+          title: "Usage Trend",
+          description: `Your consumption trend is ${trendText}. ${trendText === "upward"
+            ? "Consider auditing high-wattage appliances."
+            : trendText === "downward"
+              ? "Great progress — keep your energy-saving habits."
+              : "Usage is stable. Small changes can still reduce costs."
+            }`,
+        },
+        {
+          title: "Peak Month",
+          description: (() => {
+            const peak = finalTable.reduce((a, b) =>
+              a.predictedConsumption > b.predictedConsumption ? a : b
+            );
+            return `Highest predicted consumption: ${peak.predictedConsumption} kWh in ${peak.year
+              }-${String(peak.month).padStart(2, "0")}. Plan ahead to manage usage.`;
+          })(),
+        },
+        {
+          title: "Best Month",
+          description: (() => {
+            const low = finalTable.reduce((a, b) =>
+              a.predictedConsumption < b.predictedConsumption ? a : b
+            );
+            return `Lowest predicted: ${low.predictedConsumption} kWh in ${low.year
+              }-${String(low.month).padStart(2, "0")}. Maintain these habits.`;
+          })(),
+        },
+        {
+          title: "Action",
+          description:
+            "Reduce AC/heater/geyser hours by 1–2 hours daily to cut next month's kWh by up to 15%.",
+        },
+      ];
 
   return {
     predictionTable: finalTable,
     insights: insights.slice(0, 4),
-    summary: typeof result?.summary === "string"
-      ? result.summary
-      : `12-month forecast based on ${sorted.length} months of billing history. Average predicted: ${Math.round(avg3)} kWh/month.`,
+    summary:
+      typeof result?.summary === "string"
+        ? result.summary
+        : `12-month forecast based on ${sorted.length} months of billing history. Average predicted: ${Math.round(avg3)} kWh/month.`,
   };
 }
 
@@ -450,6 +540,9 @@ User data: ${JSON.stringify(userData || {})}
 Question: ${String(query || "")}
 `.trim();
 
-  const result = await generateJSON(prompt, { maxOutputTokens: 200, temperature: 0.4 });
+  const result = await generateJSON(prompt, {
+    maxOutputTokens: 200,
+    temperature: 0.4,
+  });
   return (typeof result?.answer === "string" ? result.answer : String(result)).trim();
 }

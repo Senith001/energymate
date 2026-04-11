@@ -2,57 +2,68 @@ import { useState, useEffect, useCallback } from "react";
 import api from "../services/api";
 
 /**
- * Fetches the current user's household and returns its MongoDB _id.
- *
- * GET /api/households returns a plain JSON array directly:
- *   [ { _id: "...", userId: "...", name: "...", ... } ]
- *
- * No wrapper key — axios puts it straight in `response.data`.
+ * Hook to get the currently active household.
+ * Synchronizes with the team member's implementation which saves the ID to localStorage.
  */
 export function useHousehold() {
-  const [householdId, setHouseholdId] = useState(null);
+  const [householdId, setHouseholdId] = useState(localStorage.getItem("selectedHouseholdId"));
   const [household, setHousehold] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchHousehold = useCallback(async () => {
+  const fetchHouseholdDetails = useCallback(async (id) => {
+    if (!id) return;
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get("/households");
-
-      // The controller does: res.json(households) — plain array
-      // But handle all reasonable shapes defensively:
-      let h = null;
-
-      if (Array.isArray(data) && data.length > 0) {
-        h = data[0];
-      } else if (Array.isArray(data?.data) && data.data.length > 0) {
-        h = data.data[0];
-      } else if (data?._id) {
-        // Single object
-        h = data;
-      }
-
-      if (h?._id) {
-        setHousehold(h);
-        setHouseholdId(h._id);
-      } else {
-        setError("No household found. Please create a household first.");
-      }
+      const { data } = await api.get(`/households/${id}`);
+      setHousehold(data);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Could not load your household. Please try again."
-      );
+      console.error("Failed to fetch household details:", err);
+      setError("Active household details could not be loaded.");
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Sync with localStorage on mount and when changes occur in other tabs/components
   useEffect(() => {
-    fetchHousehold();
-  }, [fetchHousehold]);
+    const syncHousehold = () => {
+      const id = localStorage.getItem("selectedHouseholdId") || localStorage.getItem("activeHouseholdId");
+      if (id !== householdId) {
+        setHouseholdId(id);
+      }
+    };
 
-  return { householdId, household, loading, error, refetch: fetchHousehold };
+    // Initial sync
+    syncHousehold();
+
+    // Listen for storage events (works across tabs)
+    window.addEventListener("storage", syncHousehold);
+    
+    // Polling as a fallback for same-tab changes if no global event emitter is present
+    const interval = setInterval(syncHousehold, 1000);
+
+    return () => {
+      window.removeEventListener("storage", syncHousehold);
+      clearInterval(interval);
+    };
+  }, [householdId]);
+
+  // When ID changes, fetch full details
+  useEffect(() => {
+    if (householdId) {
+      fetchHouseholdDetails(householdId);
+    } else {
+      setHousehold(null);
+    }
+  }, [householdId, fetchHouseholdDetails]);
+
+  return { 
+    householdId, 
+    household, 
+    loading, 
+    error, 
+    refetch: () => fetchHouseholdDetails(householdId) 
+  };
 }
