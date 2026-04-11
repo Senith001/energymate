@@ -10,11 +10,14 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Auth Pages (Your new files in the subfolder)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import VerifyOtpPage from './pages/auth/VerifyOtpPage';
+import SummaryPage from "./pages/auth/SummaryPage";
 
 //Admin Pages
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
 import AdminHouseholdPage from "./pages/admin/AdminHouseholdPage";
 import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
@@ -22,6 +25,8 @@ import AdminUsagePage from "./pages/usage/AdminUsagePage";
 import AdminUsageBillingPage from "./pages/usage/AdminUsageBillingPage";
 import AdminBillingPage from "./pages/bill/AdminBillingPage";
 import AdminTariffPage from "./pages/bill/AdminTariffPage";
+
+import SuperadminSetup from "./pages/admin/SuperadminSetup";
 
 //User Pages
 import UserProfile from "./pages/user/UserProfile";
@@ -46,6 +51,9 @@ function App() {
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-otp" element={<VerifyOtpPage />} />
+          <Route path="/summary" element={<SummaryPage />} />
+          <Route path="/admin-setup-bootstrap" element={<SuperadminSetup />} />
 
           {/* Admin Login Route */}
           <Route path="/admin-portal" element={<AdminLoginPage />} />
@@ -53,6 +61,7 @@ function App() {
           {/* Protected Admin Layout Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} /> 
             <Route path="households" element={<AdminHouseholdPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="support" element={<AdminSupportPage />} />
