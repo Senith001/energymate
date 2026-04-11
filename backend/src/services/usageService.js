@@ -176,12 +176,22 @@ async function getMonthlyApplianceProfiles(householdId, month, year) {
  * Reduces duplication between getMonthlySummary and estimateCost endpoints.
  */
 async function getMonthlyCostSummary(householdId, month, year) {
-  const [summary, tariff] = await Promise.all([
+  const [summary, tariff, applianceSummary] = await Promise.all([
     getMonthlyTotalUnits(householdId, month, year),
-    getTariff(), // fetch live tariff from DB
+    getTariff(),
+    getMonthlyApplianceProfiles(householdId, month, year)
   ]);
-  const costInfo = calculateCost(summary.totalUnits, tariff); // pass tariff in
-  return { ...summary, ...costInfo };
+
+  const costInfo = calculateCost(summary.totalUnits, tariff);
+  const projectedCostInfo = calculateCost(applianceSummary.totalEstimatedUsage, tariff);
+
+  return { 
+    ...summary, 
+    ...costInfo,
+    totalEstimatedUsage: applianceSummary.totalEstimatedUsage,
+    projectedCost: projectedCostInfo.totalCost,
+    isProjected: summary.totalUnits === 0
+  };
 }
 
 /**
