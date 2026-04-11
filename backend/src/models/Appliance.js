@@ -11,8 +11,8 @@ const applianceSchema = new mongoose.Schema(
     wattage: { type: Number, required: true, min: 1 },
     quantity: { type: Number, default: 1, min: 1 },
     defaultHoursPerDay: { type: Number, default: 0, min: 0 },
-    usageMode: {type: String, enum: ["default", "manual"],default: "manual"
-}
+    usageMode: {type: String, enum: ["default", "manual"],default: "default"},
+    
   },
   { timestamps: true }
 );

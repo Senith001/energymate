@@ -30,7 +30,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173", 
     "http://127.0.0.1:5173", 
-    process.env.CLIENT_URL // Keep this so it works when you host it online!
+    process.env.CLIENT_URL
   ],
   credentials: true,
 }));
@@ -82,3 +82,5 @@ mongoose
     console.error("❌ MongoDB Connection Failed:", err.message);
     process.exit(1);
   });
+
+export default app;

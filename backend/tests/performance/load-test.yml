@@ -1,0 +1,31 @@
+config:
+  target: "http://localhost:5001"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+
+scenarios:
+  - name: "Household API load test"
+    flow:
+      - get:
+          url: "/api/households"
+
+  - name: "Room API load test"
+    flow:
+      - get:
+          url: "/api/rooms"
+
+  - name: "Appliance API load test"
+    flow:
+      - get:
+          url: "/api/appliances"
+
+  - name: "Feedback API load test"
+    flow:
+      - get:
+          url: "/api/feedback"
+
+  - name: "Support API load test"
+    flow:
+      - get:
+          url: "/api/support"
