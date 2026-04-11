@@ -32,7 +32,7 @@ export const getMyTickets = async (req, res, next) => {
 // READ (admin) - all tickets
 export const getAllTickets = async (req, res, next) => {
   try {
-    const list = await SupportTicket.find().sort({ createdAt: -1 });
+    const list = await SupportTicket.find().populate("userId", "name email").sort({ createdAt: -1 });
     res.status(200).json(list);
   } catch (err) {
     next(err);

@@ -475,7 +475,11 @@ export const changeMyPassword = async (req, res, next) => {
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find({ isVerified: true }).select("-password");
+    // Fetches only verified accounts that specifically have the "user" role
+    const users = await User.find({ 
+      isVerified: true, 
+      role: "user" 
+    }).select("-password");
 
     return res.status(200).json({
       count: users.length,

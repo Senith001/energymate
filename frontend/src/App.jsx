@@ -24,6 +24,9 @@ import AdminTemplates from "./pages/recommendation/AdminTemplates";
 import AdminPosts from "./pages/admin/AdminPosts";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminHouseholdPage from "./pages/admin/AdminHouseholdPage";
+import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage";
+import AdminSupportPage from "./pages/admin/AdminSupportPage";
 import AdminUsagePage from "./pages/usage/AdminUsagePage";
 import AdminUsageBillingPage from "./pages/usage/AdminUsageBillingPage";
 import AdminBillingPage from "./pages/bill/AdminBillingPage";
@@ -74,6 +77,9 @@ function App() {
           {/* Protected Admin Layout Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="households" element={<AdminHouseholdPage />} />
+            <Route path="feedback" element={<AdminFeedbackPage />} />
+            <Route path="support" element={<AdminSupportPage />} />
             <Route path="usage-billing" element={<AdminUsageBillingPage />} />
             <Route path="usage-billing/usage" element={<AdminUsagePage />} />
             <Route path="usage-billing/billing" element={<AdminBillingPage />} />
@@ -88,9 +94,6 @@ function App() {
             {/* Admin Public Post Routes */}
             <Route path="posts" element={<AdminPosts />} />
           </Route>
-
-          <Route path="/verify-otp" element={<VerifyOtpPage />} />
-          <Route path="/summary" element={<SummaryPage />} />
 
           {/* 🔵 SECURE USER ROUTES (Wrapped in ProtectedRoute) */}
           <Route element={<ProtectedRoute />}>

@@ -8,11 +8,15 @@ function AdminSidebar() {
   const { user } = useAuth();
 
   const menuItems = [
-    { name: "Control Center", path: "/admin/dashboard", icon: "⚙" },
+    { name: "Control Center", path: "/admin/dashboard", icon: "⚙️" },
     { name: "User Management", path: "/admin/users", icon: "👥" },
-    { name: "System Settings", path: "/admin/settings", icon: "🛠" },
-    { name: "Usage & Billing", path: "/admin/usage-billing", icon: <FiBarChart2 /> },
+    { name: "Household Management", path: "/admin/households", icon: "🏠" },
+    { name: "AI Templates", path: "/admin/recommendations/templates", icon: "💡" },
     { name: "Public Posts", path: "/admin/posts", icon: "📰" },
+    { name: "Feedback", path: "/admin/feedback", icon: "💬" },
+    { name: "Support Tickets", path: "/admin/support", icon: "🎫" },
+    { name: "Usage & Billing", path: "/admin/usage-billing", icon: <FiBarChart2 /> },
+    { name: "System Settings", path: "/admin/settings", icon: "🛠️" },
   ];
 
   return (

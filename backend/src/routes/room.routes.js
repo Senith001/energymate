@@ -2,8 +2,12 @@ import express from "express";
 const router = express.Router();
 
 import * as roomController from "../controllers/room.controller.js";
+import { protect } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { createRoomValidator, updateRoomValidator } from "../validators/room.validator.js";
+
+// Apply protect to all room routes
+router.use(protect);
 
 router.post("/households/:householdId/rooms", createRoomValidator, validate, roomController.createRoom);
 router.get("/households/:householdId/rooms", roomController.getRoomsByHousehold);
