@@ -6,7 +6,7 @@ const RegisterPage = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -14,27 +14,29 @@ const RegisterPage = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError("");
+    setSuccess(false);
     setIsLoading(true);
 
     try {
       await api.post("/users/register", {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
         password,
       });
 
-      // Show success message, then redirect to OTP verification after 3 seconds
       setSuccess(true);
+
       setTimeout(() => {
-        navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
-      }, 3000);
-      
+        navigate(`/verify-otp?email=${encodeURIComponent(email.trim())}`);
+      }, 2000);
     } catch (err) {
       if (err.response && err.response.data) {
         setError(err.response.data.message || "Registration failed");
-      } else {
+      } else if (err.request) {
         setError("Cannot connect to the server. Please try again later.");
+      } else {
+        setError("Something went wrong. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -48,10 +50,11 @@ const RegisterPage = () => {
         <p style={styles.subtitle}>Join ENERGYMATE to track your electricity.</p>
 
         {error && <div style={styles.errorBox}>{error}</div>}
-        
+
         {success ? (
           <div style={styles.successBox}>
-            Registration successful! Please check your email for the OTP. Redirecting to login...
+            Registration successful! Please check your email for the OTP.
+            Redirecting...
           </div>
         ) : (
           <form onSubmit={handleRegister} style={styles.form}>
@@ -86,9 +89,9 @@ const RegisterPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
                 style={styles.input}
                 placeholder="••••••••"
-                minLength="6"
               />
             </div>
 
@@ -99,14 +102,16 @@ const RegisterPage = () => {
         )}
 
         <p style={styles.footerText}>
-          Already have an account? <Link to="/login" style={styles.link}>Log in here</Link>
+          Already have an account?{" "}
+          <Link to="/login" style={styles.link}>
+            Log in here
+          </Link>
         </p>
       </div>
     </div>
   );
 };
 
-// Reusing the same clean styles from the Login page
 const styles = {
   container: {
     display: "flex",

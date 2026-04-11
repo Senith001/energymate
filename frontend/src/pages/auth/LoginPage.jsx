@@ -4,50 +4,46 @@ import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 
 const LoginPage = () => {
-  // State for our form fields and UI feedback
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Hooks for navigation and global auth state
   const navigate = useNavigate();
   const { login } = useAuth();
 
-const handleLogin = async (e) => {
-    e.preventDefault(); // Prevents the page from refreshing on submit
-    setError(null);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
     setIsLoading(true);
 
     try {
-      // 1. Send credentials to your secure backend
       const response = await api.post("/users/login", {
-        email,
+        email: email.trim(),
         password,
       });
 
-      // 2. Extract the data
-      const { user, token } = response.data;
+      const { user, token, message } = response.data || {};
 
-      // 3. THE SECURITY GUARD: Stop admins from logging in here! 👇
-      if (user.role === "admin" || user.role === "superadmin") {
-        setError("Admins must log in through the secure admin portal.");
-        setIsLoading(false); // Stop the loading spinner
-        return; // Exit the function immediately!
+      if (!user || !token) {
+        setError(message || "Login failed. Please try again.");
+        return;
       }
 
-      // 4. If they pass the check (they are a normal user), save their data
-      login(user, token);
+      if (user.role === "admin" || user.role === "superadmin") {
+        setError("Admins must log in through the secure admin portal.");
+        return;
+      }
 
-      // 5. Redirect the user to the Dashboard
+      login(user, token);
       navigate("/");
-      
     } catch (err) {
-      // If the backend sends a 401 (Invalid Credentials) or 404 (User not found)
       if (err.response && err.response.data) {
         setError(err.response.data.message || "Invalid email or password");
-      } else {
+      } else if (err.request) {
         setError("Cannot connect to the server. Please try again later.");
+      } else {
+        setError("Something went wrong. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -60,7 +56,6 @@ const handleLogin = async (e) => {
         <h2 style={styles.title}>Welcome Back to ENERGYMATE</h2>
         <p style={styles.subtitle}>Log in to manage your electricity usage.</p>
 
-        {/* Display backend errors securely to the user */}
         {error && <div style={styles.errorBox}>{error}</div>}
 
         <form onSubmit={handleLogin} style={styles.form}>
@@ -72,7 +67,7 @@ const handleLogin = async (e) => {
               onChange={(e) => setEmail(e.target.value)}
               required
               style={styles.input}
-              placeholder="e.g., admin@energymate.com"
+              placeholder="e.g., user@energymate.com"
             />
           </div>
 
@@ -94,15 +89,16 @@ const handleLogin = async (e) => {
         </form>
 
         <p style={styles.footerText}>
-          Don't have an account? <Link to="/register" style={styles.link}>Register here</Link>
+          Don't have an account?{" "}
+          <Link to="/register" style={styles.link}>
+            Register here
+          </Link>
         </p>
       </div>
     </div>
   );
 };
 
-// Basic inline styling to make it look clean immediately. 
-// You can move this to a CSS file or use Tailwind later!
 const styles = {
   container: {
     display: "flex",
