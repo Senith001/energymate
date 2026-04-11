@@ -40,22 +40,28 @@ function StrategyCard({ strategy }) {
     timeframe, difficulty, learnMore,
   } = strategy;
 
+  const DIFFICULTY_COLORS = {
+    Easy: "bg-slate-100 text-slate-700",
+    Medium: "bg-emerald-50 text-emerald-700",
+    Hard: "bg-slate-50 border border-slate-200 text-slate-600",
+  };
+
   return (
-    <div className="card flex flex-col gap-4">
+    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-4">
       {/* Header */}
       {title && (
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-xl flex-shrink-0">💰</div>
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl flex-shrink-0 transition-transform duration-200 hover:scale-105">💰</div>
           <div className="flex-1">
-            <h3 className="font-bold text-gray-900 text-lg">{title}</h3>
-            <div className="flex gap-2 mt-1 flex-wrap">
+            <h3 className="font-bold text-slate-900 text-base">{title}</h3>
+            <div className="flex gap-2 mt-1.5 flex-wrap">
               {difficulty && (
-                <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold ${DIFFICULTY_COLORS[difficulty] || DIFFICULTY_COLORS.Medium}`}>
+                <span className={`text-[11px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide ${DIFFICULTY_COLORS[difficulty] || DIFFICULTY_COLORS.Medium}`}>
                   {difficulty}
                 </span>
               )}
               {timeframe && (
-                <span className="text-xs px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600 font-medium">
+                <span className="text-[11px] px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200 text-slate-600 font-bold uppercase tracking-wide">
                   🕐 {timeframe}
                 </span>
               )}
@@ -66,21 +72,21 @@ function StrategyCard({ strategy }) {
 
       {/* Summary */}
       {summary && (
-        <div className="px-4 py-3 bg-indigo-50 rounded-xl border border-indigo-100">
-          <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">Strategy Overview</p>
-          <p className="text-sm text-indigo-900 leading-relaxed">{summary}</p>
+        <div className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Strategy Overview</p>
+          <p className="text-sm text-slate-700 leading-relaxed font-medium">{summary}</p>
         </div>
       )}
 
       {/* Action Steps */}
       {details.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Action Steps</p>
+        <div className="mt-2">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">Action Steps</p>
           <ul className="space-y-2">
             {details.map((step, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
-                <span className="text-sm text-gray-700 leading-relaxed">{step}</span>
+              <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600 font-medium">
+                <span className="mt-0.5 w-4 h-4 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[10px] font-bold flex-shrink-0 border border-slate-200">{i + 1}</span>
+                <span className="text-sm text-slate-700 leading-relaxed">{step}</span>
               </li>
             ))}
           </ul>
@@ -89,17 +95,17 @@ function StrategyCard({ strategy }) {
 
       {/* Footer */}
       {(expectedSavings || learnMore) && (
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100 flex-wrap gap-2">
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-2 flex-wrap gap-2">
           <div className="flex gap-2 flex-wrap">
             {expectedSavings?.unitsPerMonth != null && (
-              <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg font-semibold">💧 {expectedSavings.unitsPerMonth} kWh/mo</span>
+              <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-bold">🎯 {expectedSavings.unitsPerMonth} kWh/mo</span>
             )}
             {expectedSavings?.costLKR != null && (
-              <span className="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg font-semibold">💰 LKR {expectedSavings.costLKR}/mo</span>
+               <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-md font-bold">✨ LKR {expectedSavings.costLKR}/mo</span>
             )}
           </div>
           {learnMore && (
-            <a href={learnMore} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-700 font-medium">Learn more →</a>
+            <a href={learnMore} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition">Learn Details →</a>
           )}
         </div>
       )}
@@ -132,36 +138,35 @@ export default function CostStrategies() {
     <div className="space-y-6 fade-in">
       <PageHeader title="Cost Strategies" subtitle="AI-generated plans to reduce your electricity bill" />
 
-      {/* Hero */}
-      <div className="card bg-gradient-to-br from-blue-700 via-indigo-700 to-violet-700 text-white overflow-hidden relative">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-10 -right-10 w-56 h-56 bg-white rounded-full" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full" />
+      {/* Hero CTA */}
+      <div className="bg-white rounded-[32px] p-8 md:p-12 border border-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10">
+        <div className="absolute inset-0 opacity-[0.03]">
+          <div className="absolute -top-10 -right-10 w-96 h-96 bg-emerald-500 rounded-full blur-3xl" />
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">💰</div>
-              <div>
-                <p className="text-blue-200 text-sm font-medium">Powered by</p>
-                <p className="font-bold text-lg">Google Gemini AI</p>
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Optimize Your Energy Costs</h2>
-            <p className="text-blue-100 text-sm max-w-lg leading-relaxed">
-              Get a personalized cost-reduction plan based on your billing history and appliance usage.
-            </p>
+        
+        <div className="relative z-10 flex flex-col items-start max-w-xl">
+          <div className="flex items-center gap-2 mb-6 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <p className="text-emerald-700 text-[11px] font-bold uppercase tracking-widest">Smart AI Engine</p>
           </div>
+          
+          <h2 className="text-4xl md:text-4xl font-black mb-4 text-slate-900 tracking-tight leading-tight">
+            Optimize Your <span className="text-emerald-600">Energy Costs</span>
+          </h2>
+          <p className="text-slate-500 text-base leading-relaxed font-medium mb-8">
+            Get a beautifully personalized, AI-driven cost-reduction plan generated entirely from your billing history and exact home appliance array.
+          </p>
+          
           <button
             onClick={handleGenerate}
             disabled={loading || cooldown > 0}
             id="btn-generate-strategies"
-            className="flex-shrink-0 inline-flex items-center gap-3 bg-white text-indigo-700 font-bold px-6 py-3.5 rounded-xl
-              hover:bg-indigo-50 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed
-              hover:scale-105 active:scale-95"
+            className="flex-shrink-0 inline-flex items-center gap-3 bg-emerald-600 text-white font-bold px-7 py-3.5 rounded-xl
+              hover:bg-emerald-700 transition-all duration-200 shadow-md shadow-emerald-500/20 disabled:opacity-60 disabled:cursor-not-allowed
+              hover:scale-[1.02] active:scale-[0.98]"
           >
             {loading ? (
-              <><span className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />Generating...</>
+              <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating...</>
             ) : cooldown > 0 ? (
               <><FiClock className="w-5 h-5" />Wait {cooldown}s</>
             ) : (
@@ -169,17 +174,19 @@ export default function CostStrategies() {
             )}
           </button>
         </div>
+
+        <div className="relative z-10 hidden md:flex items-center justify-center w-64 h-64 flex-shrink-0 animate-[bounce_4s_ease-in-out_infinite]">
+          <img src="/assets/hero_cost_strategies.png" alt="Cost Strategies Saving Concept" className="w-full h-full object-contain drop-shadow-[0_20px_30px_rgba(16,185,129,0.15)]" />
+        </div>
       </div>
 
       {/* Loading */}
       {loading && (
-        <div className="card">
-          <div className="flex flex-col items-center py-12">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-3xl mb-4 animate-pulse">🤖</div>
-            <LoadingSpinner size="md" />
-            <p className="text-gray-600 font-medium mt-4">Analyzing your spending patterns...</p>
-            <p className="text-gray-400 text-sm mt-1">Gemini is crafting your personalized strategy</p>
-          </div>
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col items-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-3xl mb-4 animate-pulse">🤖</div>
+          <LoadingSpinner size="md" />
+          <p className="text-slate-700 font-bold mt-5">Analyzing your spending patterns...</p>
+          <p className="text-slate-400 text-sm mt-1.5 font-medium">Gemini is crafting your personalized strategy</p>
         </div>
       )}
 
@@ -191,13 +198,13 @@ export default function CostStrategies() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2">
             {/* Meta bar */}
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <FiDollarSign className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center">
+                  <FiDollarSign className="w-5 h-5 text-slate-700" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">Your Cost Reduction Plan</p>
+                  <p className="font-bold text-slate-900 leading-tight">Your Cost Reduction Plan</p>
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     {generatedAt && <span className="flex items-center gap-1"><FiClock className="w-3 h-3" />{timeAgo(generatedAt)}</span>}
                     {fromCache && <span className="flex items-center gap-1 text-blue-500"><FiDatabase className="w-3 h-3" />Cached</span>}

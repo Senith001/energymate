@@ -12,6 +12,7 @@ const feedbackSchema = new mongoose.Schema(
     rating: { type: Number, min: 1, max: 5, default: 5 },
 
     status: { type: String, enum: ["Submitted", "Reviewed"], default: "Submitted" },
+    showOnHome: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

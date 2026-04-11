@@ -93,30 +93,28 @@ function HouseholdPage() {
   };
 
   const containerStyle = {
-    background: "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)",
+    background: "#f8fafc", // Clean crisp background
     minHeight: "100vh",
     padding: "40px",
-    fontFamily: "'Outfit', 'Inter', sans-serif",
-    color: "#1e293b",
+    fontFamily: "'Inter', sans-serif",
+    color: "#0f172a",
   };
 
   const glassPanel = {
-    background: "rgba(255, 255, 255, 0.7)",
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-    borderRadius: "32px",
-    border: "1px solid rgba(255, 255, 255, 0.4)",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.04)",
+    background: "white",
+    borderRadius: "24px",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.03)",
     padding: "32px",
     marginBottom: "32px",
   };
 
   const statCard = {
     background: "white",
-    borderRadius: "24px",
+    borderRadius: "20px",
     padding: "24px",
     textAlign: "center",
-    border: "1px solid #f1f5f9",
+    border: "1px solid #e2e8f0",
     boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
     display: "flex",
     flexDirection: "column",

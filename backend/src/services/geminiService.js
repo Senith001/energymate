@@ -460,70 +460,23 @@ Bill history: ${JSON.stringify(
     return { year: yy, month: mm, predictedConsumption: v ?? avg3 };
   });
 
-  const rawInsights = Array.isArray(result?.insights)
+  const insights = Array.isArray(result?.insights)
     ? result.insights
       .filter((i) => i?.title && i?.description)
       .slice(0, 4)
     : [];
 
-  const trendText =
-    last3.length >= 2
-      ? last3[last3.length - 1] > last3[0] * 1.05
-        ? "upward"
-        : last3[last3.length - 1] < last3[0] * 0.95
-          ? "downward"
-          : "stable"
-      : "stable";
-
-  const insights =
-    rawInsights.length >= 2
-      ? rawInsights
-      : [
-        {
-          title: "Usage Trend",
-          description: `Your consumption trend is ${trendText}. ${trendText === "upward"
-            ? "Consider auditing high-wattage appliances."
-            : trendText === "downward"
-              ? "Great progress — keep your energy-saving habits."
-              : "Usage is stable. Small changes can still reduce costs."
-            }`,
-        },
-        {
-          title: "Peak Month",
-          description: (() => {
-            const peak = finalTable.reduce((a, b) =>
-              a.predictedConsumption > b.predictedConsumption ? a : b
-            );
-            return `Highest predicted consumption: ${peak.predictedConsumption} kWh in ${peak.year
-              }-${String(peak.month).padStart(2, "0")}. Plan ahead to manage usage.`;
-          })(),
-        },
-        {
-          title: "Best Month",
-          description: (() => {
-            const low = finalTable.reduce((a, b) =>
-              a.predictedConsumption < b.predictedConsumption ? a : b
-            );
-            return `Lowest predicted: ${low.predictedConsumption} kWh in ${low.year
-              }-${String(low.month).padStart(2, "0")}. Maintain these habits.`;
-          })(),
-        },
-        {
-          title: "Action",
-          description:
-            "Reduce AC/heater/geyser hours by 1–2 hours daily to cut next month's kWh by up to 15%.",
-        },
-      ];
+  if (insights.length < 2) {
+    throw new Error("Gemini failed to generate enough insights for the prediction.");
+  }
 
   return {
     predictionTable: finalTable,
-    insights: insights.slice(0, 4),
-    summary:
-      typeof result?.summary === "string"
-        ? result.summary
-        : `12-month forecast based on ${sorted.length} months of billing history. Average predicted: ${Math.round(avg3)} kWh/month.`,
+    insights,
+    summary: result?.summary || "12-month energy usage forecast."
   };
 }
+
 
 /* ═══════════════════════════════════════════════════════╗
    CHATBOT

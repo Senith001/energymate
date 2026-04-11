@@ -69,14 +69,13 @@ function Sidebar() {
     padding: "10px 14px",
     marginBottom: "4px",
     borderRadius: "12px",
-    color: isActive(path) ? "white" : "rgba(255,255,255,0.7)",
+    color: isActive(path) ? "#065f46" : "#64748b",
     textDecoration: "none",
     fontSize: "14px",
-    fontWeight: isActive(path) ? "600" : "400",
-    background: isActive(path) ? "rgba(255,255,255,0.15)" : "transparent",
+    fontWeight: isActive(path) ? "700" : "500",
+    background: isActive(path) ? "#ecfdf5" : "transparent",
     transition: "all 0.2s ease",
-    backdropFilter: isActive(path) ? "blur(4px)" : "none",
-    borderLeft: isActive(path) ? "3px solid #4ade80" : "3px solid transparent",
+    borderLeft: isActive(path) ? "3px solid #10b981" : "3px solid transparent",
   });
 
   return (
@@ -84,34 +83,36 @@ function Sidebar() {
       style={{
         width: "260px",
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #033b4a 0%, #022c3a 60%, #011e28 100%)",
-        color: "white",
+        background: "white",
+        borderRight: "1px solid #e2e8f0",
+        color: "#0f172a",
         padding: "20px 16px",
-        borderRadius: "0 24px 24px 0",
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
       }}
     >
       {/* Logo */}
-      <div style={{ marginBottom: "24px", paddingTop: "4px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: "800", margin: 0, letterSpacing: "-0.5px" }}>
-          <span style={{ color: "white" }}>ENERGY</span>
-          <span style={{ color: "#4ade80" }}>MATE</span>
-        </h1>
-        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", marginTop: "2px", letterSpacing: "1px" }}>
-          ENERGY MANAGEMENT
-        </p>
+      <div style={{ marginBottom: "24px", paddingTop: "4px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <img src="/logo.png" alt="EnergyMate" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }} />
+        <div>
+          <h1 style={{ fontSize: "22px", fontWeight: "900", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+            <span style={{ color: "#0f172a" }}>ENERGY</span><span style={{ color: "#10b981" }}>MATE</span>
+          </h1>
+          <p style={{ color: "#94a3b8", fontSize: "10px", marginTop: "2px", letterSpacing: "1px", margin: 0 }}>
+            ENERGY MANAGEMENT
+          </p>
+        </div>
       </div>
 
       {/* User Card */}
       <div
         style={{
-          background: "rgba(255,255,255,0.08)",
+          background: "#f8fafc",
           padding: "12px 14px",
           borderRadius: "14px",
           marginBottom: "20px",
-          border: "1px solid rgba(255,255,255,0.1)",
+          border: "1px solid #e2e8f0",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -120,11 +121,12 @@ function Sidebar() {
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #4ade80, #22d3ee)",
+              background: "#ecfdf5",
+              color: "#059669",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontWeight: "700",
+              fontWeight: "800",
               fontSize: "16px",
               flexShrink: 0,
             }}
@@ -134,8 +136,9 @@ function Sidebar() {
           <div style={{ minWidth: 0 }}>
             <div
               style={{
-                fontWeight: "600",
+                fontWeight: "700",
                 fontSize: "14px",
+                color: "#1e293b",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -143,7 +146,7 @@ function Sidebar() {
             >
               {user?.name || "Guest"}
             </div>
-            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "11px" }}>
+            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "500" }}>
               Household Member
             </div>
           </div>
@@ -154,10 +157,10 @@ function Sidebar() {
       <nav style={{ flex: 1, overflowY: "auto" }}>
         <p
           style={{
-            color: "rgba(255,255,255,0.35)",
-            fontSize: "10px",
-            fontWeight: "700",
-            letterSpacing: "1.2px",
+            color: "#64748b",
+            fontSize: "11px",
+            fontWeight: "800",
+            letterSpacing: "1px",
             marginBottom: "8px",
             paddingLeft: "14px",
           }}
@@ -174,11 +177,11 @@ function Sidebar() {
         {/* AI / Recommendations Section */}
         <p
           style={{
-            color: "rgba(255,255,255,0.35)",
-            fontSize: "10px",
-            fontWeight: "700",
-            letterSpacing: "1.2px",
-            margin: "16px 0 8px",
+            color: "#64748b",
+            fontSize: "11px",
+            fontWeight: "800",
+            letterSpacing: "1px",
+            margin: "24px 0 8px",
             paddingLeft: "14px",
           }}
         >

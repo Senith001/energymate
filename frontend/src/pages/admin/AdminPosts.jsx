@@ -39,7 +39,7 @@ function PostForm({ onSubmit, onCancel, loading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
-    
+
     const formData = new FormData();
     formData.append("title", form.title);
     formData.append("summary", form.summary);
@@ -78,7 +78,7 @@ function PostForm({ onSubmit, onCancel, loading }) {
       {/* Image Upload */}
       <div>
         <label className="label">Cover Image *</label>
-        <div 
+        <div
           onClick={() => fileInputRef.current?.click()}
           className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${errors.file ? "border-red-400 bg-red-50" : "border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/50"}`}
         >
@@ -93,12 +93,12 @@ function PostForm({ onSubmit, onCancel, loading }) {
             {file ? file.name : "Click to select an image (JPG, PNG)"}
           </p>
         </div>
-        <input 
-          type="file" 
+        <input
+          type="file"
           accept="image/*"
-          className="hidden" 
-          ref={fileInputRef} 
-          onChange={handleFileChange} 
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleFileChange}
         />
         {errors.file && <p className="text-red-500 text-xs mt-1">{errors.file}</p>}
       </div>
@@ -224,8 +224,8 @@ export default function AdminPosts() {
           {posts.map((post) => (
             <div key={post._id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition">
               <div className="h-48 overflow-hidden relative bg-gray-100">
-                <img 
-                  src={`http://localhost:5001${post.image}`} 
+                <img
+                  src={`http://localhost:5001${post.image}`}
                   alt={post.title}
                   className="w-full h-full object-cover"
                 />
@@ -237,7 +237,7 @@ export default function AdminPosts() {
                   <span className="text-xs font-medium text-gray-400">
                     {new Date(post.createdAt).toLocaleDateString()}
                   </span>
-                  <button 
+                  <button
                     onClick={() => handleDelete(post._id)}
                     className="flex justify-center items-center w-8 h-8 rounded-full text-red-500 hover:bg-red-50 transition"
                     title="Delete Post"

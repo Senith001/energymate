@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { FiArrowRight, FiZap, FiStar, FiCheck, FiChevronDown } from "react-icons/fi";
+import {
+  FiArrowRight, FiZap, FiStar, FiCheck, FiChevronDown,
+  FiTrendingDown, FiCpu, FiSmile, FiHome, FiDollarSign,
+  FiBarChart2, FiTarget, FiHeart, FiFileText
+} from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { getPosts } from "../services/postService";
+import api from "../services/api";
 
 // ─── Counter ───────────────────────────────────────────────────────────
 function Counter({ target, suffix = "" }) {
@@ -141,37 +146,32 @@ const CSS = `
 
 // ─── Data ─────────────────────────────────────────────────────────────
 const STEPS = [
-  { e: "🏠", title: "Register Your Home", desc: "Add your house details, rooms and appliances in minutes. No tech skills needed." },
-  { e: "📊", title: "Track Your Usage", desc: "See exactly how much electricity every room uses — in real time." },
-  { e: "🤖", title: "Get AI Advice", desc: "Gemini AI reads your data and gives plain-English tips to cut waste." },
-  { e: "💸", title: "Save Every Month", desc: "Watch your bills shrink and track how much you've saved in total." },
-];
-
-const REVIEWS = [
-  { name: "Sachini P.", city: "Colombo 07", av: "👩", q: "I cut my bill by over 30% in 2 months! The AI tips were spot-on for our home. Highly recommend to every Sri Lankan family." },
-  { name: "Ruwan K.", city: "Kandy", av: "👨", q: "Finally an app that explains WHY my bill is so high. The prediction feature alone saved us LKR 2,800 last month." },
-  { name: "Amali D.", city: "Galle", av: "🧕", q: "Simple, beautiful, and genuinely useful. Adding appliances took 5 minutes. My whole family uses it now!" },
-];
-
-const FEATURES = [
-  { e: "📊", title: "Smart Dashboard", desc: "See all appliances, rooms and usage trends at a glance.", color: "#3b82f6", img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=900&fit=crop" },
-  { e: "🤖", title: "AI Energy Coach", desc: "Gemini analyses your patterns and tells you exactly what to change.", color: "#10b981", img: "https://images.unsplash.com/photo-1677696795873-5f1fb5e9a5cc?q=80&w=900&fit=crop" },
-  { e: "🔮", title: "Bill Predictions", desc: "Know next month's bill before it even arrives.", color: "#a855f7", img: "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?q=80&w=900&fit=crop" },
-  { e: "💰", title: "Cost Strategies", desc: "Step-by-step plans with real LKR savings — not vague advice.", color: "#f59e0b", img: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=900&fit=crop" },
+  { e: <FiHome />, color: "#3b82f6", title: "Register Your Home", desc: "Add your house details, rooms and appliances in minutes. No tech skills needed." },
+  { e: <FiBarChart2 />, color: "#10b981", title: "Track Your Usage", desc: "See exactly how much electricity every room uses — in real time." },
+  { e: <FiCpu />, color: "#a855f7", title: "Get AI Advice", desc: "Gemini AI reads your data and gives plain-English tips to cut waste." },
+  { e: <FiDollarSign />, color: "#f59e0b", title: "Save Every Month", desc: "Watch your bills shrink and track how much you've saved in total." },
 ];
 
 // ─── Main ──────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const { user } = useAuth();
   const [posts, setPosts] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
+    // Fetch News/Posts
     getPosts()
       .then(({ data }) => setPosts(data || []))
       .catch(() => setPosts([]))
       .finally(() => setPostsLoading(false));
+
+    // Fetch Featured Feedback
+    api.get("/feedback/public/featured")
+      .then(res => setReviews(res.data || []))
+      .catch(err => console.error("Featured feedback error:", err));
+
     const fn = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
@@ -196,7 +196,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             {/* Logo */}
             <Link to="/home" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#16a34a,#059669)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 16, boxShadow: "0 4px 16px rgba(22,163,74,.4)" }}>⚡</div>
+              <img src="/logo.png" alt="EnergyMate Logo" style={{ width: 36, height: 36, borderRadius: 10, boxShadow: "0 4px 16px rgba(22,163,74,.4)", objectFit: "cover" }} />
               <span style={{ fontWeight: 900, fontSize: 18, color: scrolled ? "#111" : "white" }}>Energy<span style={{ color: "#16a34a" }}>Mate</span></span>
             </Link>
 
@@ -205,7 +205,9 @@ export default function LandingPage() {
               {[["#how", "How it works"], ["#features", "Features"], ["#love", "Reviews"]].map(([href, label]) => (
                 <a key={href} href={href} className="nav-link" style={{ color: scrolled ? "#374151" : "rgba(255,255,255,.8)" }}>{label}</a>
               ))}
-              <Link to="/ai" style={{ color: "#16a34a", fontWeight: 800, fontSize: 14, textDecoration: "none" }}>⚡ AI Hub</Link>
+              <Link to="/ai" style={{ color: "#16a34a", fontWeight: 800, fontSize: 14, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <FiZap size={14} fill="currentColor" /> AI Hub
+              </Link>
               {user
                 ? <Link to="/profile" className="nav-link" style={{ color: scrolled ? "#374151" : "rgba(255,255,255,.8)" }}>My Profile</Link>
                 : <Link to="/login" className="nav-link" style={{ color: scrolled ? "#374151" : "rgba(255,255,255,.8)" }}>Login</Link>
@@ -233,7 +235,9 @@ export default function LandingPage() {
           <div className="float1" style={{ position: "absolute", right: 40, top: "22%", zIndex: 2, display: "none" }} id="card-float-a">
             <div style={{ background: "rgba(255,255,255,.1)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 20, padding: "18px 22px", width: 240, boxShadow: "0 24px 64px rgba(0,0,0,.3)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(74,222,128,.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📉</div>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(74,222,128,.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#4ade80" }}>
+                  <FiTrendingDown size={18} />
+                </div>
                 <span style={{ color: "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 600 }}>vs last month</span>
               </div>
               <p style={{ color: "white", fontWeight: 900, fontSize: 36, lineHeight: 1, margin: 0 }}>↓ 18%</p>
@@ -242,9 +246,9 @@ export default function LandingPage() {
           </div>
           <div className="float2" style={{ position: "absolute", right: 60, bottom: "28%", zIndex: 2, display: "none" }} id="card-float-b">
             <div style={{ background: "rgba(255,255,255,.08)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,.15)", borderRadius: 18, padding: "16px 18px", width: 220, boxShadow: "0 16px 48px rgba(0,0,0,.25)" }}>
-              <p style={{ color: "rgba(255,255,255,.55)", fontSize: 11, fontWeight: 700, marginBottom: 6 }}>🤖 AI noticed:</p>
+              <p style={{ color: "rgba(255,255,255,.55)", fontSize: 11, fontWeight: 700, marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}><FiCpu size={12} /> AI noticed:</p>
               <p style={{ color: "white", fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>"AC running 4hrs extra daily this week"</p>
-              <p style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, marginTop: 8 }}>💡 Save LKR 1,200/mo with 1 fix</p>
+              <p style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}><FiZap size={12} /> Save LKR 1,200/mo with 1 fix</p>
             </div>
           </div>
 
@@ -255,14 +259,16 @@ export default function LandingPage() {
               {/* Badge */}
               <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.2)", backdropFilter: "blur(10px)", borderRadius: 50, padding: "8px 18px", marginBottom: 28 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80", display: "inline-block", animation: "pulse2 2s ease infinite" }} />
-                <span style={{ color: "rgba(255,255,255,.85)", fontSize: 13, fontWeight: 600 }}>👋 Welcome — let's save energy together!</span>
+                <span style={{ color: "rgba(255,255,255,.85)", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                  <FiSmile size={14} /> Welcome — let's save energy together!
+                </span>
               </div>
 
               {/* Headline */}
               <h1 style={{ color: "white", fontWeight: 900, fontSize: "clamp(44px,6vw,72px)", lineHeight: 1.08, marginBottom: 24 }}>
                 Stop Guessing<br />
                 <span className="gtext">Your Electric Bill.</span><br />
-                <span style={{ fontSize: "70%", fontWeight: 700, opacity: 0.85 }}>Start Saving Today.</span>
+                <span style={{ fontSize: "70%", fontWeight: 700, opacity: 0.85 }}>Master Your Energy Savings.</span>
               </h1>
 
               {/* Subtext */}
@@ -322,16 +328,46 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ══ TICKER ══════════════════════════════════ */}
-        <div style={{ background: "#16a34a", padding: "12px 0", overflow: "hidden" }}>
-          <div className="ticker-anim" style={{ display: "inline-flex", width: "max-content" }}>
-            {[...Array(2)].flatMap((_, ri) =>
-              ["🏠 Smart Tracking", "🤖 Gemini AI Coach", "💡 Instant Tips", "📊 Bill Predictions", "💰 Save up to 30%", "🌿 Eco Living", "⚡ Real-time Insights", "🎯 Personalised Plans"].map((item, i) => (
-                <span key={`${ri}-${i}`} style={{ color: "white", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", padding: "0 28px" }}>
-                  {item} <span style={{ opacity: 0.4, marginLeft: 4 }}>•</span>
-                </span>
-              ))
-            )}
+        {/* ══ PREMIUM SCROLLING TICKER ═══════════════ */}
+        <div style={{ background: "#022c22", borderTop: "1px solid rgba(74,222,128,0.2)", borderBottom: "1px solid rgba(74,222,128,0.2)", padding: "16px 0", overflow: "hidden", display: "flex", alignItems: "center" }}>
+          <style>{`
+            @keyframes tickerScroll {
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            .ticker-text-wrapper {
+              display: flex;
+              width: max-content;
+              animation: tickerScroll 25s linear infinite;
+            }
+            .ticker-item {
+              color: rgba(255,255,255,0.9);
+              font-weight: 700;
+              font-size: 13px;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              margin: 0 40px;
+              white-space: nowrap;
+              display: flex;
+              align-items: center;
+              gap: 12px;
+            }
+            .ticker-dot {
+              color: #4ade80;
+              font-size: 16px;
+            }
+          `}</style>
+          
+          <div className="ticker-text-wrapper">
+            {[...Array(2)].map((_, i) => (
+              <React.Fragment key={i}>
+                <span className="ticker-item"><span className="ticker-dot">⚡</span> Reduce Bills</span>
+                <span className="ticker-item"><span className="ticker-dot">🌿</span> Sustainable Future</span>
+                <span className="ticker-item"><span className="ticker-dot">🧠</span> AI-Powered Insights</span>
+                <span className="ticker-item"><span className="ticker-dot">🛡️</span> Real-Time Tracking</span>
+                <span className="ticker-item"><span className="ticker-dot">💰</span> Maximize Savings</span>
+              </React.Fragment>
+            ))}
           </div>
         </div>
 
@@ -348,13 +384,13 @@ export default function LandingPage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 24 }}>
               {STEPS.map((s, i) => (
-                <div key={i} className="card" style={{ padding: 32, textAlign: "center", position: "relative", overflow: "visible", boxShadow: "0 4px 24px rgba(0,0,0,.06)" }}>
-                  <div className="step-num" style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#16a34a,#4ade80)", color: "white", fontWeight: 900, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(22,163,74,.4)" }}>
-                    {i + 1}
+                <div key={i} style={{ padding: "40px 24px", textAlign: "center", borderRadius: 24, position: "relative", boxShadow: "0 10px 40px rgba(0,0,0,.04)", border: "1px solid rgba(255,255,255,0.8)", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(20px)" }}>
+                  <div style={{ display: "inline-block", background: "white", border: "1px solid #e5e7eb", color: "#4b5563", padding: "4px 14px", borderRadius: 50, fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>Step {i + 1}</div>
+                  <div style={{ width: 80, height: 80, margin: "0 auto 24px", borderRadius: "50%", background: `linear-gradient(135deg, ${s.color}22, ${s.color}11)`, border: `1px solid ${s.color}30`, color: s.color, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 16px 32px ${s.color}15` }}>
+                    {React.cloneElement(s.e, { size: 36, strokeWidth: 1.5 })}
                   </div>
-                  <div style={{ fontSize: 48, marginBottom: 18, marginTop: 8 }}>{s.e}</div>
-                  <h3 style={{ fontWeight: 800, fontSize: 17, color: "#111", marginBottom: 10 }}>{s.title}</h3>
-                  <p style={{ color: "#6b7280", fontSize: 14, lineHeight: 1.7 }}>{s.desc}</p>
+                  <h3 style={{ fontWeight: 900, fontSize: 19, color: "#111", marginBottom: 12 }}>{s.title}</h3>
+                  <p style={{ color: "#6b7280", fontSize: 15, lineHeight: 1.6 }}>{s.desc}</p>
                 </div>
               ))}
             </div>
@@ -362,20 +398,49 @@ export default function LandingPage() {
         </section>
 
         {/* ══ STATS ════════════════════════════════════ */}
-        <section style={{ background: "linear-gradient(135deg,#14532d,#065f46)", padding: "64px 24px" }}>
-          <div style={{ maxWidth: 1000, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 40, textAlign: "center" }}>
+        <section style={{ background: "linear-gradient(135deg,#14532d,#065f46)", padding: "64px 24px", position: "relative", overflow: "hidden" }}>
+          
+          {/* Highly Visible Animated Image Background */}
+          <style>{`
+            @keyframes scrollBackground {
+              0% { background-position: 0 0; }
+              100% { background-position: -100px -100px; }
+            }
+          `}</style>
+          <div 
+            style={{
+              position: "absolute",
+              top: 0, left: 0, right: 0, bottom: 0,
+              zIndex: 0,
+              opacity: 0.3,
+              backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'50\' height=\'50\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%234ade80\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+              backgroundSize: "60px 60px",
+              animation: "scrollBackground 6s linear infinite"
+            }}
+          />
+          {/* Subtle overlay to ensure cards remain totally legible */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(20,83,45,0.7), rgba(6,95,70,0.85))", zIndex: 0 }} />
+
+          <div style={{ position: "relative", zIndex: 1, maxWidth: 1000, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 40, textAlign: "center" }}>
             {[
-              { val: 12000, suf: "+", label: "Happy Families", e: "🏠" },
-              { val: 24, suf: ".5%", label: "Average Savings", e: "💰" },
-              { val: 4, suf: " AI Tools", label: "Powered by Gemini", e: "🤖" },
-              { val: 99, suf: "%", label: "Satisfaction Rate", e: "⭐" },
+              { val: 12000, suf: "+", label: "Happy Families", e: <FiHome size={32} strokeWidth={2} /> },
+              { val: 24, suf: ".5%", label: "Average Savings", e: <FiDollarSign size={32} strokeWidth={2} /> },
+              { val: 4, suf: " AI Tools", label: "Powered by Gemini", e: <FiCpu size={32} strokeWidth={2} /> },
+              { val: 99, suf: "%", label: "Satisfaction Rate", e: <FiStar size={32} strokeWidth={2} /> },
             ].map((s, i) => (
-              <div key={i}>
-                <div style={{ fontSize: 36, marginBottom: 10 }}>{s.e}</div>
-                <p style={{ fontWeight: 900, fontSize: 44, color: "white", lineHeight: 1 }}>
+              <div key={i} style={{ background: "rgba(255,255,255,0.04)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: "36px 20px", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", overflow: "hidden", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
+                {/* Subtle top left glow inside card */}
+                <div style={{ position: "absolute", top: -30, left: -30, width: 140, height: 140, background: "radial-gradient(circle, rgba(110,231,183,0.12), transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, zIndex: 2 }}>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03))", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.15)", color: "#a7f3d0", boxShadow: "0 12px 32px rgba(0,0,0,0.25)" }}>
+                    {s.e}
+                  </div>
+                </div>
+                <p style={{ fontWeight: 900, fontSize: "clamp(36px, 4vw, 44px)", color: "white", lineHeight: 1, zIndex: 2, textShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
                   <Counter target={s.val} suffix={s.suf} />
                 </p>
-                <p style={{ color: "rgba(255,255,255,.5)", fontSize: 14, fontWeight: 500, marginTop: 6 }}>{s.label}</p>
+                <p style={{ color: "rgba(255,255,255,.65)", fontSize: 14, fontWeight: 700, marginTop: 10, zIndex: 2, letterSpacing: "0.03em", textTransform: "uppercase" }}>{s.label}</p>
               </div>
             ))}
           </div>
@@ -404,7 +469,7 @@ export default function LandingPage() {
                   {/* content */}
                   <div style={{ position: "absolute", inset: 0, padding: 32, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(59,130,246,.25)", backdropFilter: "blur(8px)", border: "1px solid rgba(59,130,246,.4)", borderRadius: 50, padding: "5px 14px", marginBottom: 16, width: "fit-content" }}>
-                      <span style={{ fontSize: 14 }}>📊</span>
+                      <FiBarChart2 size={13} color="#93c5fd" />
                       <span style={{ color: "#93c5fd", fontSize: 12, fontWeight: 700 }}>Smart Dashboard</span>
                     </div>
                     <h3 style={{ color: "white", fontWeight: 900, fontSize: 28, lineHeight: 1.25, marginBottom: 10 }}>See your whole home's energy — at a glance</h3>
@@ -426,7 +491,7 @@ export default function LandingPage() {
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(110deg, rgba(5,46,22,.3) 0%, rgba(5,46,22,.88) 100%)", borderRadius: 24 }} />
                     <div style={{ position: "absolute", inset: 0, padding: "24px 28px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                       <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(16,185,129,.2)", backdropFilter: "blur(8px)", border: "1px solid rgba(16,185,129,.35)", borderRadius: 50, padding: "4px 12px", marginBottom: 10, width: "fit-content" }}>
-                        <span style={{ fontSize: 13 }}>🤖</span>
+                        <FiCpu size={12} color="#6ee7b7" />
                         <span style={{ color: "#6ee7b7", fontSize: 11, fontWeight: 700 }}>AI Energy Coach</span>
                       </div>
                       <h3 style={{ color: "white", fontWeight: 900, fontSize: 20, lineHeight: 1.3, marginBottom: 6 }}>Your personal AI adviser — powered by Gemini</h3>
@@ -444,7 +509,7 @@ export default function LandingPage() {
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(110deg, rgba(88,28,135,.3) 0%, rgba(88,28,135,.88) 100%)", borderRadius: 24 }} />
                     <div style={{ position: "absolute", inset: 0, padding: "24px 28px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                       <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(168,85,247,.2)", backdropFilter: "blur(8px)", border: "1px solid rgba(168,85,247,.35)", borderRadius: 50, padding: "4px 12px", marginBottom: 10, width: "fit-content" }}>
-                        <span style={{ fontSize: 13 }}>🔮</span>
+                        <FiTarget size={12} color="#d8b4fe" />
                         <span style={{ color: "#d8b4fe", fontSize: 11, fontWeight: 700 }}>Bill Predictions</span>
                       </div>
                       <h3 style={{ color: "white", fontWeight: 900, fontSize: 20, lineHeight: 1.3, marginBottom: 6 }}>Know your next bill before it arrives</h3>
@@ -465,7 +530,7 @@ export default function LandingPage() {
                 <div style={{ position: "absolute", inset: 0, padding: "36px 44px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ maxWidth: 520 }}>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(250,204,21,.15)", backdropFilter: "blur(8px)", border: "1px solid rgba(250,204,21,.3)", borderRadius: 50, padding: "4px 12px", marginBottom: 14 }}>
-                      <span style={{ fontSize: 13 }}>💰</span>
+                      <FiDollarSign size={12} color="#fde68a" />
                       <span style={{ color: "#fde68a", fontSize: 11, fontWeight: 700 }}>Cost Strategies</span>
                     </div>
                     <h3 style={{ color: "white", fontWeight: 900, fontSize: 26, lineHeight: 1.25, marginBottom: 10 }}>
@@ -515,46 +580,52 @@ export default function LandingPage() {
         </section>
 
         {/* ══ TESTIMONIALS ════════════════════════════ */}
-        <section id="love" style={{ padding: "96px 24px", background: "#f9fafb" }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div style={{ textAlign: "center", marginBottom: 60 }}>
-              <span style={{ display: "inline-block", background: "#fef9c3", color: "#854d0e", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 50, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>❤️ Real Stories</span>
-              <h2 style={{ fontWeight: 900, fontSize: "clamp(32px,4vw,46px)", color: "#111", lineHeight: 1.2, marginBottom: 12 }}>Sri Lankan Families Love EnergyMate</h2>
-              <p style={{ color: "#6b7280", fontSize: 18, maxWidth: 440, margin: "0 auto" }}>Real results from real people — not made-up marketing numbers.</p>
-            </div>
+        {reviews.length > 0 && (
+          <section id="love" style={{ padding: "48px 24px", background: "#f9fafb" }}>
+            <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+              <div style={{ textAlign: "center", marginBottom: 32 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#fef9c3", color: "#854d0e", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 50, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>
+                  <FiHeart size={12} fill="currentColor" /> Real Stories
+                </span>
+                <h2 style={{ fontWeight: 900, fontSize: "clamp(32px,4vw,46px)", color: "#111", lineHeight: 1.2, marginBottom: 12 }}>Sri Lankan Families Love EnergyMate</h2>
+                <p style={{ color: "#6b7280", fontSize: 18, maxWidth: 440, margin: "0 auto" }}>Real results from real people — not made-up marketing numbers.</p>
+              </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 24 }}>
-              {REVIEWS.map((t, i) => (
-                <div key={i} className="tcard">
-                  <div style={{ display: "flex", gap: 4, marginBottom: 18 }}>
-                    {[...Array(5)].map((_, j) => <FiStar key={j} size={16} color="#fbbf24" fill="#fbbf24" />)}
-                  </div>
-                  <p style={{ color: "#374151", fontSize: 15, lineHeight: 1.75, fontStyle: "italic", marginBottom: 24 }}>"{t.q}"</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{t.av}</div>
-                    <div>
-                      <p style={{ fontWeight: 800, fontSize: 15, color: "#111", margin: 0 }}>{t.name}</p>
-                      <p style={{ color: "#9ca3af", fontSize: 12, fontWeight: 600, margin: "2px 0 0" }}>{t.city}</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 24 }}>
+                {reviews.map((t, i) => (
+                  <div key={i} className="tcard">
+                    <div style={{ display: "flex", gap: 4, marginBottom: 18 }}>
+                      {[...Array(t.rating || 5)].map((_, j) => <FiStar key={j} size={16} color="#fbbf24" fill="#fbbf24" />)}
+                    </div>
+                    <p style={{ color: "#374151", fontSize: 15, lineHeight: 1.75, fontStyle: "italic", marginBottom: 24 }}>"{t.message}"</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: "bold", color: "#166534" }}>
+                        {t.name ? t.name[0].toUpperCase() : "U"}
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: 800, fontSize: 15, color: "#111", margin: 0 }}>{t.name || "Anonymous"}</p>
+                        <p style={{ color: "#9ca3af", fontSize: 12, fontWeight: 600, margin: "2px 0 0" }}>Member since {new Date(t.createdAt).getFullYear()}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* ══ ARTICLES SECTION ════════════════════════ */}
-        <section style={{ padding: "96px 24px", background: "#f9fafb" }}>
+        <section style={{ padding: "0 24px 64px", background: "#f9fafb" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto" }}>
 
             {/* Static + Dynamic articles header */}
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 48 }}>
               <div>
-                <span style={{ display: "inline-block", background: "#dcfce7", color: "#15803d", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 50, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>
-                  ⚡ Energy Insights
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#dcfce7", color: "#15803d", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 50, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>
+                  <FiZap size={13} fill="currentColor" /> Expert Knowledge
                 </span>
                 <h2 style={{ fontWeight: 900, fontSize: "clamp(26px,3.5vw,40px)", color: "#111", lineHeight: 1.2, margin: 0 }}>
-                  Tips, News & Guides
+                  Insights & Guides
                 </h2>
               </div>
               <Link to="/ai" style={{ display: "inline-flex", alignItems: "center", gap: 7, color: "#16a34a", fontWeight: 700, fontSize: 14, textDecoration: "none", padding: "10px 20px", background: "#f0fdf4", borderRadius: 50, border: "1px solid #bbf7d0" }}>
@@ -580,62 +651,28 @@ export default function LandingPage() {
 
             {/* Combined articles grid (static + admin posts) */}
             {!postsLoading && (() => {
-              const STATIC_ARTICLES = [
-                {
-                  _id: "s1",
-                  isStatic: true,
-                  image: "https://images.unsplash.com/photo-1509391366360-1e97fb5c26b5?q=80&w=800&fit=crop",
-                  date: "10 Apr 2026",
-                  tag: "💡 Energy Tips",
-                  tagColor: "#fef9c3",
-                  tagText: "#92400e",
-                  title: "5 Simple Ways to Cut Your Electricity Bill This Month",
-                  summary: "Small changes in daily habits can save Sri Lankan families up to 25% on electricity. From AC settings to standby power — here's what actually works.",
-                  link: "/ai",
-                },
-                {
-                  _id: "s2",
-                  isStatic: true,
-                  image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&fit=crop",
-                  date: "8 Apr 2026",
-                  tag: "🤖 AI Guide",
-                  tagColor: "#dcfce7",
-                  tagText: "#14532d",
-                  title: "How Our AI Reads Your Home's Energy Patterns",
-                  summary: "EnergyMate's Gemini-powered AI analyzes your billing history and appliance usage to spot waste you'd never notice manually. Here's how it works.",
-                  link: "/ai",
-                },
-                {
-                  _id: "s3",
-                  isStatic: true,
-                  image: "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?q=80&w=800&fit=crop",
-                  date: "5 Apr 2026",
-                  tag: "📊 Data Insights",
-                  tagColor: "#eff6ff",
-                  tagText: "#1e40af",
-                  title: "Understanding Your CEB Bill: A Complete Breakdown",
-                  summary: "Most households don't fully understand how the Ceylon Electricity Board calculates bills. This guide explains every line item and how to reduce each one.",
-                  link: "/ai",
-                },
-              ];
-
-              // Merge: real admin posts first, then static articles padded to at least 3 total
-              const allPosts = [
-                ...posts.map(p => ({
-                  _id: p._id,
-                  isStatic: false,
-                  image: `http://localhost:5001${p.image}`,
-                  date: new Date(p.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }),
-                  tag: "📰 Admin Post",
-                  tagColor: "#eef2ff",
-                  tagText: "#4338ca",
-                  title: p.title,
-                  summary: p.summary,
-                  author: p.author,
-                  link: `/news/${p._id}`,
-                })),
-                ...STATIC_ARTICLES.slice(0, Math.max(0, 3 - posts.length)),
-              ];
+              // Use only real admin posts
+              const allPosts = posts.map(p => ({
+                _id: p._id,
+                image: `http://localhost:5001${p.image}`,
+                date: new Date(p.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }),
+                tag: "💡 Insights",
+                tagColor: "#eef2ff",
+                tagText: "#4338ca",
+                title: p.title,
+                summary: p.summary,
+                author: p.author?.name || "Admin",
+                link: `/news/${p._id}`,
+              }));
+              if (allPosts.length === 0) {
+                return (
+                  <div className="card !py-12 border-dashed border-2 flex flex-col items-center justify-center text-center">
+                    <div className="text-gray-300 mb-4"><FiFileText size={48} /></div>
+                    <h3 className="text-xl font-bold text-gray-800">No updates yet</h3>
+                    <p className="text-gray-500 max-w-xs mx-auto">Check back soon for the latest energy-saving news and guide updates from our team.</p>
+                  </div>
+                );
+              }
 
               return (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 24 }}>
@@ -661,10 +698,11 @@ export default function LandingPage() {
                           <img
                             src={article.image}
                             alt={article.title}
+                            style={{ objectFit: "cover", width: "100%", height: "100%", filter: "none" }}
                             onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?q=80&w=800&fit=crop"; }}
                           />
-                          {/* Dark overlay gradient */}
-                          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,.5) 0%, transparent 60%)" }} />
+                          {/* Very subtle overlay */}
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.03)" }} />
                           {/* Date */}
                           <div style={{ position: "absolute", bottom: 12, left: 14 }}>
                             <span style={{ color: "rgba(255,255,255,.9)", fontSize: 11, fontWeight: 700, background: "rgba(0,0,0,.4)", backdropFilter: "blur(6px)", padding: "3px 8px", borderRadius: 6 }}>
@@ -734,11 +772,11 @@ export default function LandingPage() {
         {/* ══ FOOTER ═══════════════════════════════════ */}
         <footer style={{ background: "#020c07", padding: "48px 24px", textAlign: "center" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#16a34a,#059669)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 15 }}>⚡</div>
+            <img src="/logo.png" alt="EnergyMate" style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }} />
             <span style={{ color: "white", fontWeight: 900, fontSize: 16 }}>Energy<span style={{ color: "#16a34a" }}>Mate</span></span>
           </div>
           <p style={{ color: "rgba(255,255,255,.2)", fontSize: 14, marginBottom: 4 }}>© 2026 EnergyMate — Sri Lanka Sustainable Energy Initiative</p>
-          <p style={{ color: "rgba(255,255,255,.1)", fontSize: 12 }}>Built with ❤️ for our Group Project • Powered by Google Gemini AI</p>
+          <p style={{ color: "rgba(255,255,255,.1)", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>Built with <FiHeart size={10} fill="currentColor" /> for our Group Project • Powered by Google Gemini AI</p>
         </footer>
       </div>
     </>

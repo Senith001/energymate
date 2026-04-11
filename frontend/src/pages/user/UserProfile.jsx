@@ -541,53 +541,53 @@ const UserProfile = () => {
 
 // --- STYLES ---
 const styles = {
-  fullPage: { minHeight: "100vh", backgroundColor: "#f9fafb" },
-  pageContainer: { maxWidth: "1000px", margin: "0 auto", padding: "20px", fontFamily: "'Inter', Arial, sans-serif" },
-  topCard: { backgroundColor: "white", borderRadius: "12px", padding: "30px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", marginBottom: "30px" },
+  fullPage: { minHeight: "100vh", backgroundColor: "#f8fafc" },
+  pageContainer: { maxWidth: "1000px", margin: "0 auto", padding: "40px 20px", fontFamily: "'Inter', sans-serif" },
+  topCard: { backgroundColor: "white", borderRadius: "20px", padding: "30px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.03)", border: "1px solid #e2e8f0", marginBottom: "30px" },
   userInfoWrapper: { display: "flex", alignItems: "center", gap: "25px" },
   avatarWrapper: { position: "relative", width: "100px", height: "100px", cursor: "pointer" },
-  avatar: { width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" },
-  defaultAvatarIcon: { width: "100%", height: "100%", borderRadius: "50%", backgroundColor: "#e5e7eb", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" },
-  defaultAvatarModalIcon: { width: "120px", height: "120px", borderRadius: "50%", backgroundColor: "#e5e7eb", display: "flex", justifyContent: "center", alignItems: "center", border: "4px solid #f3f4f6", boxShadow: "0 4px 6px rgba(0,0,0,0.05)" },
-  avatarOverlay: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", borderRadius: "50%", backgroundColor: "rgba(0,0,0,0.5)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "0.3s" },
-  userName: { margin: "0 0 10px 0", fontSize: "22px", color: "#1f2937", letterSpacing: "0.5px" },
-  userMeta: { margin: "0 0 5px 0", fontSize: "13px", color: "#6b7280" },
-  statusBadge: { display: "inline-block", marginTop: "8px", padding: "4px 12px", backgroundColor: "#e0f2fe", color: "#0284c7", borderRadius: "20px", fontSize: "12px", fontWeight: "600" },
-  statsWidget: { display: "flex", alignItems: "center", gap: "15px", padding: "15px 25px", border: "1px solid #e5e7eb", borderRadius: "10px" },
-  statsIcon: { fontSize: "24px", backgroundColor: "#fef08a", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%" },
-  alert: { padding: "15px", borderRadius: "8px", marginBottom: "20px", fontSize: "14px", fontWeight: "500" },
+  avatar: { width: "100%", height: "100%", borderRadius: "20px", objectFit: "cover", boxShadow: "0 4px 10px rgba(0,0,0,0.05)", border: "2px solid #ecfdf5" },
+  defaultAvatarIcon: { width: "100%", height: "100%", borderRadius: "20px", backgroundColor: "#f1f5f9", display: "flex", justifyContent: "center", alignItems: "center", border: "1px solid #e2e8f0" },
+  defaultAvatarModalIcon: { width: "120px", height: "120px", borderRadius: "50%", backgroundColor: "#f1f5f9", display: "flex", justifyContent: "center", alignItems: "center", border: "4px solid #ecfdf5" },
+  avatarOverlay: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", borderRadius: "20px", backgroundColor: "rgba(16,185,129,0.8)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "0.2s", fontWeight: "bold" },
+  userName: { margin: "0 0 10px 0", fontSize: "24px", color: "#0f172a", letterSpacing: "-0.5px", fontWeight: "800" },
+  userMeta: { margin: "0 0 5px 0", fontSize: "14px", color: "#64748b", fontWeight: "500" },
+  statusBadge: { display: "inline-block", marginTop: "8px", padding: "6px 14px", backgroundColor: "#ecfdf5", color: "#059669", borderRadius: "99px", fontSize: "12px", fontWeight: "700" },
+  statsWidget: { display: "flex", alignItems: "center", gap: "15px", padding: "16px 24px", border: "1px solid #e2e8f0", borderRadius: "16px", backgroundColor: "#f8fafc" },
+  statsIcon: { fontSize: "22px", backgroundColor: "#dcfce7", color: "#10b981", width: "44px", height: "44px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "12px" },
+  alert: { padding: "16px 20px", borderRadius: "12px", marginBottom: "20px", fontSize: "14px", fontWeight: "600", border: "1px solid transparent" },
   
-  contentArea: { backgroundColor: "white", borderRadius: "12px", padding: "40px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
-  sectionTitle: { fontSize: "18px", color: "#1f2937", marginBottom: "20px", fontWeight: "600" },
+  contentArea: { backgroundColor: "white", borderRadius: "24px", padding: "40px", boxShadow: "0 8px 32px rgba(0,0,0,0.03)", border: "1px solid #e2e8f0" },
+  sectionTitle: { fontSize: "20px", color: "#0f172a", marginBottom: "24px", fontWeight: "700" },
   
   // Forms
-  formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "25px", marginBottom: "15px" },
+  formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "20px" },
   inputGroup: { display: "flex", flexDirection: "column", gap: "8px" },
-  label: { fontSize: "13px", fontWeight: "600", color: "#374151" },
-  input: { padding: "12px 15px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "14px", outline: "none", transition: "all 0.2s" },
-  errorText: { color: "#ef4444", fontSize: "12px", marginTop: "2px", fontWeight: "500" },
+  label: { fontSize: "13px", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" },
+  input: { padding: "14px 16px", borderRadius: "12px", border: "1px solid #cbd5e1", fontSize: "15px", outline: "none", transition: "all 0.2s", color: "#1e293b", backgroundColor: "#f8fafc" },
+  errorText: { color: "#ef4444", fontSize: "13px", marginTop: "4px", fontWeight: "600" },
   
-  passwordSection: { border: "1px solid #e5e7eb", borderRadius: "8px", padding: "25px", marginTop: "25px", backgroundColor: "#fafafa" },
+  passwordSection: { border: "1px solid #e2e8f0", borderRadius: "16px", padding: "30px", marginTop: "30px", backgroundColor: "#f8fafc" },
   passwordGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px" },
 
-  actionRow: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e5e7eb", paddingTop: "30px" },
+  actionRow: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e2e8f0", paddingTop: "30px" },
   
   // Buttons
-  deleteBtn: { padding: "10px 20px", backgroundColor: "#ef4444", color: "white", border: "none", borderRadius: "6px", fontWeight: "500", cursor: "pointer" },
-  saveChangesBtn: { padding: "12px 30px", backgroundColor: "#0284c7", color: "white", border: "none", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "0.2s" },
+  deleteBtn: { padding: "12px 24px", backgroundColor: "#fef2f2", color: "#ef4444", border: "1px solid #fee2e2", borderRadius: "12px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s" },
+  saveChangesBtn: { padding: "14px 32px", backgroundColor: "#10b981", color: "white", border: "none", borderRadius: "12px", fontWeight: "700", cursor: "pointer", transition: "0.2s", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" },
 
   // Modals
-  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", justifyContent: "center", alignItems: "center", backdropFilter: "blur(4px)" },
-  modalContent: { backgroundColor: "white", borderRadius: "12px", width: "90%", maxWidth: "500px", overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" },
-  modalContentOtp: { backgroundColor: "white", borderRadius: "20px", width: "90%", maxWidth: "450px", padding: "40px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" },
-  modalContentSmall: { backgroundColor: "white", borderRadius: "16px", width: "90%", maxWidth: "350px", padding: "25px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" },
-  modalHeaderSurvey: { background: "linear-gradient(90deg, #3b82f6, #38bdf8)", padding: "20px 25px", color: "white" },
-  termsBox: { border: "1px solid #64748b", borderRadius: "8px", padding: "15px", fontSize: "14px", color: "#4b5563", marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", backgroundColor: "#f8fafc" },
-  outlineBtnFull: { flex: 1, padding: "12px", width: "100%", border: "1px solid #d1d5db", borderRadius: "8px", background: "white", color: "#374151", fontWeight: "bold", cursor: "pointer" },
-  dangerBtnFull: { flex: 1, padding: "12px", width: "100%", border: "none", borderRadius: "8px", backgroundColor: "#b91c1c", color: "white", fontWeight: "bold", cursor: "pointer", transition: "0.2s" },
-  updateBtnFull: { width: "100%", padding: "12px", backgroundColor: "#0284c7", color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", transition: "0.2s" },
-  otpInput: { width: "45px", height: "55px", fontSize: "24px", textAlign: "center", borderRadius: "8px", border: "1px solid #d1d5db", outline: "none", color: "#1f2937", fontWeight: "bold" },
-  verifyBtnFull: { width: "100%", padding: "15px", backgroundColor: "#9ca3af", color: "white", border: "none", borderRadius: "12px", fontSize: "16px", fontWeight: "bold", cursor: "pointer" }
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15,23,42,0.6)", zIndex: 2000, display: "flex", justifyContent: "center", alignItems: "center", backdropFilter: "blur(6px)" },
+  modalContent: { backgroundColor: "white", borderRadius: "24px", width: "90%", maxWidth: "500px", overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" },
+  modalContentOtp: { backgroundColor: "white", borderRadius: "24px", width: "90%", maxWidth: "450px", padding: "40px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" },
+  modalContentSmall: { backgroundColor: "white", borderRadius: "20px", width: "90%", maxWidth: "350px", padding: "30px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" },
+  modalHeaderSurvey: { background: "linear-gradient(135deg, #10b981, #059669)", padding: "24px", color: "white" },
+  termsBox: { border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", fontSize: "14px", color: "#64748b", marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", backgroundColor: "#f8fafc" },
+  outlineBtnFull: { flex: 1, padding: "14px", width: "100%", border: "1px solid #cbd5e1", borderRadius: "12px", background: "white", color: "#475569", fontWeight: "700", cursor: "pointer" },
+  dangerBtnFull: { flex: 1, padding: "14px", width: "100%", border: "none", borderRadius: "12px", backgroundColor: "#ef4444", color: "white", fontWeight: "700", cursor: "pointer", transition: "0.2s" },
+  updateBtnFull: { width: "100%", padding: "14px", backgroundColor: "#10b981", color: "white", border: "none", borderRadius: "12px", fontWeight: "700", cursor: "pointer", transition: "0.2s" },
+  otpInput: { width: "48px", height: "60px", fontSize: "24px", textAlign: "center", borderRadius: "12px", border: "1px solid #cbd5e1", outline: "none", color: "#0f172a", fontWeight: "800", backgroundColor: "#f8fafc" },
+  verifyBtnFull: { width: "100%", padding: "15px", backgroundColor: "#10b981", color: "white", border: "none", borderRadius: "12px", fontSize: "16px", fontWeight: "800", cursor: "pointer", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }
 };
 
 export default UserProfile;

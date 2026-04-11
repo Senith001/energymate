@@ -115,10 +115,10 @@ function Dashboard() {
   };
 
   const containerStyle = {
-    background: "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)",
+    background: "linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%)",
     minHeight: "100vh",
     padding: "40px",
-    fontFamily: "'Outfit', 'Inter', sans-serif",
+    fontFamily: "'Inter', sans-serif",
     color: "#1e293b",
   };
 
@@ -133,18 +133,20 @@ function Dashboard() {
   };
 
   const statCard = () => ({
-    background: "white",
+    background: "rgba(255, 255, 255, 0.8)",
+    backdropFilter: "blur(16px)",
     borderRadius: "24px",
     padding: "24px",
     flex: 1,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.03)",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.04)",
     textAlign: "center",
-    border: "1px solid #f1f5f9",
+    border: "1px solid rgba(255, 255, 255, 0.6)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     minWidth: "200px",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
   });
 
   const iconCircle = (bg) => ({
@@ -240,7 +242,8 @@ function Dashboard() {
             boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
             display: "flex",
             alignItems: "center",
-            gap: "10px"
+            gap: "10px",
+            transition: "all 0.3s ease"
           }}
         >
           Manage Home
@@ -264,11 +267,6 @@ function Dashboard() {
               <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
               <polyline points="17 2 17 7"></polyline>
               <polyline points="7 2 7 7"></polyline>
-              <path d="M4 11v1"></path>
-              <path d="M8 11v1"></path>
-              <path d="M12 11v1"></path>
-              <path d="M16 11v1"></path>
-              <path d="M20 11v1"></path>
             </svg>
           </div>
           <div style={{ color: "#64748b", fontSize: "14px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Appliances</div>

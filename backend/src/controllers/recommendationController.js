@@ -4,8 +4,7 @@ import rf from "../utils/responseFormatter.js";
 import Household from "../models/Household.js";
 import Bill from "../models/bill.js";
 import Appliance from "../models/Appliance.js";
-import RecommendationTemplate from "../models/RecommendationTemplate.js";
-import RecommendationStatus from "../models/RecommendationStatus.js";
+import Recommendation from "../models/Recommendation.js";
 
 import {
   getEnergyTipsFromGemini,
@@ -137,11 +136,24 @@ export async function generateEnergyTips(req, res) {
     // ── Call Gemini ───────────────────────────────────────
     setCooldown(householdId, "tips");
     const tips = await getEnergyTipsFromGemini(billHistory, applianceUsage);
+    
+    // Save to history
+    await Recommendation.create({
+      householdId,
+      type: "tips",
+      tips: tips.map(t => ({
+        title: t.title,
+        description: t.recommendation, // Map AI recommendation field to model description
+        learnMore: t.learnMore
+      })),
+      generatedBy: userId
+    });
+
     cacheSet(householdId, "tips", tips);
 
     const now = new Date().toISOString();
     setCacheHeaders(res, false);
-    return rf.success(res, { tips, generatedAt: now, fromCache: false }, "Energy tips generated");
+    return rf.success(res, { tips, generatedAt: now, fromCache: false }, "Energy tips generated and saved to history");
 
   } catch (err) {
     return handleAiError(res, err, "Energy tips");
@@ -188,11 +200,27 @@ export async function generateCostStrategies(req, res) {
     // ── Call Gemini ───────────────────────────────────────
     setCooldown(householdId, "strategies");
     const strategy = await getCostStrategiesFromGemini(billHistory, applianceUsage);
+    
+    // Save to history
+    await Recommendation.create({
+      householdId,
+      type: "strategy",
+      strategies: [{
+        title: strategy.title,
+        summary: strategy.summary,
+        details: strategy.details,
+        problem: strategy.problem || "High consumption",
+        strategy: strategy.summary,
+        controls: strategy.details
+      }],
+      generatedBy: userId
+    });
+
     cacheSet(householdId, "strategies", strategy);
 
     const now = new Date().toISOString();
     setCacheHeaders(res, false);
-    return rf.success(res, { strategy, generatedAt: now, fromCache: false }, "Cost strategy generated");
+    return rf.success(res, { strategy, generatedAt: now, fromCache: false }, "Cost strategy generated and saved to history");
 
   } catch (err) {
     return handleAiError(res, err, "Cost strategy");
@@ -250,11 +278,24 @@ export async function generatePredictions(req, res) {
     // ── Call Gemini ───────────────────────────────────────
     setCooldown(householdId, "predictions");
     const prediction = await getPredictionFromGemini(billHistory);
+    
+    // Save to history
+    await Recommendation.create({
+      householdId,
+      type: "prediction",
+      predictionTable: prediction.predictionTable.map(p => ({
+        month: `${p.year}-${String(p.month).padStart(2, "0")}`,
+        predictedConsumption: p.predictedConsumption
+      })),
+      predictionInsights: prediction.insights,
+      generatedBy: userId
+    });
+
     cacheSet(householdId, "predictions", prediction);
 
     const now = new Date().toISOString();
     setCacheHeaders(res, false);
-    return rf.success(res, { prediction, generatedAt: now, fromCache: false }, "Predictions generated");
+    return rf.success(res, { prediction, generatedAt: now, fromCache: false }, "Predictions generated and saved to history");
 
   } catch (err) {
     return handleAiError(res, err, "Predictions");
@@ -282,128 +323,26 @@ export async function clearAiCache(req, res) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════╗
-   ADMIN CRUD: Template Library
-╚══════════════════════════════════════════════════════ */
-export async function adminCreateTemplate(req, res) {
-  try {
-    const created = await RecommendationTemplate.create(req.body);
-    return rf.success(res, created, "Template created", 201);
-  } catch (err) {
-    return rf.error(res, err.message, 400);
-  }
-}
-
-export async function adminListTemplates(req, res) {
-  try {
-    const { isActive, category, priority } = req.query;
-    const filter = {};
-    if (isActive !== undefined) filter.isActive = isActive === "true";
-    if (category) filter.category = category;
-    if (priority) filter.priority = priority;
-
-    const rows = await RecommendationTemplate.find(filter).sort({ isActive: -1, createdAt: -1 });
-    return rf.success(res, rows, "Templates fetched");
-  } catch (err) {
-    return rf.error(res, "Server error", 500, err.message);
-  }
-}
-
-export async function adminGetTemplate(req, res) {
-  try {
-    const row = await RecommendationTemplate.findById(req.params.id);
-    if (!row) return rf.error(res, "Template not found", 404);
-    return rf.success(res, row, "Template fetched");
-  } catch (err) {
-    return rf.error(res, "Server error", 500, err.message);
-  }
-}
-
-export async function adminUpdateTemplate(req, res) {
-  try {
-    const updated = await RecommendationTemplate.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!updated) return rf.error(res, "Template not found", 404);
-    return rf.success(res, updated, "Template updated");
-  } catch (err) {
-    return rf.error(res, err.message, 400);
-  }
-}
-
-export async function adminDeleteTemplate(req, res) {
-  try {
-    const deleted = await RecommendationTemplate.findByIdAndDelete(req.params.id);
-    if (!deleted) return rf.error(res, "Template not found", 404);
-
-    // Clean up orphaned statuses
-    await RecommendationStatus.deleteMany({ templateId: deleted._id });
-
-    return rf.success(res, { id: deleted._id }, "Template deleted");
-  } catch (err) {
-    return rf.error(res, "Server error", 500, err.message);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════╗
-   USER: View + Status Update
-╚══════════════════════════════════════════════════════ */
-export async function userListTemplates(req, res) {
+// GET /api/recommendations/households/:householdId/history
+export async function getHouseholdRecommendationHistory(req, res) {
   try {
     const { householdId } = req.params;
+    const { type } = req.query; // tips, strategy, or prediction
     const userId = getUserId(req);
     if (!userId) return rf.error(res, "Unauthorized", 401);
 
     const household = await verifyHouseholdOwnership(householdId, userId);
     if (!household) return rf.error(res, "Household not found or access denied", 403);
 
-    const { category, priority } = req.query;
-    const filter = { isActive: true };
-    if (category) filter.category = category;
-    if (priority) filter.priority = priority;
+    const query = { householdId };
+    if (type) query.type = type;
 
-    const [templates, statuses] = await Promise.all([
-      RecommendationTemplate.find(filter).sort({ priority: -1, createdAt: -1 }).lean(),
-      RecommendationStatus.find({ householdId }).lean(),
-    ]);
+    const history = await Recommendation.find(query)
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
 
-    const statusMap = new Map(statuses.map((s) => [String(s.templateId), s.status]));
-
-    const rows = templates.map((t) => ({
-      ...t,
-      status: statusMap.get(String(t._id)) || "active",
-    }));
-
-    return rf.success(res, rows, "Recommendations fetched");
-  } catch (err) {
-    return rf.error(res, "Server error", 500, err.message);
-  }
-}
-
-export async function userUpdateTemplateStatus(req, res) {
-  try {
-    const { householdId, templateId } = req.params;
-    const { status } = req.body;
-
-    const userId = getUserId(req);
-    if (!userId) return rf.error(res, "Unauthorized", 401);
-
-    const household = await verifyHouseholdOwnership(householdId, userId);
-    if (!household) return rf.error(res, "Household not found or access denied", 403);
-
-    if (!["active", "applied", "dismissed"].includes(status)) {
-      return rf.error(res, "Invalid status value. Must be: active, applied, or dismissed", 400);
-    }
-
-    const updated = await RecommendationStatus.findOneAndUpdate(
-      { householdId, templateId },
-      { status, updatedAt: new Date() },
-      { upsert: true, new: true, runValidators: true }
-    );
-
-    return rf.success(res, updated, `Recommendation marked as ${status}`);
+    return rf.success(res, history, "Recommendation history fetched");
   } catch (err) {
     return rf.error(res, "Server error", 500, err.message);
   }

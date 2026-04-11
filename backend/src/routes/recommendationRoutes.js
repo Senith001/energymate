@@ -6,15 +6,7 @@ import {
   generateCostStrategies,
   generatePredictions,
   clearAiCache,
-
-  adminCreateTemplate,
-  adminListTemplates,
-  adminGetTemplate,
-  adminUpdateTemplate,
-  adminDeleteTemplate,
-
-  userListTemplates,
-  userUpdateTemplateStatus,
+  getHouseholdRecommendationHistory
 } from "../controllers/recommendationController.js";
 
 const router = express.Router();
@@ -25,19 +17,7 @@ router.post("/households/:householdId/ai/cost-strategies",  protect, generateCos
 router.post("/households/:householdId/ai/predictions",      protect, generatePredictions);
 router.delete("/households/:householdId/ai/cache",          protect, clearAiCache);
 
-// ============== ADMIN: Template CRUD ==============
-router.post("/admin/templates", protect, authorize("admin"), adminCreateTemplate);
-router.get("/admin/templates", protect, authorize("admin"), adminListTemplates);
-router.get("/admin/templates/:id", protect, authorize("admin"), adminGetTemplate);
-router.put("/admin/templates/:id", protect, authorize("admin"), adminUpdateTemplate);
-router.delete("/admin/templates/:id", protect, authorize("admin"), adminDeleteTemplate);
-
-// ============== USER: View + Status ==============
-router.get("/households/:householdId/templates", protect, userListTemplates);
-router.patch(
-  "/households/:householdId/templates/:templateId/status",
-  protect,
-  userUpdateTemplateStatus
-);
+// History
+router.get("/households/:householdId/history", protect, getHouseholdRecommendationHistory);
 
 export default router;

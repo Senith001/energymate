@@ -95,3 +95,36 @@ export const deleteFeedback = async (req, res, next) => {
     next(err);
   }
 };
+
+// GET FEATURED (public)
+export const getFeaturedFeedbacks = async (req, res, next) => {
+  try {
+    const list = await Feedback.find({ showOnHome: true })
+      .select("name message rating createdAt")
+      .sort({ createdAt: -1 });
+    res.status(200).json(list);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// TOGGLE SHOW ON HOME (admin only)
+export const toggleShowOnHome = async (req, res, next) => {
+  try {
+    if (!isAdmin(req)) return res.status(403).json({ message: "Admin only" });
+
+    const feedback = await Feedback.findById(req.params.id);
+    if (!feedback) return res.status(404).json({ message: "Feedback not found" });
+
+    // Use findByIdAndUpdate to bypass potential validation errors from legacy data
+    const updated = await Feedback.findByIdAndUpdate(
+      req.params.id,
+      { showOnHome: !feedback.showOnHome },
+      { new: true, runValidators: false }
+    );
+
+    res.status(200).json(updated);
+  } catch (err) {
+    next(err);
+  }
+};

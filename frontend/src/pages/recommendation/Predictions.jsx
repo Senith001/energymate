@@ -113,11 +113,13 @@ function InsightCard({ insight, index }) {
     : insight?.description || insight?.text || insight?.insight || null;
   if (!title && !text) return null;
   return (
-    <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 fade-in" style={{ animationDelay: `${index * 60}ms` }}>
-      <span className="text-xl flex-shrink-0">{ICONS[index % ICONS.length]}</span>
-      <div>
-        {title && <p className="font-semibold text-sm text-gray-900 mb-0.5">{title}</p>}
-        {text && <p className="text-sm text-gray-700 leading-relaxed">{text}</p>}
+    <div className="flex items-start gap-4 p-5 rounded-2xl bg-white border border-slate-200 shadow-[0_4px_20px_rgba(0,0,0,0.03)] fade-in flex-col md:flex-row" style={{ animationDelay: `${index * 60}ms` }}>
+      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl flex-shrink-0 transition-transform duration-200 hover:scale-105">
+        {ICONS[index % ICONS.length]}
+      </div>
+      <div className="flex-1">
+        {title && <h3 className="font-bold text-slate-900 text-[13px] mb-1 leading-snug">{title}</h3>}
+        {text && <p className="text-[13px] text-slate-600 font-medium leading-relaxed">{text}</p>}
       </div>
     </div>
   );
@@ -183,36 +185,35 @@ export default function Predictions() {
     <div className="space-y-6 fade-in">
       <PageHeader title="Energy Predictions" subtitle="AI-powered monthly energy usage and cost forecasting" />
 
-      {/* Hero */}
-      <div className="card bg-gradient-to-br from-violet-700 via-purple-700 to-fuchsia-700 text-white overflow-hidden relative">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-8 -right-8 w-52 h-52 bg-white rounded-full" />
-          <div className="absolute -bottom-12 -left-8 w-60 h-60 bg-white rounded-full" />
+      {/* Hero CTA */}
+      <div className="bg-white rounded-[32px] p-8 md:p-12 border border-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10">
+        <div className="absolute inset-0 opacity-[0.03]">
+          <div className="absolute -top-10 -right-10 w-96 h-96 bg-emerald-500 rounded-full blur-3xl" />
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">🔮</div>
-              <div>
-                <p className="text-purple-200 text-sm font-medium">Powered by</p>
-                <p className="font-bold text-lg">Google Gemini AI</p>
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Monthly Forecasting &amp; Insights</h2>
-            <p className="text-purple-100 text-sm max-w-lg leading-relaxed">
-              Predict your upcoming energy consumption using machine learning trained on your household's billing history.
-            </p>
+        
+        <div className="relative z-10 flex flex-col items-start max-w-xl">
+          <div className="flex items-center gap-2 mb-6 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <p className="text-emerald-700 text-[11px] font-bold uppercase tracking-widest">Smart AI Engine</p>
           </div>
+          
+          <h2 className="text-4xl md:text-4xl font-black mb-4 text-slate-900 tracking-tight leading-tight">
+            Monthly <span className="text-emerald-600">Forecasting & Insights</span>
+          </h2>
+          <p className="text-slate-500 text-base leading-relaxed font-medium mb-8">
+            Predict your upcoming energy consumption with incredible precision using machine learning models trained on your household's exact billing history.
+          </p>
+          
           <button
             onClick={handleGenerate}
             disabled={loading || cooldown > 0}
             id="btn-generate-predictions"
-            className="flex-shrink-0 inline-flex items-center gap-3 bg-white text-purple-700 font-bold px-6 py-3.5 rounded-xl
-              hover:bg-purple-50 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed
-              hover:scale-105 active:scale-95"
+            className="flex-shrink-0 inline-flex items-center gap-3 bg-emerald-600 text-white font-bold px-7 py-3.5 rounded-xl
+              hover:bg-emerald-700 transition-all duration-200 shadow-md shadow-emerald-500/20 disabled:opacity-60 disabled:cursor-not-allowed
+              hover:scale-[1.02] active:scale-[0.98]"
           >
             {loading ? (
-              <><span className="w-5 h-5 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin" />Predicting...</>
+              <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Predicting...</>
             ) : cooldown > 0 ? (
               <><FiClock className="w-5 h-5" />Wait {cooldown}s</>
             ) : (
@@ -220,17 +221,19 @@ export default function Predictions() {
             )}
           </button>
         </div>
+
+        <div className="relative z-10 hidden md:flex items-center justify-center w-64 h-64 flex-shrink-0 animate-[bounce_4s_ease-in-out_infinite]">
+          <img src="/assets/hero_predictions.png" alt="Energy Usage Predictions Concept" className="w-full h-full object-contain drop-shadow-[0_20px_30px_rgba(16,185,129,0.15)]" />
+        </div>
       </div>
 
       {/* Loading */}
       {loading && (
-        <div className="card">
-          <div className="flex flex-col items-center py-12">
-            <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center text-3xl mb-4 animate-pulse">🔮</div>
-            <LoadingSpinner size="md" />
-            <p className="text-gray-600 font-medium mt-4">Analyzing historical data and forecasting...</p>
-            <p className="text-gray-400 text-sm mt-1">This may take a few seconds</p>
-          </div>
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col items-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-3xl mb-4 animate-pulse">🔮</div>
+          <LoadingSpinner size="md" />
+          <p className="text-slate-700 font-bold mt-5">Analyzing historical data and forecasting...</p>
+          <p className="text-slate-400 text-sm mt-1.5 font-medium">This may take a few seconds</p>
         </div>
       )}
 
@@ -239,9 +242,9 @@ export default function Predictions() {
 
       {/* AI Summary */}
       {!loading && !error && summary && (
-        <div className="card bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100">
-          <p className="font-semibold text-gray-900 mb-1">📋 AI Forecast Summary</p>
-          <p className="text-sm text-gray-700 leading-relaxed">{summary}</p>
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+          <p className="font-bold text-slate-900 mb-2">📋 AI Forecast Summary</p>
+          <p className="text-[13px] text-slate-600 leading-relaxed font-medium">{summary}</p>
         </div>
       )}
 
@@ -251,13 +254,13 @@ export default function Predictions() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Table */}
             <div className="lg:col-span-2 card">
-              <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center">
-                    <FiActivity className="w-5 h-5 text-purple-600" />
+              <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center">
+                    <FiActivity className="w-6 h-6 text-slate-700" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Monthly Predictions</p>
+                    <p className="font-bold text-slate-900 text-base">Monthly Predictions</p>
                     <div className="flex items-center gap-2 text-xs text-gray-400">
                       <span>{rows.length} months forecasted</span>
                       {generatedAt && <span className="flex items-center gap-1"><FiClock className="w-3 h-3" />{timeAgo(generatedAt)}</span>}
@@ -275,11 +278,11 @@ export default function Predictions() {
 
             {/* Sidebar */}
             <div className="space-y-4">
-              <div className="card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
-                <p className="font-semibold text-sm text-gray-800 mb-1">Usage Trend</p>
-                <p className="text-xs text-gray-500 mb-4">Predicted kWh per month</p>
+              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+                <p className="font-bold text-[13px] text-slate-900 mb-1">Usage Trend</p>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-5">Predicted kWh per month</p>
                 <MiniBarChart data={rows} />
-                <div className="flex justify-between text-xs text-gray-400 mt-2">
+                <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 mt-3">
                   {rows.slice(0, 4).map((r, i) => (
                     <span key={i}>{MONTH_NAMES[(r.month - 1) % 12]}</span>
                   ))}

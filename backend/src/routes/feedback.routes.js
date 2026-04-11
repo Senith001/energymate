@@ -9,6 +9,8 @@ import {
   getFeedbackById,
   updateFeedbackStatus,
   deleteFeedback,
+  getFeaturedFeedbacks,
+  toggleShowOnHome,
 } from "../controllers/feedback.controller.js";
 
 import {
@@ -18,6 +20,9 @@ import {
 } from "../validators/feedback.validator.js";
 
 const router = express.Router();
+
+// PUBLIC
+router.get("/public/featured", getFeaturedFeedbacks);
 
 // USER
 router.post("/", protect, createFeedbackValidator, validate, createFeedback);
@@ -38,6 +43,16 @@ router.patch(
   updateFeedbackStatusValidator,
   validate,
   updateFeedbackStatus
+);
+
+// ADMIN ONLY TOGGLE HOME
+router.patch(
+  "/:id/toggle-home",
+  protect,
+  authorize("admin"),
+  feedbackIdParamValidator,
+  validate,
+  toggleShowOnHome
 );
 
 export default router;

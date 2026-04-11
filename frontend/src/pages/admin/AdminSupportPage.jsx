@@ -47,9 +47,9 @@ const AdminSupportPage = () => {
         <h3 style={styles.cardTitle}>Tickets Management ({tickets.length})</h3>
         
         {loading ? (
-          <p style={{ color: "#fca5a5" }}>Loading tickets...</p>
+          <p style={{ color: "#64748b" }}>Loading tickets...</p>
         ) : tickets.length === 0 ? (
-          <p style={{ color: "#fca5a5" }}>No support tickets found.</p>
+          <p style={{ color: "#64748b" }}>No support tickets found.</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={styles.table}>
@@ -68,12 +68,12 @@ const AdminSupportPage = () => {
                   <tr key={t._id} style={styles.tableRow}>
                     <td style={styles.td}>{new Date(t.createdAt).toLocaleDateString()}</td>
                     <td style={styles.td}>
-                      <div style={{ fontWeight: "bold" }}>{t.userId?.name || "Unknown User"}</div>
-                      <div style={{ fontSize: "12px", color: "#fca5a5" }}>{t.userId?.email || ""}</div>
+                      <div style={{ fontWeight: "bold", color: "#0f172a" }}>{t.userId?.name || "Unknown User"}</div>
+                      <div style={{ fontSize: "12px", color: "#64748b" }}>{t.userId?.email || ""}</div>
                     </td>
                     <td style={styles.td}>
-                      <div style={{ fontWeight: "bold", color: "#fca5a5" }}>{t.subject}</div>
-                      <div style={{ fontSize: "13px", marginTop: "4px" }}>{t.description}</div>
+                      <div style={{ fontWeight: "bold", color: "#0f172a" }}>{t.subject}</div>
+                      <div style={{ fontSize: "13px", marginTop: "4px", color: "#475569" }}>{t.description}</div>
                     </td>
                     <td style={styles.td}>
                       <span style={{ 
@@ -87,8 +87,8 @@ const AdminSupportPage = () => {
                     <td style={styles.td}>
                       <span style={{ 
                         ...styles.statusBadge, 
-                        background: t.status === "Resolved" ? "#064e3b" : t.status === "In Progress" ? "#1e3a8a" : "#450a0a",
-                        color: t.status === "Resolved" ? "#d1fae5" : t.status === "In Progress" ? "#bfdbfe" : "#fca5a5"
+                        background: t.status === "Resolved" ? "#dcfce7" : t.status === "In Progress" ? "#dbeafe" : "#fee2e2",
+                        color: t.status === "Resolved" ? "#166534" : t.status === "In Progress" ? "#1e40af" : "#991b1b"
                       }}>
                         {t.status}
                       </span>
@@ -98,7 +98,7 @@ const AdminSupportPage = () => {
                         {t.status === "Open" && (
                           <button 
                             onClick={() => handleUpdateStatus(t._id, "In Progress")}
-                            style={{ ...styles.actionBtn, background: "#1e3a8a" }}
+                            style={{ ...styles.actionBtn, background: "#3b82f6" }}
                           >
                             In Progress
                           </button>
@@ -106,7 +106,7 @@ const AdminSupportPage = () => {
                         {t.status !== "Resolved" && (
                           <button 
                             onClick={() => handleUpdateStatus(t._id, "Resolved")}
-                            style={{ ...styles.actionBtn, background: "#064e3b" }}
+                            style={{ ...styles.actionBtn, background: "#10b981" }}
                           >
                             Resolve
                           </button>
@@ -125,19 +125,19 @@ const AdminSupportPage = () => {
 };
 
 const styles = {
-  container: { padding: "10px", color: "white" },
-  header: { marginBottom: "30px", borderBottom: "1px solid #450a0a", paddingBottom: "20px" },
-  title: { margin: "0 0 10px 0", color: "#f87171" },
-  subtitle: { margin: 0, color: "#fca5a5" },
-  card: { backgroundColor: "#2b0909", padding: "24px", borderRadius: "15px", border: "1px solid #450a0a" },
-  cardTitle: { marginTop: 0, color: "#f9fafb", borderBottom: "1px solid #450a0a", paddingBottom: "15px", marginBottom: "20px" },
+  container: { padding: "10px", color: "#0f172a", fontFamily: "'Inter', sans-serif" },
+  header: { marginBottom: "30px", borderBottom: "1px solid #e2e8f0", paddingBottom: "20px" },
+  title: { margin: "0 0 10px 0", color: "#0f172a", fontWeight: "900", letterSpacing: "-0.5px", fontSize: "32px" },
+  subtitle: { margin: 0, color: "#64748b", fontWeight: "500" },
+  card: { backgroundColor: "white", padding: "30px", borderRadius: "20px", border: "1px solid #e2e8f0", boxShadow: "0 4px 20px rgba(0, 0, 0, 0.03)" },
+  cardTitle: { marginTop: 0, color: "#0f172a", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px", marginBottom: "20px", fontWeight: "700", fontSize: "18px" },
   table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
-  tableHeader: { backgroundColor: "#450a0a" },
-  th: { padding: "15px", color: "#fca5a5", fontSize: "14px", textTransform: "uppercase" },
-  tableRow: { borderBottom: "1px solid #450a0a" },
-  td: { padding: "15px", color: "#e5e7eb", fontSize: "15px" },
-  statusBadge: { padding: "6px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: "bold" },
-  actionBtn: { padding: "8px 12px", border: "none", borderRadius: "8px", color: "white", cursor: "pointer", fontSize: "12px", fontWeight: "700" }
+  tableHeader: { backgroundColor: "#f8fafc" },
+  th: { padding: "16px 12px", color: "#475569", fontSize: "12px", textTransform: "uppercase", fontWeight: "700", letterSpacing: "0.5px", borderBottom: "1px solid #e2e8f0" },
+  tableRow: { borderBottom: "1px solid #f1f5f9", transition: "background-color 0.2s" },
+  td: { padding: "16px 12px", color: "#334155", fontSize: "14px", fontWeight: "500" },
+  statusBadge: { padding: "6px 12px", borderRadius: "99px", fontSize: "12px", fontWeight: "700" },
+  actionBtn: { padding: "8px 14px", border: "none", borderRadius: "10px", color: "white", cursor: "pointer", fontSize: "12px", fontWeight: "700", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }
 };
 
 export default AdminSupportPage;

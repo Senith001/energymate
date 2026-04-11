@@ -20,7 +20,6 @@ import AIHubPage from "./pages/AIHubPage";
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
 
 // Admin Recommendation Pages
-import AdminTemplates from "./pages/recommendation/AdminTemplates";
 import AdminPosts from "./pages/admin/AdminPosts";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -92,13 +91,6 @@ function App() {
             <Route path="usage-billing/billing" element={<AdminBillingPage />} />
             <Route path="usage-billing/tariffs" element={<AdminTariffPage />} />
 
-            {/* Admin Recommendation Routes */}
-            <Route
-              path="recommendations/templates"
-              element={<AdminTemplates />}
-            />
-
-            {/* Admin Public Post Routes */}
             <Route path="posts" element={<AdminPosts />} />
           </Route>
 

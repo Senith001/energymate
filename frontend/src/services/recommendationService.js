@@ -32,3 +32,6 @@ export const generateCostStrategies = (householdId) =>
 
 export const generatePredictions = (householdId) =>
   api.post(`/recommendations/households/${householdId}/ai/predictions`);
+
+export const getRecommendationHistory = (householdId, type) =>
+  api.get(`/recommendations/households/${householdId}/history`, { params: { type } });

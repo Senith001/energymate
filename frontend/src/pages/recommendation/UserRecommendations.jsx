@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FiCheckCircle, FiCircle, FiSearch, FiRefreshCw } from "react-icons/fi";
-import { 
-  getHouseholdRecommendations, 
+import {
+  getRecommendationHistory,
   updateRecommendationStatus,
-  generateEnergyTips,
-  generateCostStrategies,
-  generatePredictions
 } from "../../services/recommendationService";
-import { useAiGenerate } from "../../hooks/useAiGenerate";
 import { useHousehold } from "../../hooks/useHousehold";
 import {
   LoadingSpinner,
@@ -17,11 +13,11 @@ import {
   PriorityBadge,
   CategoryBadge,
 } from "../../components/ui/SharedComponents";
-import { 
-  FiZap, 
-  FiTrendingDown, 
-  FiActivity, 
-  FiClock, 
+import {
+  FiZap,
+  FiTrendingDown,
+  FiActivity,
+  FiClock,
   FiDatabase,
   FiTrendingUp,
   FiMinus,
@@ -66,7 +62,7 @@ function TipCard({ tip, index }) {
   const [copied, setCopied] = useState(false);
   const isObj = tip && typeof tip === "object";
   const { title, problem, recommendation, priority, category, learnMore, implementation = [], expectedSavings } = tip;
-  
+
   const handleCopy = () => {
     navigator.clipboard.writeText(`${title} | ${recommendation}`);
     setCopied(true);
@@ -131,7 +127,7 @@ function StrategyCard({ strategy }) {
       <ul className="space-y-2">
         {details.map((step, i) => (
           <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-            <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">{i+1}</span>
+            <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
             {step}
           </li>
         ))}
@@ -140,13 +136,10 @@ function StrategyCard({ strategy }) {
   );
 }
 
-// Temporarily mapping toast to console since ToastContext is team dependent
-const useToast = () => ({
-  success: (msg) => console.log("SUCCESS:", msg),
-  error: (msg) => console.error("ERROR:", msg),
-  info: (msg) => console.info("INFO:", msg),
-  warning: (msg) => console.warn("WARNING:", msg)
-});
+// Feedack helpers
+const showLocalToast = (msg) => {
+  console.log("EnergyMate Feedack:", msg);
+};
 
 // ─────────────────────────────────────────────────────────
 // Recommendation Card
@@ -233,103 +226,32 @@ function RecommendationCard({ rec, onToggle }) {
 // Main Page
 // ─────────────────────────────────────────────────────────
 export default function UserRecommendations() {
-  const toast = useToast();
   const { householdId, loading: householdLoading, error: householdError } = useHousehold();
 
-  const [activeTab, setActiveTab ] = useState("expert"); // 'expert', 'tips', 'costs', 'predictions'
+  const [activeTab, setActiveTab] = useState("tips"); // 'tips', 'costs', 'predictions'
 
-  const [recommendations, setRecommendations] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
-  const [filterPriority, setFilterPriority] = useState("");
-  const [appliedStatus, setAppliedStatus] = useState({}); // { id: bool }
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
 
-  // ── AI Hooks ─────────────────────────────────────────────
-  const aiTips = useAiGenerate(generateEnergyTips);
-  const aiCosts = useAiGenerate(generateCostStrategies);
-  const aiPreds = useAiGenerate(generatePredictions);
-
-  const fetchRecommendations = useCallback(async () => {
+  const fetchHistory = useCallback(async () => {
     if (!householdId) return;
-    setLoading(true);
-    setError(null);
+    setHistoryLoading(true);
+    setHistoryError(null);
     try {
-      const { data } = await getHouseholdRecommendations(householdId);
-      const list = data.templates || data.recommendations || data.data || (Array.isArray(data) ? data : []);
-      setRecommendations(list);
-      // Init applied status from data
-      const initStatus = {};
-      list.forEach((r) => {
-        initStatus[r._id || r.id] = r.status === "applied";
-      });
-      setAppliedStatus(initStatus);
+      const typeMap = { tips: "tips", costs: "strategy", predictions: "prediction" };
+      const { data } = await getRecommendationHistory(householdId, typeMap[activeTab]);
+      setHistory(data.data || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load recommendations.");
+      setHistoryError("Failed to load history.");
     } finally {
-      setLoading(false);
+      setHistoryLoading(false);
     }
-  }, [householdId]);
+  }, [householdId, activeTab]);
 
   useEffect(() => {
-    fetchRecommendations();
-  }, [fetchRecommendations]);
-
-  // ── Filter ─────────────────────────────────────────────
-  useEffect(() => {
-    let list = [...recommendations];
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (r) =>
-          r.title?.toLowerCase().includes(q) ||
-          r.description?.toLowerCase().includes(q)
-      );
-    }
-    if (filterCategory) {
-      list = list.filter(
-        (r) => r.category?.toLowerCase() === filterCategory.toLowerCase()
-      );
-    }
-    if (filterPriority) {
-      list = list.filter(
-        (r) => r.priority?.toLowerCase() === filterPriority.toLowerCase()
-      );
-    }
-    setFiltered(list);
-  }, [recommendations, search, filterCategory, filterPriority]);
-
-  // ── Toggle applied status (database persisted) ───────────
-  const handleToggle = async (id, value) => {
-    // Optimistic update
-    setAppliedStatus((prev) => ({ ...prev, [id]: value }));
-    try {
-      const status = value ? "applied" : "active";
-      await updateRecommendationStatus(householdId, id, status);
-      toast.success(value ? "Marked as applied! 🎉" : "Marked as not applied.");
-    } catch (err) {
-      // Revert if API fails
-      setAppliedStatus((prev) => ({ ...prev, [id]: !value }));
-      toast.error("Failed to save status. Please try again.");
-    }
-  };
-
-  // ── Auto-load AI data on switch ────────────────────────
-  useEffect(() => {
-    if (!householdId) return;
-    if (activeTab === "tips" && !aiTips.generated && !aiTips.loading) aiTips.generate(householdId);
-    if (activeTab === "costs" && !aiCosts.generated && !aiCosts.loading) aiCosts.generate(householdId);
-    if (activeTab === "predictions" && !aiPreds.generated && !aiPreds.loading) aiPreds.generate(householdId);
-  }, [activeTab, householdId]);
-
-  // Stats for Expert Advice
-  const appliedCount = Object.values(appliedStatus).filter(Boolean).length;
-  const totalCount = recommendations.length;
-  const categories = [...new Set(recommendations.map((r) => r.category).filter(Boolean))];
-  const priorities = ["low", "medium", "high"];
-
+    fetchHistory();
+  }, [fetchHistory]);
   if (householdLoading) return <LoadingSpinner fullPage text="Loading your household..." />;
   if (householdError || !householdId) return <ErrorState message={householdError || "No household found."} />;
 
@@ -344,7 +266,6 @@ export default function UserRecommendations() {
       {/* Tab Switcher */}
       <div className="flex p-1 bg-gray-100 rounded-2xl w-fit max-w-full overflow-x-auto shadow-inner no-scrollbar">
         {[
-          { id: "expert", name: "Expert Picks", icon: <FiStar /> },
           { id: "tips", name: "Energy Tips", icon: <FiZap /> },
           { id: "costs", name: "Cost Plans", icon: <FiTrendingDown /> },
           { id: "predictions", name: "Forecasts", icon: <FiActivity /> },
@@ -353,9 +274,9 @@ export default function UserRecommendations() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 whitespace-nowrap
-              ${activeTab === tab.id 
-                ? "bg-white text-blue-600 shadow-md scale-100" 
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 scale-95 opacity-80"
+              ${activeTab === tab.id
+                ? "bg-white text-emerald-600 shadow-md scale-100"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 scale-95 opacity-80"
               }`}
           >
             {tab.icon}
@@ -364,131 +285,119 @@ export default function UserRecommendations() {
         ))}
       </div>
 
+      {/* History Notification */}
+      <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-emerald-800 text-sm font-medium">
+          <FiClock className="w-4 h-4" />
+          Archive Viewer: Displaying previously generated insights.
+        </div>
+        <button
+          onClick={fetchHistory}
+          className="text-emerald-600 hover:text-emerald-700 text-xs font-bold flex items-center gap-1"
+        >
+          <FiRefreshCw className={historyLoading ? "animate-spin" : ""} />
+          Refresh History
+        </button>
+      </div>
+
       {/* Tab Content */}
       <div className="min-h-[400px]">
-        {/* ── TAB: EXPERT PICKS ────────────────────────────── */}
-        {activeTab === "expert" && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-            {/* Progress Banner */}
-            {!loading && totalCount > 0 && (
-              <div className="card bg-gradient-to-r from-blue-600 to-indigo-500 text-white !py-5 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 text-9xl">🌿</div>
-                <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-                  <div>
-                    <p className="text-blue-100 text-sm font-medium mb-1">Your Progress</p>
-                    <p className="text-3xl font-bold">{appliedCount} / {totalCount}</p>
-                    <p className="text-blue-100 text-sm mt-0.5">expert tips implemented</p>
-                  </div>
-                  <div className="flex-1 max-w-xs">
-                    <div className="flex justify-between text-sm text-blue-100 mb-1.5">
-                      <span>Completion</span>
-                      <span>{totalCount > 0 ? Math.round((appliedCount / totalCount) * 100) : 0}%</span>
-                    </div>
-                    <div className="h-3 bg-white/20 rounded-full overflow-hidden">
-                      <div
-                        className="h-3 bg-white rounded-full transition-all duration-700"
-                        style={{ width: `${totalCount > 0 ? (appliedCount / totalCount) * 100 : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Filters */}
-            <div className="card !py-4 shadow-sm border border-gray-100">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    className="input pl-9"
-                    placeholder="Search titles or labels..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-                <select
-                  className="input w-40"
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {loading ? (
-              <LoadingSpinner fullPage text="Updating list..." />
-            ) : filtered.length === 0 ? (
-              <EmptyState icon="💡" title="Not found" description="Try a different search or filter." />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filtered.map((rec) => (
-                  <RecommendationCard
-                    key={rec._id || rec.id}
-                    rec={{ ...rec, status: appliedStatus[rec._id || rec.id] ? "applied" : "not_applied" }}
-                    onToggle={handleToggle}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* ── TAB: AI TIPS ─────────────────────────────────── */}
         {activeTab === "tips" && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-            {aiTips.loading ? (
-              <LoadingSpinner fullPage text="Gemini is analyzing energy spikes..." />
-            ) : aiTips.error ? (
-              <ErrorState message={aiTips.error} onRetry={() => aiTips.generate(householdId)} />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {(Array.isArray(aiTips.data?.tips) ? aiTips.data.tips : aiTips.data || []).map((tip, i) => (
-                  <TipCard key={i} tip={tip} index={i} />
-                ))}
+          <div className="space-y-10 animate-in slide-in-from-bottom-2 duration-300">
+            {/* HISTORY */}
+            {history.length > 0 ? (
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <FiClock className="text-slate-400" />
+                  Past Tip Generations
+                </h2>
+                <div className="space-y-6">
+                  {history.map((record) => (
+                    <div key={record._id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-4 flex items-center gap-1 tracking-wider">
+                        <FiDatabase /> Generated {new Date(record.createdAt).toLocaleDateString()} at {new Date(record.createdAt).toLocaleTimeString()}
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {(record.tips || []).map((t, idx) => (
+                          <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:shadow-md transition-shadow">
+                            <h4 className="font-bold text-sm text-slate-900 mb-1.5">{t.title}</h4>
+                            <p className="text-[12px] text-slate-600 line-clamp-3 leading-relaxed">{t.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+            ) : (
+               <EmptyState icon="⚡" title="No History Found" description="You have no previously recorded Energy Tips." />
             )}
           </div>
         )}
 
         {/* ── TAB: COST PLANS ──────────────────────────────── */}
         {activeTab === "costs" && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-            {aiCosts.loading ? (
-              <LoadingSpinner fullPage text="Calculating potential savings..." />
-            ) : aiCosts.error ? (
-              <ErrorState message={aiCosts.error} onRetry={() => aiCosts.generate(householdId)} />
-            ) : (
-              <div className="max-w-3xl mx-auto">
-                <StrategyCard strategy={aiCosts.data?.strategy || aiCosts.data} />
+          <div className="space-y-10 animate-in slide-in-from-bottom-2 duration-300">
+            {/* HISTORY */}
+            {history.length > 0 ? (
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <FiClock className="text-slate-400" />
+                  Past Cost Strategies
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {history.map((record) => (
+                    <div key={record._id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col gap-3">
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                          {new Date(record.createdAt).toLocaleDateString()}
+                        </p>
+                        <span className="text-[10px] px-3 py-1 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-md font-bold uppercase tracking-wide">SAVINGS PLAN</span>
+                      </div>
+                      <h4 className="font-bold text-[15px] text-slate-900 leading-snug">{(record.strategies?.[0] || record.strategy)?.title}</h4>
+                      <p className="text-[13px] text-slate-500 line-clamp-2 leading-relaxed">{(record.strategies?.[0] || record.strategy)?.summary}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
+            ) : (
+                <EmptyState icon="💰" title="No History Found" description="You have no previously recorded Cost Strategies." />
             )}
           </div>
         )}
 
         {/* ── TAB: FORECASTS ────────────────────────────────── */}
         {activeTab === "predictions" && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-            {aiPreds.loading ? (
-              <LoadingSpinner fullPage text="Simulating upcoming months..." />
-            ) : aiPreds.error ? (
-              <ErrorState message={aiPreds.error} onRetry={() => aiPreds.generate(householdId)} />
-            ) : (
-              <div className="card space-y-4">
-                <p className="text-sm text-gray-600 leading-relaxed italic pr-4 border-l-4 border-purple-200 pl-3">
-                  {aiPreds.data?.summary || aiPreds.data?.prediction?.summary || "AI-powered usage forecast based on historic data."}
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                  {(aiPreds.data?.predictionTable || aiPreds.data?.prediction?.predictionTable || []).slice(0, 6).map((p, i) => (
-                    <div key={i} className="p-3 bg-gray-50 rounded-xl text-center border border-gray-100">
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">{MONTH_NAMES[(p.month - 1) % 12]}</p>
-                      <p className="text-lg font-mono font-bold text-gray-800">{p.predictedConsumption}<span className="text-[10px] ml-0.5">kWh</span></p>
+          <div className="space-y-10 animate-in slide-in-from-bottom-2 duration-300">
+            {/* HISTORY */}
+            {history.length > 0 ? (
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <FiClock className="text-slate-400" />
+                  Past Forecast Records
+                </h2>
+                <div className="space-y-5">
+                  {history.map((record) => (
+                    <div key={record._id} className="p-6 bg-white border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 mb-1">Forecast Archive - {new Date(record.createdAt).toLocaleDateString()}</p>
+                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{record.predictionInsights?.length || 0} insights generated</p>
+                      </div>
+                      <div className="flex -space-x-2">
+                        {record.predictionTable?.slice(0, 5).map((p, idx) => (
+                          <div key={idx} className="w-10 h-10 rounded-full bg-slate-50 border-2 border-white flex items-center justify-center text-[10px] font-bold text-emerald-600 shadow-sm z-10 hover:z-20 hover:scale-110 transition-transform cursor-default" title={`Predicted: ${p.predictedConsumption} kWh`}>
+                            {p.predictedConsumption}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
+            ) : (
+               <EmptyState icon="🔮" title="No History Found" description="You have no previously recorded Forecasts." />
             )}
           </div>
         )}
