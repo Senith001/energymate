@@ -1,0 +1,22 @@
+config:
+  target: "http://localhost:5001" # Ensure your dev server runs on this port
+  phases:
+    - duration: 30 # Run for 30 seconds
+      arrivalRate: 10 # 10 virtual users per second
+      name: "Sustained Auth Load Test"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Invalid Login Attempt Spike"
+    flow:
+      - post:
+          url: "/api/users/login"
+          json:
+            email: "randomuser{{ $randomNumber(1, 1000) }}@example.com"
+            password: "wrongpassword"
+          capture:
+            - json: "$.message"
+              as: "errorMessage"
+      - log: "Server responded with: {{ errorMessage }}"
