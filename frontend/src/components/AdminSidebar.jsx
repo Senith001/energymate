@@ -39,6 +39,21 @@ function AdminSidebar() {
           {item.icon} {item.name}
         </Link>
       ))}
+
+      {/* Only show Admin Management to super admins */}
+      {user?.role === "superadmin" && (
+        <Link
+          to="/admin/admin-management"
+          style={{
+            ...styles.link,
+            background: location.pathname === "/admin/admin-management" ? "#b91c1c" : "transparent",
+            fontWeight: "bold",
+            color: "#fbbf24"
+          }}
+        >
+          🛡 Admin Management
+        </Link>
+      )}
     </div>
   );
 }
