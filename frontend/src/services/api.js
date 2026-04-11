@@ -1,8 +1,11 @@
 import axios from "axios";
 
-// Create an Axios instance pointing to your backend
+// This looks for the Vercel Environment Variable first, 
+// then falls back to localhost if it's not found (local dev).
+const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+
 const api = axios.create({
-  baseURL: "http://localhost:5001/api",
+  baseURL: baseURL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
