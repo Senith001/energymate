@@ -1,9 +1,11 @@
 import Appliance from "../models/Appliance.js";
+import { getReqUserId } from "../utils/authHelpers.js";
 
 export const createAppliance = async (req, res) => {
   try {
     const { householdId } = req.params;
-    const appliance = new Appliance({ userId: req.user._id, householdId, ...req.body });
+    const userId = getReqUserId(req);
+    const appliance = new Appliance({ ...req.body, householdId, userId });
     const saved = await appliance.save();
     res.status(201).json(saved);
   } catch (error) {

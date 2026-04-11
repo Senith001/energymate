@@ -13,16 +13,16 @@ const supportTicketSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-    name: { type: String, required: true },
-    email: { type: String, required: true },
+    name: { type: String },
+    email: { type: String },
 
     subject: { type: String, required: true },
     description: { type: String, required: true },
 
-    category: { type: String, enum: ["billing", "technical", "usage", "other"], default: "other" },
-    priority: { type: String, enum: ["low", "medium", "high"], default: "medium" },
+    category: { type: String, enum: ["Appliance Issue", "Room Issue", "Energy Target Issue", "Billing Issue", "Other"], default: "Other" },
+    priority: { type: String, enum: ["High", "Medium", "Low"], default: "Medium" },
 
-    status: { type: String, enum: ["open", "in_progress", "resolved"], default: "open" },
+    status: { type: String, enum: ["Open", "In Progress", "Resolved"], default: "Open" },
 
     messages: { type: [messageSchema], default: [] },
   },

@@ -32,7 +32,7 @@ export const getMyFeedback = async (req, res, next) => {
 // READ (admin) - all feedback
 export const getAllFeedback = async (req, res, next) => {
   try {
-    const list = await Feedback.find().sort({ createdAt: -1 });
+    const list = await Feedback.find().populate("userId", "name email").sort({ createdAt: -1 });
     res.status(200).json(list);
   } catch (err) {
     next(err);
