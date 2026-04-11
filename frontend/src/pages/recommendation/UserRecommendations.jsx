@@ -332,7 +332,7 @@ export default function UserRecommendations() {
                 </div>
               </div>
             ) : (
-               <EmptyState icon="⚡" title="No History Found" description="You have no previously recorded Energy Tips." />
+              <EmptyState icon="⚡" title="No History Found" description="You have no previously recorded Energy Tips." />
             )}
           </div>
         )}
@@ -363,7 +363,7 @@ export default function UserRecommendations() {
                 </div>
               </div>
             ) : (
-                <EmptyState icon="💰" title="No History Found" description="You have no previously recorded Cost Strategies." />
+              <EmptyState icon="💰" title="No History Found" description="You have no previously recorded Cost Strategies." />
             )}
           </div>
         )}
@@ -397,7 +397,7 @@ export default function UserRecommendations() {
                 </div>
               </div>
             ) : (
-               <EmptyState icon="🔮" title="No History Found" description="You have no previously recorded Forecasts." />
+              <EmptyState icon="🔮" title="No History Found" description="You have no previously recorded Forecasts." />
             )}
           </div>
         )}
@@ -405,4 +405,3 @@ export default function UserRecommendations() {
     </div>
   );
 }
-

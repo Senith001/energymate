@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
-import { 
-  getMonthlySummary, 
-  getUsages, 
-  getUsageByRooms, 
-  getUsageByAppliances 
+import {
+  getMonthlySummary,
+  getUsages,
+  getUsageByRooms,
+  getUsageByAppliances
 } from "../../utils/usageAPI";
 
 function Dashboard() {
@@ -80,7 +80,7 @@ function Dashboard() {
         getUsageByRooms(targetId, month, year),
         getUsageByAppliances(targetId, month, year)
       ]);
- 
+
       setActiveHousehold(householdRes.data);
       setRooms(roomsRes.data || []);
       setAppliances(appliancesRes.data || []);
@@ -115,10 +115,10 @@ function Dashboard() {
   };
 
   const containerStyle = {
-    background: "linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%)",
+    background: "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)",
     minHeight: "100vh",
     padding: "40px",
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Outfit', 'Inter', sans-serif",
     color: "#1e293b",
   };
 
@@ -133,20 +133,18 @@ function Dashboard() {
   };
 
   const statCard = () => ({
-    background: "rgba(255, 255, 255, 0.8)",
-    backdropFilter: "blur(16px)",
+    background: "white",
     borderRadius: "24px",
     padding: "24px",
     flex: 1,
-    boxShadow: "0 8px 32px rgba(0,0,0,0.04)",
+    boxShadow: "0 6px 20px rgba(0,0,0,0.03)",
     textAlign: "center",
-    border: "1px solid rgba(255, 255, 255, 0.6)",
+    border: "1px solid #f1f5f9",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     minWidth: "200px",
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
   });
 
   const iconCircle = (bg) => ({
@@ -242,8 +240,7 @@ function Dashboard() {
             boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
             display: "flex",
             alignItems: "center",
-            gap: "10px",
-            transition: "all 0.3s ease"
+            gap: "10px"
           }}
         >
           Manage Home
@@ -267,6 +264,11 @@ function Dashboard() {
               <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
               <polyline points="17 2 17 7"></polyline>
               <polyline points="7 2 7 7"></polyline>
+              <path d="M4 11v1"></path>
+              <path d="M8 11v1"></path>
+              <path d="M12 11v1"></path>
+              <path d="M16 11v1"></path>
+              <path d="M20 11v1"></path>
             </svg>
           </div>
           <div style={{ color: "#64748b", fontSize: "14px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Appliances</div>
@@ -336,10 +338,10 @@ function Dashboard() {
 
               {/* Grid Lines */}
               {[0, 1, 2, 3].map(i => (
-                <line 
+                <line
                   key={i}
-                  x1="0" y1={300 - (i * 100)} x2="1000" y2={300 - (i * 100)} 
-                  stroke="#f1f5f9" strokeWidth="1" 
+                  x1="0" y1={300 - (i * 100)} x2="1000" y2={300 - (i * 100)}
+                  stroke="#f1f5f9" strokeWidth="1"
                 />
               ))}
 
@@ -370,12 +372,12 @@ function Dashboard() {
                       const x = (i / (chartData.length - 1)) * 1000;
                       const y = 300 - ((d.units / maxVal) * 250);
                       return (
-                        <circle 
-                          key={i} 
-                          cx={x} cy={y} r={hoveredPoint?.date === d.date ? "8" : "6"} 
-                          fill="white" 
-                          stroke="#10b981" 
-                          strokeWidth="3" 
+                        <circle
+                          key={i}
+                          cx={x} cy={y} r={hoveredPoint?.date === d.date ? "8" : "6"}
+                          fill="white"
+                          stroke="#10b981"
+                          strokeWidth="3"
                           onMouseEnter={() => setHoveredPoint({ ...d, x, y })}
                           onMouseLeave={() => setHoveredPoint(null)}
                           style={{ cursor: "pointer", transition: "all 0.2s" }}
@@ -386,9 +388,9 @@ function Dashboard() {
                     {/* Simple detail tooltip */}
                     {hoveredPoint && (
                       <g transform={`translate(${hoveredPoint.x}, ${hoveredPoint.y - 15})`}>
-                        <rect 
-                          x="-50" y="-45" width="100" height="42" 
-                          rx="12" fill="white" 
+                        <rect
+                          x="-50" y="-45" width="100" height="42"
+                          rx="12" fill="white"
                           stroke="#e2e8f0" strokeWidth="1"
                           style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.05))" }}
                         />
@@ -409,11 +411,11 @@ function Dashboard() {
                 if (i % 2 !== 0 && chartData.length > 8) return null;
                 const x = (i / (chartData.length - 1)) * 1000;
                 return (
-                  <text 
-                    key={i} 
-                    x={x} y="325" 
-                    textAnchor="middle" 
-                    fill="#94a3b8" 
+                  <text
+                    key={i}
+                    x={x} y="325"
+                    textAnchor="middle"
+                    fill="#94a3b8"
                     style={{ fontSize: "12px", fontWeight: "700" }}
                   >
                     {new Date(d.date).toLocaleDateString([], { month: "short", day: "numeric" })}
@@ -475,8 +477,8 @@ function Dashboard() {
                             transform={`rotate(${rotation} 50 50)`}
                             onMouseEnter={() => setHoveredSlice({ ...r, color })}
                             onMouseLeave={() => setHoveredSlice(null)}
-                            style={{ 
-                              cursor: "pointer", 
+                            style={{
+                              cursor: "pointer",
                               transition: "all 0.3s ease",
                               opacity: hoveredSlice?.roomId === r.roomId ? 1 : 0.85
                             }}
@@ -500,7 +502,7 @@ function Dashboard() {
                 const pct = total > 0 ? Math.round((r.allocatedUsage / total) * 100) : 0;
 
                 return (
-                  <div key={i} style={{ 
+                  <div key={i} style={{
                     display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderRadius: "16px",
                     background: hoveredSlice?.roomId === r.roomId ? "#f8fafc" : "transparent",
                     border: hoveredSlice?.roomId === r.roomId ? "1px solid #e2e8f0" : "1px solid transparent"
@@ -541,7 +543,7 @@ function Dashboard() {
               .map((app, i) => {
                 const maxUsage = Math.max(...applianceUsageData.map(a => a.allocatedUsage), 0.1);
                 const barWidth = (app.allocatedUsage / maxUsage) * 100;
-                
+
                 return (
                   <div key={i} style={{ position: "relative", padding: "4px 0" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", position: "relative", zIndex: 2 }}>
@@ -549,12 +551,12 @@ function Dashboard() {
                       <span style={{ fontWeight: "900", color: "#0f172a", fontSize: "15px" }}>{app.allocatedUsage.toFixed(1)} kWh</span>
                     </div>
                     <div style={{ height: "12px", background: "#f1f5f9", borderRadius: "6px", overflow: "hidden" }}>
-                      <div style={{ 
-                        height: "100%", 
-                        width: `${barWidth}%`, 
-                        background: "linear-gradient(to right, #10b981, #3b82f6)", 
+                      <div style={{
+                        height: "100%",
+                        width: `${barWidth}%`,
+                        background: "linear-gradient(to right, #10b981, #3b82f6)",
                         borderRadius: "6px",
-                        transition: "width 1s ease-out" 
+                        transition: "width 1s ease-out"
                       }}></div>
                     </div>
                   </div>

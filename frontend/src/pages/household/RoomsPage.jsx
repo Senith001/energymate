@@ -122,7 +122,7 @@ function RoomsPage() {
 
   const getRoomStyle = (name) => {
     const lower = name.toLowerCase();
-    if (lower.includes("living")) return { 
+    if (lower.includes("living")) return {
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M20 9V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2"></path>
@@ -130,20 +130,20 @@ function RoomsPage() {
           <path d="M4 17v2"></path>
           <path d="M20 17v2"></path>
         </svg>
-      ), 
-      bg: "#fef3c7" 
+      ),
+      bg: "#fef3c7"
     };
-    if (lower.includes("kitchen")) return { 
+    if (lower.includes("kitchen")) return {
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
           <path d="M7 2v20"></path>
           <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
         </svg>
-      ), 
-      bg: "#dcfce7" 
+      ),
+      bg: "#dcfce7"
     };
-    if (lower.includes("bed")) return { 
+    if (lower.includes("bed")) return {
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 4v16"></path>
@@ -151,10 +151,10 @@ function RoomsPage() {
           <path d="M2 17h20"></path>
           <path d="M6 8v9"></path>
         </svg>
-      ), 
-      bg: "#fee2e2" 
+      ),
+      bg: "#fee2e2"
     };
-    if (lower.includes("bath")) return { 
+    if (lower.includes("bath")) return {
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-2.12 0 1.5 1.5 0 0 0 0 2.12L7 8"></path>
@@ -162,19 +162,19 @@ function RoomsPage() {
           <path d="M7 19v2"></path>
           <path d="M17 19v2"></path>
         </svg>
-      ), 
-      bg: "#dbeafe" 
+      ),
+      bg: "#dbeafe"
     };
-    if (lower.includes("study")) return { 
+    if (lower.includes("study")) return {
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
         </svg>
-      ), 
-      bg: "#fef3c7" 
+      ),
+      bg: "#fef3c7"
     };
-    if (lower.includes("gym")) return { 
+    if (lower.includes("gym")) return {
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m6.5 6.5 11 11"></path>
@@ -185,17 +185,17 @@ function RoomsPage() {
           <path d="m14 6 3-3"></path>
           <path d="m4 20 3-3"></path>
         </svg>
-      ), 
-      bg: "#ede9fe" 
+      ),
+      bg: "#ede9fe"
     };
-    return { 
+    return {
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
-      ), 
-      bg: "#f1f5f9" 
+      ),
+      bg: "#f1f5f9"
     };
   };
 
@@ -232,7 +232,7 @@ function RoomsPage() {
           </h1>
           <p style={{ fontSize: "22px", color: "#64748b", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
             Configure your home's thermal and energy zones
-           
+
           </p>
         </div>
 
@@ -243,8 +243,8 @@ function RoomsPage() {
             setShowPopup(true);
           }}
           style={{
-            background: "linear-gradient(to right, #10b981, #059669)", 
-            color: "white", 
+            background: "linear-gradient(to right, #10b981, #059669)",
+            color: "white",
             border: "none",
             borderRadius: "20px",
             padding: "18px 32px",
@@ -260,7 +260,7 @@ function RoomsPage() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg> 
+          </svg>
           Add New Space
         </button>
       </div>

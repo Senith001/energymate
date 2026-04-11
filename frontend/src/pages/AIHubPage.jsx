@@ -287,11 +287,10 @@ export default function AIHubPage() {
               <button
                 key={tab.id}
                 onClick={() => switchTab(i)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
-                  activeTab === i
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${activeTab === i
                     ? "text-white shadow-lg scale-105"
                     : "text-white/60 bg-white/10 hover:bg-white/20 hover:text-white"
-                }`}
+                  }`}
                 style={activeTab === i ? {
                   background: `linear-gradient(135deg, ${active.accent}, ${active.accentDark})`,
                   boxShadow: `0 8px 24px ${active.accent}50`

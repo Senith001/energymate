@@ -49,7 +49,7 @@ function UsagePage() {
 
   // Weather data and the generated insight power the weather impact card.
   const [weatherInfo, setWeatherInfo] = useState(null);
-  
+
   // Default the dashboard to the current month and year when the page first opens.
   const [selectedPeriod, setSelectedPeriod] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [loading, setLoading] = useState(true);

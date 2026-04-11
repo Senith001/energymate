@@ -70,7 +70,7 @@ function BillingTableCard({
             <Icon name="plus" color="#ffffff" size={16} />
             Add Bill
           </button>
-          <button onClick={onGenerate} disabled={generating} style={buttonStyle(colors.greenSoft, colors.green, `1px solid rgba(42, 140, 95, 0.18)` )}>
+          <button onClick={onGenerate} disabled={generating} style={buttonStyle(colors.greenSoft, colors.green, `1px solid rgba(42, 140, 95, 0.18)`)}>
             <Icon name="refresh" color={colors.green} size={16} />
             {generating ? "Generating..." : "Generate Bill"}
           </button>
