@@ -19,7 +19,6 @@ const UserProfile = () => {
   const [formData, setFormData] = useState({
     name: "", email: "", phone: "", address: "", city: "",
   });
-  const [errors, setErrors] = useState({});
   const [userId, setUserId] = useState("");
   const [createdAt, setCreatedAt] = useState("");
   const [avatar, setAvatar] = useState(null);

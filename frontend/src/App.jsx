@@ -10,8 +10,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Auth Pages (Your new files in the subfolder)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import VerifyOtpPage from './pages/auth/VerifyOtpPage';
-import SummaryPage from "./pages/auth/SummaryPage";
+import VerifyOtpPage from "./pages/auth/VerifyOtpPage";
 
 //Admin Pages
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
