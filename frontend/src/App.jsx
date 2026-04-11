@@ -14,8 +14,8 @@ import VerifyOtpPage from "./pages/auth/VerifyOtpPage";
 
 //Admin Pages
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
-
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement"; // ✅ Imported User Management
 import AdminUsagePage from "./pages/usage/AdminUsagePage";
 import AdminUsageBillingPage from "./pages/usage/AdminUsageBillingPage";
 import AdminBillingPage from "./pages/bill/AdminBillingPage";
@@ -23,7 +23,6 @@ import AdminTariffPage from "./pages/bill/AdminTariffPage";
 
 //User Pages
 import UserProfile from "./pages/user/UserProfile";
-
 
 // Team Member's Pages (Kept in their original location)
 import Dashboard from "./pages/user/Dashboard";
@@ -45,13 +44,15 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
+          <Route path="/summary" element={<SummaryPage />} />
 
           {/* Admin Login Route */}
           <Route path="/admin-portal" element={<AdminLoginPage />} />
 
-          {/* Protected Admin Layout Routes */}
+          {/* 🔴 SECURE ADMIN ROUTES (Nested inside AdminLayout) */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} /> {/* ✅ Added User Management Route */}
             <Route path="usage-billing" element={<AdminUsageBillingPage />} />
             <Route path="usage-billing/usage" element={<AdminUsagePage />} />
             <Route path="usage-billing/billing" element={<AdminBillingPage />} />
@@ -60,30 +61,20 @@ function App() {
 
           {/* 🔵 SECURE USER ROUTES (Wrapped in ProtectedRoute) */}
           <Route element={<ProtectedRoute />}>
-          
             <Route path="/profile" element={<UserProfile />} />
 
-
-
             {/* Protected Main Layout Routes */}
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="households" element={<HouseholdPage />} />
-            <Route path="rooms" element={<RoomsPage />} />
-            <Route path="appliances" element={<AppliancesPage />} />
-            <Route path="usage" element={<UsagePage />} />
-            <Route path="billing" element={<BillingPage />} />
-            <Route path="feedback" element={<FeedbackPage />} />
-            <Route path="tickets" element={<SupportTicketsPage />} />
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="households" element={<HouseholdPage />} />
+              <Route path="rooms" element={<RoomsPage />} />
+              <Route path="appliances" element={<AppliancesPage />} />
+              <Route path="usage" element={<UsagePage />} />
+              <Route path="billing" element={<BillingPage />} />
+              <Route path="feedback" element={<FeedbackPage />} />
+              <Route path="tickets" element={<SupportTicketsPage />} />
+            </Route>
           </Route>
-          
-          </Route>
-
-          
-
-          
-
-          
 
         </Routes>
       </BrowserRouter>
