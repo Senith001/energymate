@@ -24,7 +24,7 @@ export const getAllHouseholds = async (req, res, next) => {
     const userId = getReqUserId(req);
     const filter = isAdmin(req) ? {} : { userId };
 
-    const households = await Household.find(filter);
+    const households = await Household.find(filter).sort({ updatedAt: -1 });
     res.status(200).json(households);
   } catch (err) {
     next(err);
