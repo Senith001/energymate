@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 import rf from "../utils/responseFormatter.js";
 
-import Household    from "../models/Household.js";
-import Bill         from "../models/bill.js";
-import Appliance    from "../models/Appliance.js";
+import Household from "../models/Household.js";
+import Bill from "../models/bill.js";
+import Appliance from "../models/Appliance.js";
 import RecommendationTemplate from "../models/RecommendationTemplate.js";
-import RecommendationStatus   from "../models/RecommendationStatus.js";
+import RecommendationStatus from "../models/RecommendationStatus.js";
 
 import {
   getEnergyTipsFromGemini,
@@ -33,7 +33,7 @@ export async function verifyHouseholdOwnership(householdId, userId) {
   const household = await Household.findById(householdId).lean();
   if (!household) return null;
 
-  const ownerId     = household.userId?.toString();
+  const ownerId = household.userId?.toString();
   const requesterId = userId?.toString();
   if (!ownerId || !requesterId || ownerId !== requesterId) return null;
 
@@ -52,19 +52,19 @@ async function buildAiInputs(householdId) {
   ]);
 
   const billHistory = bills.map((b) => ({
-    month:           b.month,
-    year:            b.year,
-    totalUnits:      b.totalUnits,
-    totalCost:       b.totalCost,
+    month: b.month,
+    year: b.year,
+    totalUnits: b.totalUnits,
+    totalCost: b.totalCost,
     previousReading: b.previousReading ?? null,
-    currentReading:  b.currentReading  ?? null,
+    currentReading: b.currentReading ?? null,
   }));
 
   const applianceUsage = appliances.map((a) => ({
-    name:           a?.name          ?? "Unknown",
-    category:       a?.category      ?? null,
-    wattage:        typeof a?.wattage          === "number" ? a.wattage          : null,
-    quantity:       typeof a?.quantity         === "number" ? a.quantity         : 1,
+    name: a?.name ?? "Unknown",
+    category: a?.category ?? null,
+    wattage: typeof a?.wattage === "number" ? a.wattage : null,
+    quantity: typeof a?.quantity === "number" ? a.quantity : 1,
     usedHoursPerDay: typeof a?.defaultHoursPerDay === "number" ? a.defaultHoursPerDay : 0,
     efficiencyRating: a?.efficiencyRating ?? null,
   }));
@@ -88,7 +88,7 @@ function handleAiError(res, err, context = "AI request") {
 
 /** Sets cache headers so the frontend knows if the response is fresh or cached. */
 function setCacheHeaders(res, cacheHit, ageMs = 0) {
-  res.setHeader("X-Cache",     cacheHit ? "HIT" : "MISS");
+  res.setHeader("X-Cache", cacheHit ? "HIT" : "MISS");
   res.setHeader("X-Cache-Age", cacheHit ? Math.round(ageMs / 1000) : 0);
   res.setHeader("X-Cache-TTL", "21600"); // 6 hours
 }
@@ -112,9 +112,9 @@ export async function generateEnergyTips(req, res) {
     if (cached) {
       setCacheHeaders(res, true, cached.ageMs);
       return rf.success(res, {
-        tips:          cached.data,
-        generatedAt:   new Date(cached.generatedAt).toISOString(),
-        fromCache:     true,
+        tips: cached.data,
+        generatedAt: new Date(cached.generatedAt).toISOString(),
+        fromCache: true,
       }, "Energy tips fetched from cache");
     }
 
@@ -163,9 +163,9 @@ export async function generateCostStrategies(req, res) {
     if (cached) {
       setCacheHeaders(res, true, cached.ageMs);
       return rf.success(res, {
-        strategy:      cached.data,
-        generatedAt:   new Date(cached.generatedAt).toISOString(),
-        fromCache:     true,
+        strategy: cached.data,
+        generatedAt: new Date(cached.generatedAt).toISOString(),
+        fromCache: true,
       }, "Cost strategy fetched from cache");
     }
 
@@ -214,9 +214,9 @@ export async function generatePredictions(req, res) {
     if (cached) {
       setCacheHeaders(res, true, cached.ageMs);
       return rf.success(res, {
-        prediction:    cached.data,
-        generatedAt:   new Date(cached.generatedAt).toISOString(),
-        fromCache:     true,
+        prediction: cached.data,
+        generatedAt: new Date(cached.generatedAt).toISOString(),
+        fromCache: true,
       }, "Predictions fetched from cache");
     }
 
@@ -241,10 +241,10 @@ export async function generatePredictions(req, res) {
     }
 
     const billHistory = bills.map((b) => ({
-      month:      b.month,
-      year:       b.year,
+      month: b.month,
+      year: b.year,
       totalUnits: b.totalUnits,
-      totalCost:  b.totalCost,
+      totalCost: b.totalCost,
     }));
 
     // ── Call Gemini ───────────────────────────────────────
@@ -299,8 +299,8 @@ export async function adminListTemplates(req, res) {
     const { isActive, category, priority } = req.query;
     const filter = {};
     if (isActive !== undefined) filter.isActive = isActive === "true";
-    if (category)  filter.category = category;
-    if (priority)  filter.priority = priority;
+    if (category) filter.category = category;
+    if (priority) filter.priority = priority;
 
     const rows = await RecommendationTemplate.find(filter).sort({ isActive: -1, createdAt: -1 });
     return rf.success(res, rows, "Templates fetched");

@@ -7,22 +7,22 @@ import {
   ErrorState,
   PageHeader,
 } from "../../components/ui/SharedComponents";
-import { useHousehold }  from "../../hooks/useHousehold";
+import { useHousehold } from "../../hooks/useHousehold";
 import { useAiGenerate } from "../../hooks/useAiGenerate";
 
 // ─────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────
 const DIFFICULTY_COLORS = {
-  Easy:   "bg-green-100 text-green-700",
+  Easy: "bg-green-100 text-green-700",
   Medium: "bg-amber-100 text-amber-700",
-  Hard:   "bg-red-100   text-red-700",
+  Hard: "bg-red-100   text-red-700",
 };
 
 function timeAgo(isoStr) {
   if (!isoStr) return "";
   const diffMs = Date.now() - new Date(isoStr).getTime();
-  const mins   = Math.floor(diffMs / 60000);
+  const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
@@ -121,7 +121,7 @@ export default function CostStrategies() {
   // Normalise: backend sends { strategy: {...}, generatedAt, fromCache }
   const strategy = rawData?.strategy || rawData?.data?.strategy
     || (rawData && !rawData.strategy && !Array.isArray(rawData) && typeof rawData === "object" && rawData.title
-        ? rawData : null);
+      ? rawData : null);
 
   if (hhLoading) return <LoadingSpinner fullPage text="Loading your household..." />;
   if (hhError || !householdId) return <ErrorState message={hhError || "No household found."} />;

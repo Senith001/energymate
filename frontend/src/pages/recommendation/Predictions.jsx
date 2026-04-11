@@ -9,7 +9,7 @@ import {
   ErrorState,
   PageHeader,
 } from "../../components/ui/SharedComponents";
-import { useHousehold }  from "../../hooks/useHousehold";
+import { useHousehold } from "../../hooks/useHousehold";
 import { useAiGenerate } from "../../hooks/useAiGenerate";
 
 // ─────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ import { useAiGenerate } from "../../hooks/useAiGenerate";
 function timeAgo(isoStr) {
   if (!isoStr) return "";
   const diffMs = Date.now() - new Date(isoStr).getTime();
-  const mins   = Math.floor(diffMs / 60000);
+  const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
@@ -26,7 +26,7 @@ function timeAgo(isoStr) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // ─────────────────────────────────────────────────────────
 // Trend Icon
@@ -44,7 +44,7 @@ function TrendIcon({ value, prev }) {
 function MiniBarChart({ data }) {
   if (!data?.length) return null;
   const values = data.map((d) => d.predictedConsumption || 0);
-  const max    = Math.max(...values, 1);
+  const max = Math.max(...values, 1);
   return (
     <div className="flex items-end gap-1 h-16">
       {values.map((v, i) => (
@@ -75,9 +75,9 @@ function PredictionsTable({ rows }) {
         </thead>
         <tbody className="divide-y divide-gray-50">
           {rows.map((row, i) => {
-            const prev  = i > 0 ? rows[i - 1].predictedConsumption : null;
+            const prev = i > 0 ? rows[i - 1].predictedConsumption : null;
             const usage = row.predictedConsumption;
-            const isUp  = prev != null && usage > prev;
+            const isUp = prev != null && usage > prev;
             const isDown = prev != null && usage < prev;
             return (
               <tr key={i} className="hover:bg-slate-50 transition-colors fade-in" style={{ animationDelay: `${i * 30}ms` }}>
@@ -108,16 +108,16 @@ function PredictionsTable({ rows }) {
 // ─────────────────────────────────────────────────────────
 function InsightCard({ insight, index }) {
   const ICONS = ["🔮", "📊", "⚡", "💡", "🌱", "🏆"];
-  const title = typeof insight === "object" ? insight.title       : null;
-  const text  = typeof insight === "string" ? insight
-              : insight?.description || insight?.text || insight?.insight || null;
+  const title = typeof insight === "object" ? insight.title : null;
+  const text = typeof insight === "string" ? insight
+    : insight?.description || insight?.text || insight?.insight || null;
   if (!title && !text) return null;
   return (
     <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 fade-in" style={{ animationDelay: `${index * 60}ms` }}>
       <span className="text-xl flex-shrink-0">{ICONS[index % ICONS.length]}</span>
       <div>
         {title && <p className="font-semibold text-sm text-gray-900 mb-0.5">{title}</p>}
-        {text  && <p className="text-sm text-gray-700 leading-relaxed">{text}</p>}
+        {text && <p className="text-sm text-gray-700 leading-relaxed">{text}</p>}
       </div>
     </div>
   );
@@ -140,13 +140,13 @@ export default function Predictions() {
       setError(null);
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-      
+
       const bills = [
         { month: 1, year: 2025, totalUnits: 185 },
         { month: 2, year: 2025, totalUnits: 210 },
         { month: 3, year: 2025, totalUnits: 195 }
       ];
-      
+
       for (const b of bills) {
         await fetch(`http://localhost:5001/api/bills`, {
           method: "POST",
@@ -154,7 +154,7 @@ export default function Predictions() {
           body: JSON.stringify({ householdId, ...b })
         });
       }
-      
+
       // Auto-trigger prediction generating after seeding
       generate(householdId);
     } catch (err) {
@@ -164,9 +164,9 @@ export default function Predictions() {
 
   // Normalise: response.data → { prediction: { predictionTable, insights, summary } }
   const predObj = rawData?.prediction || rawData?.data?.prediction || rawData || {};
-  const rows     = Array.isArray(predObj?.predictionTable) ? predObj.predictionTable : [];
-  const insights = Array.isArray(predObj?.insights)        ? predObj.insights        : [];
-  const summary  = typeof predObj?.summary === "string"    ? predObj.summary         : null;
+  const rows = Array.isArray(predObj?.predictionTable) ? predObj.predictionTable : [];
+  const insights = Array.isArray(predObj?.insights) ? predObj.insights : [];
+  const summary = typeof predObj?.summary === "string" ? predObj.summary : null;
 
   if (hhLoading) return <LoadingSpinner fullPage text="Loading your household..." />;
   if (hhError || !householdId) return <ErrorState message={hhError || "No household found."} />;
@@ -175,9 +175,9 @@ export default function Predictions() {
 
   // Quick stats
   const usages = rows.map((r) => r.predictedConsumption);
-  const avgUsage  = usages.length ? Math.round(usages.reduce((a, b) => a + b, 0) / usages.length) : null;
+  const avgUsage = usages.length ? Math.round(usages.reduce((a, b) => a + b, 0) / usages.length) : null;
   const peakUsage = usages.length ? Math.max(...usages) : null;
-  const lowUsage  = usages.length ? Math.min(...usages) : null;
+  const lowUsage = usages.length ? Math.min(...usages) : null;
 
   return (
     <div className="space-y-6 fade-in">
@@ -290,9 +290,9 @@ export default function Predictions() {
               <div className="card border border-gray-100">
                 <p className="font-semibold text-sm text-gray-800 mb-3">Quick Stats</p>
                 <div className="space-y-3">
-                  {avgUsage  != null && <div className="flex justify-between text-sm"><span className="text-gray-500">Avg Monthly</span><span className="font-semibold text-gray-900">{avgUsage} kWh</span></div>}
+                  {avgUsage != null && <div className="flex justify-between text-sm"><span className="text-gray-500">Avg Monthly</span><span className="font-semibold text-gray-900">{avgUsage} kWh</span></div>}
                   {peakUsage != null && <div className="flex justify-between text-sm"><span className="text-gray-500">Peak Month</span><span className="font-semibold text-red-600">{peakUsage} kWh</span></div>}
-                  {lowUsage  != null && <div className="flex justify-between text-sm"><span className="text-gray-500">Lowest Month</span><span className="font-semibold text-green-600">{lowUsage} kWh</span></div>}
+                  {lowUsage != null && <div className="flex justify-between text-sm"><span className="text-gray-500">Lowest Month</span><span className="font-semibold text-green-600">{lowUsage} kWh</span></div>}
                 </div>
               </div>
             </div>
@@ -325,7 +325,7 @@ export default function Predictions() {
                 <FiActivity className="w-4 h-4" />
                 {cooldown > 0 ? `Try again in ${cooldown}s` : (generated ? "Try Again" : "Generate Predictions")}
               </button>
-              
+
               {!generated && (
                 <button onClick={handleSeedData} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm">
                   Seed Test Data

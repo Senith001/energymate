@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FiCheckCircle, FiCircle, FiSearch, FiRefreshCw } from "react-icons/fi";
-import { getHouseholdRecommendations } from "../../services/recommendationService";
+import { getHouseholdRecommendations, updateRecommendationStatus } from "../../services/recommendationService";
 import {
   LoadingSpinner,
   EmptyState,
@@ -9,7 +9,13 @@ import {
   PriorityBadge,
   CategoryBadge,
 } from "../../components/ui/SharedComponents";
-import { useToast } from "../../context/ToastContext";
+// Temporarily mapping toast to console since ToastContext is team dependent
+const useToast = () => ({
+  success: (msg) => console.log("SUCCESS:", msg),
+  error: (msg) => console.error("ERROR:", msg),
+  info: (msg) => console.info("INFO:", msg),
+  warning: (msg) => console.warn("WARNING:", msg)
+});
 import { useHousehold } from "../../hooks/useHousehold";
 
 // ─────────────────────────────────────────────────────────
@@ -172,10 +178,19 @@ export default function UserRecommendations() {
     setFiltered(list);
   }, [recommendations, search, filterCategory, filterPriority]);
 
-  // ── Toggle applied status (local state only) ───────────
-  const handleToggle = (id, value) => {
+  // ── Toggle applied status (database persisted) ───────────
+  const handleToggle = async (id, value) => {
+    // Optimistic update
     setAppliedStatus((prev) => ({ ...prev, [id]: value }));
-    toast.success(value ? "Marked as applied! 🎉" : "Marked as not applied.");
+    try {
+      const status = value ? "applied" : "active";
+      await updateRecommendationStatus(householdId, id, status);
+      toast.success(value ? "Marked as applied! 🎉" : "Marked as not applied.");
+    } catch (err) {
+      // Revert if API fails
+      setAppliedStatus((prev) => ({ ...prev, [id]: !value }));
+      toast.error("Failed to save status. Please try again.");
+    }
   };
 
   // Stats

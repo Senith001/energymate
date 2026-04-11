@@ -16,6 +16,7 @@ import usageRoutes from "./routes/usageRoutes.js";
 import billRoutes from "./routes/billRoutes.js";
 import tariffRoutes from "./routes/tariffRoutes.js";
 import recommendationRoutes from "./routes/recommendationRoutes.js";
+import postRoutes from "./routes/post.routes.js";
 
 // Middlewares
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
@@ -54,6 +55,7 @@ app.use("/api", applianceRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/support", supportTicketRoutes);
 app.use("/api/recommendations", recommendationRoutes);
+app.use("/api/posts", postRoutes);
 
 //Usage and billing routes
 app.use("/api/usage", usageRoutes);

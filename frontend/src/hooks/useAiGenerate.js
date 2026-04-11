@@ -9,7 +9,13 @@
  * - fromCache flag (shows "⚡ Instant from cache")
  */
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useToast } from "../context/ToastContext";
+// Temporarily mapping toast to console since ToastContext is team dependent
+const useToast = () => ({
+  success: (msg) => console.log("SUCCESS:", msg),
+  error: (msg) => console.error("ERROR:", msg),
+  info: (msg) => console.info("INFO:", msg),
+  warning: (msg) => console.warn("WARNING:", msg)
+});
 
 const COOLDOWN_SECS = 90;
 

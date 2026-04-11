@@ -7,31 +7,31 @@ import {
   ErrorState,
   PageHeader,
 } from "../../components/ui/SharedComponents";
-import { useHousehold }  from "../../hooks/useHousehold";
+import { useHousehold } from "../../hooks/useHousehold";
 import { useAiGenerate } from "../../hooks/useAiGenerate";
-import { useState }      from "react";
+import { useState } from "react";
 
 // ─────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────
 const PRIORITY_COLORS = {
-  High:   { bg: "bg-red-50",   text: "text-red-600",   dot: "bg-red-400",   ring: "ring-red-200" },
+  High: { bg: "bg-red-50", text: "text-red-600", dot: "bg-red-400", ring: "ring-red-200" },
   Medium: { bg: "bg-amber-50", text: "text-amber-600", dot: "bg-amber-400", ring: "ring-amber-200" },
-  Low:    { bg: "bg-green-50", text: "text-green-600", dot: "bg-green-400", ring: "ring-green-200" },
+  Low: { bg: "bg-green-50", text: "text-green-600", dot: "bg-green-400", ring: "ring-green-200" },
 };
 const CATEGORY_ICONS = {
-  lighting:   "💡",
+  lighting: "💡",
   appliances: "🔌",
-  cooling:    "❄️",
-  cooking:    "🍳",
-  general:    "⚡",
+  cooling: "❄️",
+  cooking: "🍳",
+  general: "⚡",
 };
 const TIP_ICONS = ["💡", "⚡", "🌿", "🔌", "🌙", "☀️", "🏠", "💰", "🌊", "♻️"];
 
 function timeAgo(isoStr) {
   if (!isoStr) return "";
   const diffMs = Date.now() - new Date(isoStr).getTime();
-  const mins   = Math.floor(diffMs / 60000);
+  const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
@@ -45,15 +45,15 @@ function timeAgo(isoStr) {
 function TipCard({ tip, index }) {
   const [copied, setCopied] = useState(false);
 
-  const isObj          = tip && typeof tip === "object";
-  const title          = isObj ? tip.title          : null;
-  const problem        = isObj ? tip.problem        : null;
+  const isObj = tip && typeof tip === "object";
+  const title = isObj ? tip.title : null;
+  const problem = isObj ? tip.problem : null;
   const recommendation = isObj ? tip.recommendation : (typeof tip === "string" ? tip : null);
-  const priority       = isObj ? tip.priority       : null;
-  const category       = isObj ? tip.category       : null;
-  const learnMore      = isObj ? tip.learnMore      : null;
-  const steps          = isObj && Array.isArray(tip.implementation) ? tip.implementation : [];
-  const savings        = isObj ? tip.expectedSavings : null;
+  const priority = isObj ? tip.priority : null;
+  const category = isObj ? tip.category : null;
+  const learnMore = isObj ? tip.learnMore : null;
+  const steps = isObj && Array.isArray(tip.implementation) ? tip.implementation : [];
+  const savings = isObj ? tip.expectedSavings : null;
 
   const copyText = [title, problem, recommendation, ...steps].filter(Boolean).join(" | ");
   const handleCopy = () => {
@@ -63,7 +63,7 @@ function TipCard({ tip, index }) {
   };
 
   const icon = CATEGORY_ICONS[category] || TIP_ICONS[index % TIP_ICONS.length];
-  const pc   = PRIORITY_COLORS[priority] || PRIORITY_COLORS.Medium;
+  const pc = PRIORITY_COLORS[priority] || PRIORITY_COLORS.Medium;
 
   return (
     <div
@@ -186,10 +186,10 @@ export default function EnergyTips() {
   } = useAiGenerate(generateEnergyTips);
 
   // Normalize tips from the response payload
-  const tips = Array.isArray(rawData?.tips)  ? rawData.tips
-             : Array.isArray(rawData?.data?.tips) ? rawData.data.tips
-             : Array.isArray(rawData)         ? rawData
-             : [];
+  const tips = Array.isArray(rawData?.tips) ? rawData.tips
+    : Array.isArray(rawData?.data?.tips) ? rawData.data.tips
+      : Array.isArray(rawData) ? rawData
+        : [];
 
   if (hhLoading) return <LoadingSpinner fullPage text="Loading your household..." />;
   if (hhError || !householdId) return <ErrorState message={hhError || "No household found."} />;

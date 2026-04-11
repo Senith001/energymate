@@ -36,3 +36,29 @@ export const uploadAvatar = multer({
   fileFilter,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
 });
+
+const postUploadDir = path.join(
+  process.cwd(),
+  "uploads",
+  "posts"
+);
+
+if (!fs.existsSync(postUploadDir)) {
+  fs.mkdirSync(postUploadDir, { recursive: true });
+}
+
+const postStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, postUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `post_${Date.now()}${ext}`);
+  },
+});
+
+export const uploadPostImage = multer({
+  storage: postStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});

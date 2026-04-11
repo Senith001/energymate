@@ -26,7 +26,13 @@ import {
   CategoryBadge,
   Toggle,
 } from "../../components/ui/SharedComponents";
-import { useToast } from "../../context/ToastContext";
+// Temporarily mapping toast to console since ToastContext is team dependent
+const useToast = () => ({
+  success: (msg) => console.log("SUCCESS:", msg),
+  error: (msg) => console.error("ERROR:", msg),
+  info: (msg) => console.info("INFO:", msg),
+  warning: (msg) => console.warn("WARNING:", msg)
+});
 
 // ─────────────────────────────────────────────────────────
 // Form Component
@@ -539,17 +545,15 @@ export default function AdminTemplates() {
           <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-lg transition-colors ${
-                viewMode === "grid" ? "bg-white shadow text-blue-600" : "text-gray-400 hover:text-gray-600"
-              }`}
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white shadow text-blue-600" : "text-gray-400 hover:text-gray-600"
+                }`}
             >
               <FiGrid className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-1.5 rounded-lg transition-colors ${
-                viewMode === "list" ? "bg-white shadow text-blue-600" : "text-gray-400 hover:text-gray-600"
-              }`}
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === "list" ? "bg-white shadow text-blue-600" : "text-gray-400 hover:text-gray-600"
+                }`}
             >
               <FiList className="w-4 h-4" />
             </button>

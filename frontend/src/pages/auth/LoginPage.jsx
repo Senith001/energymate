@@ -39,8 +39,8 @@ const handleLogin = async (e) => {
       // 4. If they pass the check (they are a normal user), save their data
       login(user, token);
 
-      // 5. Redirect the user to the Dashboard
-      navigate("/");
+      // 5. Redirect the user to the Home Page
+      navigate("/home");
       
     } catch (err) {
       // If the backend sends a 401 (Invalid Credentials) or 404 (User not found)

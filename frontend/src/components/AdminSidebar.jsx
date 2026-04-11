@@ -12,6 +12,7 @@ function AdminSidebar() {
     { name: "User Management", path: "/admin/users", icon: "👥" },
     { name: "System Settings", path: "/admin/settings", icon: "🛠" },
     { name: "Usage & Billing", path: "/admin/usage-billing", icon: <FiBarChart2 /> },
+    { name: "Public Posts", path: "/admin/posts", icon: "📰" },
   ];
 
   return (

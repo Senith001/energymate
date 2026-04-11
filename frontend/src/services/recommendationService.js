@@ -19,6 +19,9 @@ export const deleteAdminTemplate = (id) =>
 export const getHouseholdRecommendations = (householdId) =>
   api.get(`/recommendations/households/${householdId}/templates`);
 
+export const updateRecommendationStatus = (householdId, templateId, status) =>
+  api.patch(`/recommendations/households/${householdId}/templates/${templateId}/status`, { status });
+
 // ─── AI / Gemini Endpoints ──────────────────────────────────────────────────
 
 export const generateEnergyTips = (householdId) =>
