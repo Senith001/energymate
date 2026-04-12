@@ -385,12 +385,17 @@ export default function UserRecommendations() {
                         <p className="text-sm font-bold text-slate-900 mb-1">Forecast Archive - {new Date(record.createdAt).toLocaleDateString()}</p>
                         <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{record.predictionInsights?.length || 0} insights generated</p>
                       </div>
-                      <div className="flex -space-x-2">
-                        {record.predictionTable?.slice(0, 5).map((p, idx) => (
-                          <div key={idx} className="w-10 h-10 rounded-full bg-slate-50 border-2 border-white flex items-center justify-center text-[10px] font-bold text-emerald-600 shadow-sm z-10 hover:z-20 hover:scale-110 transition-transform cursor-default" title={`Predicted: ${p.predictedConsumption} kWh`}>
-                            {p.predictedConsumption}
-                          </div>
-                        ))}
+                      <div className="flex gap-2 flex-wrap mt-3 sm:mt-0">
+                        {record.predictionTable?.slice(0, 5).map((p, idx) => {
+                          const monthName = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][(p.month - 1) % 12];
+                          return (
+                            <div key={idx} className="flex flex-col items-center bg-slate-50 border border-slate-100 rounded-lg py-2 px-4 shadow-sm">
+                              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{monthName} {p.year}</span>
+                              <span className="text-sm font-bold text-emerald-600 my-0.5">{p.predictedConsumption} kWh</span>
+                              <span className="text-[11px] font-medium text-slate-600">{p.predictedCostLKR ? `LKR ${p.predictedCostLKR.toLocaleString()}` : '—'}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
