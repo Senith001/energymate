@@ -47,13 +47,13 @@ const createUsageRules = [
     if (!hasUnits && (!hasPreviousReading || !hasCurrentReading)) {
       throw new Error("Provide either unitsUsed OR both previousReading and currentReading");
     }
-    return true;
-  }),
+
     if (hasPreviousReading && hasCurrentReading && Number(currentReading) < Number(previousReading)) {
       throw new Error("currentReading must be >= previousReading");
     }
-      return true;
-    }),
+
+    return true;
+  }),
   validate,
 ];
 
