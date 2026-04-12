@@ -77,15 +77,16 @@ function AdminTariffPage() {
       }
    }
 
-   return (
-      <div style={{ display: "grid", gap: "24px" }}>
-         <div style={{ display: "grid", gap: "8px" }}>
+  return (
+      <div className="grid gap-6 rounded-[28px] border border-slate-200/80 bg-slate-100/70 p-4">
+         <div className="grid gap-2">
             <div>
                <Link to="/admin/usage-billing" style={backLinkStyle}>
                   <FiArrowLeft size={16} />
                   Back
                </Link>
             </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Admin Workspace</p>
             <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Tariff Settings</h1>
             <p style={{ margin: 0, color: adminColors.muted }}>
                Review and update the domestic tariff slabs used by usage estimates, bill generation, and bill previews.
@@ -98,7 +99,7 @@ function AdminTariffPage() {
          {loading || !form || !draft ? (
             <Message tone="info" text="Loading tariff configuration..." />
          ) : (
-            <div style={{ ...adminCardStyle, padding: "28px", display: "grid", gap: "24px" }}>
+            <div className="card border border-slate-200/80 bg-white/95" style={{ ...adminCardStyle, padding: "28px", display: "grid", gap: "24px" }}>
                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
                   <div style={{ display: "grid", gap: "8px" }}>
                      <div style={{ color: adminColors.muted, fontSize: "13px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase" }}>
@@ -129,7 +130,7 @@ function AdminTariffPage() {
                   </div>
                </div>
 
-               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
+               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
                   <SummaryTile label="Low Usage Slabs" value={String(draft.tariffLow.length)} tone="amber" />
                   <SummaryTile label="High Usage Slabs" value={String(draft.tariffHigh.length)} tone="blue" />
                   <SummaryTile label="SSCL Rate" value={Number(draft.ssclRate).toFixed(3)} tone="green" />
@@ -234,6 +235,7 @@ function AdminTariffPage() {
 function TariffSection({ title, subtitle, slabs, groupKey, onChange, editable }) {
    return (
       <div
+         className="rounded-[20px] border border-slate-200/80 bg-slate-50/90"
          style={{
             border: `1px solid ${adminColors.border}`,
             borderRadius: "20px",
@@ -319,6 +321,7 @@ function SummaryTile({ label, value, tone }) {
 
    return (
       <div
+         className="rounded-[18px] border shadow-sm"
          style={{
             borderRadius: "18px",
             background: palette.background,
@@ -340,7 +343,7 @@ function Message({ tone, text }) {
          ? { background: "#fee2e2", color: adminColors.accent }
          : tone === "success"
             ? { background: "#e8f5ed", color: adminColors.green }
-            : { background: "#eaf2ff", color: adminColors.blue };
+            : { background: "#e8f5ed", color: adminColors.green };
 
    return (
       <div style={{ padding: "14px 16px", borderRadius: "16px", background: palette.background, color: palette.color, fontWeight: "600" }}>
@@ -364,6 +367,7 @@ function PlainTableCell({ children }) {
 function SlabBadge({ index }) {
    return (
       <div
+         className="border border-green-200 bg-green-50 text-green-700"
          style={{
             display: "inline-flex",
             alignItems: "center",
@@ -371,8 +375,6 @@ function SlabBadge({ index }) {
             minWidth: "84px",
             padding: "8px 12px",
             borderRadius: "999px",
-            background: adminColors.accentSoft,
-            color: adminColors.accent,
             fontSize: "13px",
             fontWeight: "800",
          }}
@@ -419,10 +421,30 @@ const summaryToneMap = {
 };
 
 function smallAdminButtonStyle(kind) {
+   if (kind === "secondary") {
+      return {
+         padding: "10px 16px",
+         fontSize: "14px",
+         borderRadius: "14px",
+         border: `1px solid ${adminColors.border}`,
+         background: "#ffffff",
+         color: adminColors.text,
+         fontWeight: "700",
+         cursor: "pointer",
+         boxShadow: "0 6px 14px rgba(15, 23, 42, 0.08)",
+      };
+   }
+
    return {
-      ...adminButtonStyle(kind),
       padding: "10px 16px",
       fontSize: "14px",
+      borderRadius: "14px",
+      border: "none",
+      background: "#10b981",
+      color: "#ffffff",
+      fontWeight: "700",
+      cursor: "pointer",
+      boxShadow: "0 10px 24px rgba(16, 185, 129, 0.28)",
    };
 }
 

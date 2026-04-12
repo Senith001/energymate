@@ -21,6 +21,7 @@ function ApplianceHoursDialog({
     hoursUsed: "",
   });
   const [selectedLogDate, setSelectedLogDate] = useState("all");
+  const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (!open) return;
@@ -104,6 +105,7 @@ function ApplianceHoursDialog({
           <button
             type="button"
             onClick={onClose}
+            className="btn-secondary shadow-sm"
             style={ghostButtonStyle}
           >
             Close
@@ -140,6 +142,7 @@ function ApplianceHoursDialog({
             <input
               type="date"
               value={form.date}
+              max={today}
               onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))}
               style={inputStyle}
             />
@@ -178,10 +181,8 @@ function ApplianceHoursDialog({
             type="button"
             onClick={() => onSubmit(form)}
             disabled={saving}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2 disabled:opacity-70"
             style={{
-              border: "none",
-              background: colors.green,
-              color: "#ffffff",
               padding: "11px 16px",
               borderRadius: "12px",
               fontWeight: "700",
@@ -204,12 +205,14 @@ function ApplianceHoursDialog({
               <input
                 type="date"
                 value={selectedLogDate === "all" ? "" : selectedLogDate}
+                max={today}
                 onChange={(event) => setSelectedLogDate(event.target.value || "all")}
                 style={{ ...inputStyle, minWidth: "210px", width: "auto" }}
               />
               <button
                 type="button"
                 onClick={handleToggleShowAll}
+                className="btn-secondary shadow-sm"
                 style={ghostButtonStyle}
               >
                 {selectedLogDate === "all" ? "Show Today" : "Show All"}
@@ -291,9 +294,6 @@ const inputStyle = {
 };
 
 const ghostButtonStyle = {
-  border: `1px solid ${colors.border}`,
-  background: "#ffffff",
-  color: colors.text,
   padding: "10px 14px",
   borderRadius: "12px",
   fontWeight: "700",

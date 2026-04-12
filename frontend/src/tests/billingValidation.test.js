@@ -72,4 +72,18 @@ describe("validateBillForm", () => {
 
     expect(message).toBe("Clear the paid date or mark the bill as paid.");
   });
+
+  it("rejects future billing periods", () => {
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    const message = validateBillForm({
+      month: String(nextMonth.getMonth() + 1),
+      year: String(nextMonth.getFullYear()),
+      mode: "units",
+      totalUnits: "25",
+    });
+
+    expect(message).toBe("Billing period cannot be in the future.");
+  });
 });

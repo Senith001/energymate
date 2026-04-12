@@ -5,15 +5,16 @@ import { adminCardStyle, adminColors } from "../../components/energy/adminTheme"
 
 function AdminUsageBillingPage() {
   return (
-    <div style={{ display: "grid", gap: "24px" }}>
-      <div style={{ display: "grid", gap: "8px" }}>
+    <div className="grid gap-6 rounded-[28px] border border-slate-200/80 bg-slate-100/70 p-4">
+      <div className="grid gap-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Admin Workspace</p>
         <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Usage and Billing</h1>
         <p style={{ margin: 0, color: adminColors.muted }}>
           Manage household usage monitoring, billing oversight, and tariff settings from one admin workspace.
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px" }}>
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px" }}>
         {/* These cards work as a single module landing page instead of exposing several admin tabs at once. */}
         <AdminNavCard
           icon={FiActivity}
@@ -48,16 +49,12 @@ function AdminUsageBillingPage() {
 function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
   return (
     <div
+      className="card grid gap-4 border border-slate-200/80 bg-white px-6 py-6"
       style={{
         ...adminCardStyle,
-        padding: "24px",
-        display: "grid",
-        gap: "16px",
-        background: soft,
-        border: `1px solid ${toSoftBorder(accent)}`,
       }}
     >
-      <div style={{ display: "grid", gap: "10px" }}>
+      <div className="grid gap-2.5">
         <div
           style={{
             display: "inline-flex",
@@ -66,14 +63,14 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
             width: "42px",
             height: "42px",
             borderRadius: "14px",
-            background: "#ffffff",
-            color: accent,
+            background: "#e8f7ef",
+            color: "#10a36c",
             fontWeight: "800",
           }}
         >
           <Icon size={20} />
         </div>
-        <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>{title}</h3>
+        <h3 style={{ margin: 0, color: "#10a36c", fontWeight: "700", fontSize: "20px" }}>{title}</h3>
         <p style={{ margin: 0, color: adminColors.muted, lineHeight: 1.6 }}>{description}</p>
       </div>
 
@@ -81,18 +78,9 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
         <Link
           to={path}
           // Keep the CTA button-like so the landing page feels like a workspace chooser.
+          className="inline-flex items-center justify-center rounded-2xl bg-[#10a36c] px-[14px] py-2 text-sm font-bold text-white no-underline shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0d8b5c] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "8px 14px",
             borderRadius: "14px",
-            background: "#ffffff",
-            color: accent,
-            textDecoration: "none",
-            fontWeight: "700",
-            fontSize: "14px",
-            border: `1px solid ${accent}`,
           }}
         >
           Open
@@ -100,13 +88,6 @@ function AdminNavCard({ icon: Icon, title, description, path, accent, soft }) {
       </div>
     </div>
   );
-}
-
-function toSoftBorder(color) {
-  if (color === adminColors.green) return "rgba(21, 128, 61, 0.4)";
-  if (color === adminColors.blue) return "rgba(29, 78, 216, 0.38)";
-  if (color === adminColors.amber) return "rgba(180, 83, 9, 0.4)";
-  return adminColors.border;
 }
 
 export default AdminUsageBillingPage;

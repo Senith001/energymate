@@ -2,6 +2,14 @@
 export function validateUsageForm(form) {
   if (!form.date) return "Usage date is required.";
 
+  const selectedDate = new Date(`${form.date}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (!Number.isNaN(selectedDate.getTime()) && selectedDate > today) {
+    return "Usage date cannot be in the future.";
+  }
+
   if (form.entryType === "meter") {
     if (form.previousReading === "" || form.currentReading === "") {
       return "Both meter readings are required.";

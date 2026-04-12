@@ -303,6 +303,15 @@ function UsagePage() {
       return;
     }
 
+    const selectedDate = new Date(`${form.date}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (!Number.isNaN(selectedDate.getTime()) && selectedDate > today) {
+      setApplianceHoursError("Appliance log date cannot be in the future.");
+      return;
+    }
+
     const parsedHours = Number(form.hoursUsed);
     if (Number.isNaN(parsedHours) || parsedHours < 0 || parsedHours > 24) {
       setApplianceHoursError("Hours used must be between 0 and 24.");
@@ -533,8 +542,12 @@ function UsagePage() {
   const degreeSymbol = String.fromCharCode(176);
 
   return (
-    <div style={{ background: colors.background, padding: "10px" }}>
+    <div
+      className="space-y-6 rounded-[28px] border border-slate-200/80 bg-slate-100/80 p-3 sm:p-4"
+      style={{ background: colors.background }}
+    >
       <div
+        className="flex flex-wrap items-center justify-between gap-3"
         style={{
           marginBottom: "18px",
           display: "flex",
@@ -544,7 +557,10 @@ function UsagePage() {
           flexWrap: "wrap",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: "32px", fontWeight: "700", lineHeight: 1.2, color: colors.text }}>Usage Tracking</h1>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Energy Workspace</p>
+          <h1 style={{ margin: 0, fontSize: "32px", fontWeight: "700", lineHeight: 1.2, color: colors.text }}>Usage Tracking</h1>
+        </div>
         {householdOptions.length > 1 ? (
           <HouseholdSelectorInline
             households={householdOptions}
@@ -557,6 +573,7 @@ function UsagePage() {
       <PageNotice loading={loading} error={error} householdId={householdId} showSelector={householdOptions.length > 1} />
 
       <div
+        className="card border border-slate-200/80 bg-white/95"
         style={{
           ...cardStyle,
           padding: "18px 22px",
@@ -568,8 +585,10 @@ function UsagePage() {
           flexWrap: "wrap",
         }}
       >
-        <div>
-          <div style={{ color: colors.text, fontSize: "20px", fontWeight: "800", marginBottom: "6px" }}>{householdLabel}</div>
+        <div className="space-y-1">
+          <div className="text-[22px] font-extrabold leading-tight md:text-[24px]" style={{ color: colors.text, marginBottom: "6px" }}>
+            {householdLabel}
+          </div>
           <div style={{ color: colors.muted }}>Track recent usage, costs, and weather impact in one place.</div>
         </div>
         {/* Keep a quick action at the top so users can add usage entries without scrolling. */}
@@ -580,10 +599,9 @@ function UsagePage() {
             setDialogError("");
             setDialogOpen(true);
           }}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2"
           style={{
             border: "none",
-            background: colors.green,
-            color: "#ffffff",
             padding: "12px 18px",
             borderRadius: "14px",
             display: "flex",
@@ -631,6 +649,7 @@ function UsagePage() {
       </div>
 
       <div
+        className="flex flex-wrap items-stretch gap-6"
         style={{
           // This row uses a fixed two-panel layout because the wide chart and narrow weather card overlap in auto-fit grids.
           display: "flex",
@@ -771,9 +790,12 @@ function PageNotice({ loading, error, householdId, showSelector }) {
 
 // Reuse one lightweight notice style for loading, empty, and error states.
 function Banner({ text, tone }) {
-  const palette = tone === "error" ? { background: colors.redSoft, color: colors.red } : { background: colors.blueSoft, color: colors.blue };
+  const palette = tone === "error" ? { background: colors.redSoft, color: colors.red } : { background: colors.greenSoft, color: colors.green };
   return (
-    <div style={{ ...cardStyle, background: palette.background, color: palette.color, padding: "16px 20px", marginBottom: "22px" }}>
+    <div
+      className="card border border-slate-200/80"
+      style={{ ...cardStyle, background: palette.background, color: palette.color, padding: "16px 20px", marginBottom: "22px" }}
+    >
       {text}
     </div>
   );
@@ -781,7 +803,7 @@ function Banner({ text, tone }) {
 
 function HouseholdSelectorInline({ households, pendingHouseholdId, onChange, onConfirm }) {
   return (
-    <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 p-2 shadow-sm" style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
       <select value={pendingHouseholdId} onChange={(event) => onChange(event.target.value)} style={selectStyle}>
         <option value="">Choose household</option>
         {households.map((household) => (
@@ -794,10 +816,9 @@ function HouseholdSelectorInline({ households, pendingHouseholdId, onChange, onC
         type="button"
         onClick={onConfirm}
         disabled={!pendingHouseholdId}
+        className={pendingHouseholdId ? "inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2" : "btn-secondary opacity-60 cursor-not-allowed"}
         style={{
           border: "none",
-          background: pendingHouseholdId ? colors.green : "#b6c3d1",
-          color: "#ffffff",
           padding: "10px 16px",
           borderRadius: "12px",
           cursor: pendingHouseholdId ? "pointer" : "not-allowed",
