@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../services/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiCheck, FiArrowLeft, FiStar, FiAlertCircle, FiX } from "react-icons/fi";
+import { FiCheck, FiArrowLeft, FiArrowRight, FiStar, FiAlertCircle, FiX } from "react-icons/fi";
 
 const SummaryPage = () => {
   const navigate = useNavigate();
