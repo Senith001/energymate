@@ -1,6 +1,13 @@
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 import { validate } from "../middlewares/validate.middleware.js";
-import { idParamRule, monthlyQueryRules } from "./usageValidation.js";
+import { idParamRule } from "./usageValidation.js";
+
+function isFuturePeriod(month, year) {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  return Number(year) > currentYear || (Number(year) === currentYear && Number(month) > currentMonth);
+}
 
 // Validate the billing inputs needed to create a manual bill or seed a generated one.
 const createBillRules = [
@@ -22,6 +29,20 @@ const createBillRules = [
   body("currentReading")
     .optional()
     .isFloat({ min: 0 }).withMessage("currentReading must be a non-negative number"),
+  body().custom((value) => {
+    if (isFuturePeriod(value.month, value.year)) {
+      throw new Error("Billing period cannot be in the future");
+    }
+
+    const hasPreviousReading = value.previousReading !== undefined && value.previousReading !== null;
+    const hasCurrentReading = value.currentReading !== undefined && value.currentReading !== null;
+
+    if (hasPreviousReading && hasCurrentReading && Number(value.currentReading) < Number(value.previousReading)) {
+      throw new Error("currentReading must be >= previousReading");
+    }
+
+    return true;
+  }),
   validate,
 ];
 
@@ -73,6 +94,32 @@ const updateBillRules = [
   body("dueDate")
     .optional()
     .isISO8601().withMessage("dueDate must be a valid ISO-8601 date"),
+  body().custom((value) => {
+    if (value.month !== undefined && value.year !== undefined && isFuturePeriod(value.month, value.year)) {
+      throw new Error("Billing period cannot be in the future");
+    }
+
+    return true;
+  }),
+  validate,
+];
+
+const comparisonQueryRules = [
+  param("householdId")
+    .notEmpty().withMessage("householdId param is required")
+    .isMongoId().withMessage("householdId must be a valid Mongo ID"),
+  query("month")
+    .notEmpty().withMessage("month query param is required")
+    .isInt({ min: 1, max: 12 }).withMessage("month must be 1-12"),
+  query("year")
+    .notEmpty().withMessage("year query param is required")
+    .isInt({ min: 2000, max: 2100 }).withMessage("year must be between 2000 and 2100"),
+  query().custom((value) => {
+    if (isFuturePeriod(value.month, value.year)) {
+      throw new Error("Billing period cannot be in the future");
+    }
+    return true;
+  }),
   validate,
 ];
 
@@ -80,5 +127,5 @@ export {
   createBillRules,
   updateBillRules,
   idParamRule as billIdRule,
-  monthlyQueryRules as comparisonQueryRules,
+  comparisonQueryRules,
 };

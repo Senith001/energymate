@@ -273,10 +273,10 @@ function BillDialog({
               {preview ? <PreviewCard preview={preview} /> : null}
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
-                <button type="button" onClick={onClose} style={buttonStyle("secondary")}>
+                <button type="button" onClick={onClose} className="btn-secondary shadow-sm" style={buttonStyle("secondary")}>
                   Cancel
                 </button>
-                <button type="submit" disabled={submitting || previewLoading} style={{ ...buttonStyle("primary"), opacity: submitting || previewLoading ? 0.7 : 1 }}>
+                <button type="submit" disabled={submitting || previewLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2 disabled:opacity-70" style={{ ...buttonStyle("primary"), opacity: submitting || previewLoading ? 0.7 : 1 }}>
                   {previewLoading ? "Calculating..." : submitting ? "Saving..." : submitLabel}
                 </button>
               </div>
@@ -289,16 +289,17 @@ function BillDialog({
             previewMode
             footer={
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
-                <button type="button" onClick={() => setPreview(null)} style={buttonStyle("secondary")}>
+                <button type="button" onClick={() => setPreview(null)} className="btn-secondary shadow-sm" style={buttonStyle("secondary")}>
                   Back
                 </button>
-                <button type="button" onClick={onClose} style={buttonStyle("secondary")}>
+                <button type="button" onClick={onClose} className="btn-secondary shadow-sm" style={buttonStyle("secondary")}>
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => onSubmit({ ...form, source: form.source, preview })}
                   disabled={submitting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2 disabled:opacity-70"
                   style={{ ...buttonStyle("primary"), opacity: submitting ? 0.7 : 1 }}
                 >
                   {submitting ? "Saving..." : "Save Bill"}
@@ -363,9 +364,6 @@ function buttonStyle(kind) {
     return {
       padding: "11px 18px",
       borderRadius: "12px",
-      border: `1px solid ${colors.border}`,
-      background: "#ffffff",
-      color: colors.text,
       cursor: "pointer",
       fontWeight: "700",
     };
@@ -374,9 +372,6 @@ function buttonStyle(kind) {
   return {
     padding: "11px 18px",
     borderRadius: "12px",
-    border: "none",
-    background: colors.green,
-    color: "#ffffff",
     cursor: "pointer",
     fontWeight: "700",
   };

@@ -421,8 +421,12 @@ function BillingPage() {
     return Array.from(years).sort((a, b) => b - a);
   }, [bills]);
   return (
-    <div style={{ background: colors.background, padding: "10px" }}>
+    <div
+      className="space-y-6 rounded-[28px] border border-slate-200/80 bg-slate-100/80 p-3 sm:p-4"
+      style={{ background: colors.background, padding: "10px" }}
+    >
       <div
+        className="flex flex-wrap items-center justify-between gap-3"
         style={{
           marginBottom: "18px",
           display: "flex",
@@ -432,7 +436,10 @@ function BillingPage() {
           flexWrap: "wrap",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: "32px", fontWeight: "700", lineHeight: 1.2, color: colors.text }}>Billing and Cost Analysis</h1>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Cost Workspace</p>
+          <h1 style={{ margin: 0, fontSize: "32px", fontWeight: "700", lineHeight: 1.2, color: colors.text }}>Billing and Cost Analysis</h1>
+        </div>
         {householdOptions.length > 1 ? (
           // Show the selector only when the user owns multiple households and billing cannot safely guess one.
           <HouseholdSelectorInline
@@ -447,6 +454,7 @@ function BillingPage() {
 
       {householdId ? (
         <div
+          className="card border border-slate-200/80 bg-white/95"
           style={{
             ...cardStyle,
             padding: "18px 22px",
@@ -458,8 +466,10 @@ function BillingPage() {
             flexWrap: "wrap",
           }}
         >
-          <div>
-            <div style={{ color: colors.text, fontSize: "20px", fontWeight: "800", marginBottom: "6px" }}>{householdName}</div>
+          <div className="space-y-1">
+            <div className="text-[22px] font-extrabold leading-tight md:text-[24px]" style={{ color: colors.text, marginBottom: "6px" }}>
+              {householdName}
+            </div>
             <div style={{ color: colors.muted }}>Track recent bills, charges, and monthly cost changes in one place.</div>
           </div>
           <button
@@ -468,10 +478,9 @@ function BillingPage() {
               setCreateDialogError("");
               setCalculatorOpen(true);
             }}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2"
             style={{
               border: "none",
-              background: colors.green,
-              color: "#ffffff",
               padding: "12px 18px",
               borderRadius: "14px",
               display: "flex",
@@ -612,7 +621,7 @@ function ComparisonCard({ comparison }) {
   const isIncrease = Number(difference?.cost || 0) >= 0;
 
   return (
-    <div style={{ ...cardStyle, padding: "24px" }}>
+    <div className="card border border-slate-200/80 bg-white/95" style={{ ...cardStyle, padding: "24px" }}>
       <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", fontWeight: "600", color: colors.text }}>Month Comparison</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
         <SummaryTile label={previous ? formatMonthYear(previous.month, previous.year) : "Previous"} units={previous?.totalUnits} cost={previous?.totalCost} />
@@ -641,7 +650,7 @@ function ComparisonCard({ comparison }) {
 // Reusable compact tile for the comparison card.
 function SummaryTile({ label, units, cost }) {
   return (
-    <div style={{ background: "#f4f7fa", borderRadius: "18px", padding: "18px", textAlign: "center" }}>
+    <div className="rounded-[18px] border border-slate-200/70 bg-slate-50/90 p-[18px] text-center shadow-sm" style={{ background: "#f4f7fa", borderRadius: "18px", padding: "18px", textAlign: "center" }}>
       <div style={{ color: colors.muted, marginBottom: "8px" }}>{label}</div>
       <div style={{ color: colors.text, fontSize: "24px", fontWeight: "800" }}>
         {units != null ? Number(units).toFixed(1) : "-"} <span style={{ fontSize: "14px", fontWeight: "500", color: colors.muted }}>kWh</span>
@@ -654,7 +663,7 @@ function SummaryTile({ label, units, cost }) {
 // Show the tariff slabs that make up the latest visible bill.
 function TariffBreakdownCard({ breakdown, fixedCharge }) {
   return (
-    <div style={{ ...cardStyle, padding: "24px" }}>
+    <div className="card border border-slate-200/80 bg-white/95" style={{ ...cardStyle, padding: "24px" }}>
       <h3 style={{ margin: "0 0 22px 0", fontSize: "18px", fontWeight: "600", color: colors.text }}>Energy Charge Breakdown</h3>
       <div style={{ display: "grid", gap: "12px" }}>
         {breakdown.length ? (
@@ -737,9 +746,12 @@ function PageNotice({ loading, error, householdId, period, billsCount, showSelec
 
 // Shared banner for loading, info, and error notices on the billing page.
 function Banner({ text, tone }) {
-  const palette = tone === "error" ? { background: colors.redSoft, color: colors.red } : { background: colors.blueSoft, color: colors.blue };
+  const palette = tone === "error" ? { background: colors.redSoft, color: colors.red } : { background: colors.greenSoft, color: colors.green };
   return (
-    <div style={{ ...cardStyle, background: palette.background, color: palette.color, padding: "16px 20px", marginBottom: "22px" }}>
+    <div
+      className="card border border-slate-200/80"
+      style={{ ...cardStyle, background: palette.background, color: palette.color, padding: "16px 20px", marginBottom: "22px" }}
+    >
       {text}
     </div>
   );
@@ -747,7 +759,7 @@ function Banner({ text, tone }) {
 
 function HouseholdSelectorInline({ households, pendingHouseholdId, onChange, onConfirm }) {
   return (
-    <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 p-2 shadow-sm" style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
       <select value={pendingHouseholdId} onChange={(event) => onChange(event.target.value)} style={selectorStyle}>
         <option value="">Choose household</option>
         {households.map((household) => (
@@ -760,10 +772,9 @@ function HouseholdSelectorInline({ households, pendingHouseholdId, onChange, onC
         type="button"
         onClick={onConfirm}
         disabled={!pendingHouseholdId}
+        className={pendingHouseholdId ? "inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2" : "btn-secondary opacity-60 cursor-not-allowed"}
         style={{
           border: "none",
-          background: pendingHouseholdId ? colors.green : "#b6c3d1",
-          color: "#ffffff",
           padding: "10px 16px",
           borderRadius: "12px",
           cursor: pendingHouseholdId ? "pointer" : "not-allowed",

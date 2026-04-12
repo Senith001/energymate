@@ -33,7 +33,7 @@ function BreakdownDonut({ title, items, labelKey, helperText, actionLabel, onAct
   let start = 0;
 
   return (
-    <div style={{ ...cardStyle, padding: "24px" }}>
+    <div className="card border border-slate-200/80 bg-white/95" style={{ ...cardStyle, padding: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "22px" }}>
         <div style={{ display: "grid", gap: "6px", flex: 1, minWidth: 0 }}>
           <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: colors.text }}>{title}</h3>
@@ -43,11 +43,10 @@ function BreakdownDonut({ title, items, labelKey, helperText, actionLabel, onAct
           <button
             type="button"
             onClick={onAction}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2"
             // This action is optional so the same card can stay reusable outside the appliance-hours flow.
             style={{
               border: "none",
-              background: colors.green,
-              color: "#ffffff",
               padding: "8px 12px",
               borderRadius: "12px",
               fontWeight: "700",
