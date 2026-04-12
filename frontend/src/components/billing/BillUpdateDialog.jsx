@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { cardStyle, colors } from "../energy/dashboardTheme";
+import { validateBillForm } from "../../utils/billingValidation";
 
 const overlayStyle = {
   position: "fixed",
@@ -33,9 +34,11 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
     previousReading: "",
     currentReading: "",
   });
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     if (open && bill) {
+      setFormError("");
       setForm({
         month: bill.month ?? "",
         year: bill.year ?? "",
@@ -53,10 +56,13 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
     <div style={overlayStyle} onClick={onClose}>
       <div style={{ ...cardStyle, width: "100%", maxWidth: "620px", padding: "24px" }} onClick={(event) => event.stopPropagation()}>
         <h3 style={{ margin: "0 0 18px 0", fontSize: "22px", color: colors.text }}>Update Bill</h3>
-        {submitError ? <InlineError text={submitError} /> : null}
+        {formError || submitError ? <InlineError text={formError || submitError} /> : null}
         <form
           onSubmit={(event) => {
             event.preventDefault();
+            const validationError = validateBillForm(form);
+            setFormError(validationError);
+            if (validationError) return;
             onSubmit(form);
           }}
           style={{ display: "grid", gap: "16px" }}
@@ -139,10 +145,10 @@ function BillUpdateDialog({ open, bill, onClose, onSubmit, submitting, submitErr
           )}
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
-            <button type="button" onClick={onClose} style={buttonStyle("secondary")}>
+            <button type="button" onClick={onClose} className="btn-secondary shadow-sm" style={buttonStyle("secondary")}>
               Cancel
             </button>
-            <button type="submit" disabled={submitting} style={{ ...buttonStyle("primary"), opacity: submitting ? 0.7 : 1 }}>
+            <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2 disabled:opacity-70" style={{ ...buttonStyle("primary"), opacity: submitting ? 0.7 : 1 }}>
               {submitting ? "Saving..." : "Update Bill"}
             </button>
           </div>
@@ -158,9 +164,6 @@ function buttonStyle(kind) {
     return {
       padding: "11px 18px",
       borderRadius: "12px",
-      border: `1px solid ${colors.border}`,
-      background: "#ffffff",
-      color: colors.text,
       cursor: "pointer",
       fontWeight: "700",
     };
@@ -169,9 +172,6 @@ function buttonStyle(kind) {
   return {
     padding: "11px 18px",
     borderRadius: "12px",
-    border: "none",
-    background: colors.green,
-    color: "#ffffff",
     cursor: "pointer",
     fontWeight: "700",
   };

@@ -244,22 +244,23 @@ function AdminBillingPage() {
       }
    }, [billsPage, totalBillPages]);
 
-   return (
-      <div style={{ display: "grid", gap: "24px" }}>
-         <div style={{ display: "grid", gap: "8px" }}>
+  return (
+      <div className="grid gap-6 rounded-[28px] border border-slate-200/80 bg-slate-100/70 p-4">
+         <div className="grid gap-2">
             <div>
                <Link to="/admin/usage-billing" style={backLinkStyle}>
                   <FiArrowLeft size={16} />
                   Back
                </Link>
             </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Admin Workspace</p>
             <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Billing Oversight</h1>
             <p style={{ margin: 0, color: adminColors.muted }}>
                Inspect household bill history, current amounts, and month-over-month changes from the admin portal.
             </p>
          </div>
 
-         <div style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "18px" }}>
+         <div className="card border border-slate-200/80 bg-white/95" style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "18px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(240px, 1.1fr) minmax(260px, 1.4fr) repeat(2, minmax(120px, 140px))", gap: "14px", alignItems: "end" }}>
                <label style={labelStyle}>
                   User
@@ -429,7 +430,7 @@ function AdminBillingPage() {
          </div>
 
          {shouldShowBillingCards ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "18px" }}>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "18px" }}>
                <MetricCard label="Latest Bill" value={latestBill ? formatAdminCurrency(latestBill.totalCost) : "-"} tone="green" />
                <MetricCard label="Latest Period" value={latestBill ? formatAdminMonth(latestBill.month, latestBill.year) : "-"} tone="amber" />
                <MetricCard
@@ -444,7 +445,7 @@ function AdminBillingPage() {
             </div>
          ) : null}
 
-         <div style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "16px" }}>
+         <div className="card border border-slate-200/80 bg-white/95" style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center" }}>
                <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>Bill History</h3>
                <span style={{ color: adminColors.muted, fontSize: "14px" }}>
@@ -495,7 +496,12 @@ function AdminBillingPage() {
                                  <TableCell>{bill.paidAt ? new Date(bill.paidAt).toLocaleDateString("en-US") : "-"}</TableCell>
                                  <TableCell>
                                     <div style={actionRowStyle}>
-                                       <button type="button" onClick={() => setSelectedBill(bill)} style={iconButtonStyle("neutral")}>
+                                       <button
+                                          type="button"
+                                          onClick={() => setSelectedBill(bill)}
+                                          className="btn-secondary shadow-sm"
+                                          style={iconButtonStyle("neutral")}
+                                       >
                                           <FiEye size={16} />
                                           View
                                        </button>
@@ -503,6 +509,7 @@ function AdminBillingPage() {
                                           type="button"
                                           onClick={() => handleDeleteBill(bill._id)}
                                           disabled={deletingBillId === bill._id}
+                                          className="btn-danger shadow-sm disabled:opacity-70"
                                           style={{ ...iconButtonStyle("danger"), opacity: deletingBillId === bill._id ? 0.7 : 1 }}
                                        >
                                           <FiTrash2 size={16} />
@@ -526,6 +533,7 @@ function AdminBillingPage() {
                               type="button"
                               onClick={() => setBillsPage((current) => Math.max(1, current - 1))}
                               disabled={billsPage === 1}
+                              className="btn-secondary shadow-sm disabled:opacity-55"
                               style={{ ...iconButtonStyle("neutral"), opacity: billsPage === 1 ? 0.55 : 1 }}
                            >
                               Previous
@@ -534,6 +542,7 @@ function AdminBillingPage() {
                               type="button"
                               onClick={() => setBillsPage((current) => Math.min(totalBillPages, current + 1))}
                               disabled={billsPage === totalBillPages}
+                              className="btn-secondary shadow-sm disabled:opacity-55"
                               style={{ ...iconButtonStyle("neutral"), opacity: billsPage === totalBillPages ? 0.55 : 1 }}
                            >
                               Next
@@ -559,7 +568,7 @@ function MetricCard({ label, value, tone }) {
    const palette = tonePalettes[tone] || tonePalettes.blue;
 
    return (
-      <div style={{ ...adminCardStyle, padding: "22px", background: palette.background, border: `1px solid ${palette.border}` }}>
+      <div className="rounded-[22px] shadow-sm" style={{ ...adminCardStyle, padding: "22px", background: palette.background, border: `1px solid ${palette.border}` }}>
          <div style={{ color: adminColors.muted, fontSize: "13px", fontWeight: "700", marginBottom: "10px" }}>{label}</div>
          <div style={{ color: adminColors.text, fontSize: "28px", fontWeight: "800" }}>{value}</div>
       </div>
@@ -572,10 +581,10 @@ function Message({ tone, text }) {
          ? { background: "#fee2e2", color: adminColors.accent }
          : tone === "success"
             ? { background: adminColors.greenSoft, color: adminColors.green }
-            : { background: adminColors.blueSoft, color: adminColors.blue };
+            : { background: adminColors.greenSoft, color: adminColors.green };
 
    return (
-      <div style={{ padding: "14px 16px", borderRadius: "16px", background: palette.background, color: palette.color, fontWeight: "600" }}>
+      <div className="rounded-2xl shadow-sm" style={{ padding: "14px 16px", borderRadius: "16px", background: palette.background, color: palette.color, fontWeight: "600" }}>
          {text}
       </div>
    );

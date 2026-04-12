@@ -264,22 +264,23 @@ function AdminUsagePage() {
       }
    }, [entriesPage, totalEntryPages]);
 
-   return (
-      <div style={{ display: "grid", gap: "24px" }}>
-         <div style={{ display: "grid", gap: "8px" }}>
+  return (
+      <div className="grid gap-6 rounded-[28px] border border-slate-200/80 bg-slate-100/70 p-4">
+         <div className="grid gap-2">
             <div>
                <Link to="/admin/usage-billing" style={backLinkStyle}>
                   <FiArrowLeft size={16} />
                   Back
                </Link>
             </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Admin Workspace</p>
             <h1 style={{ margin: 0, color: adminColors.text, fontSize: "32px", fontWeight: "700", lineHeight: 1.2 }}>Usage Monitoring</h1>
             <p style={{ margin: 0, color: adminColors.muted }}>
                Review monthly household usage, estimated cost, and appliance or room breakdowns from the admin portal.
             </p>
          </div>
 
-         <div style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "18px" }}>
+         <div className="card border border-slate-200/80 bg-white/95" style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "18px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1.1fr) minmax(240px, 1.4fr) repeat(3, minmax(110px, 130px))", gap: "14px", alignItems: "end" }}>
                <label style={labelStyle}>
                   User
@@ -460,7 +461,7 @@ function AdminUsagePage() {
 
          {shouldShowUsageCards ? (
             <>
-               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "18px" }}>
+               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "18px" }}>
                   <MetricCard label="Monthly Usage" value={`${Number(summary?.totalUnits || 0).toFixed(1)} kWh`} tone="amber" />
                   <MetricCard
                      label="Estimated Cost"
@@ -471,7 +472,7 @@ function AdminUsagePage() {
                   <MetricCard label="Entries Recorded" value={String(summary?.entryCount || entries.length || 0)} tone="green" />
                </div>
 
-               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "18px" }}>
+               <div className="grid gap-4 xl:grid-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "18px" }}>
                   <BreakdownCard
                      title="Usage by Appliance"
                      items={appliances}
@@ -486,7 +487,7 @@ function AdminUsagePage() {
             </>
          ) : null}
 
-         <div style={{ ...adminCardStyle, padding: "24px" }}>
+         <div className="card border border-slate-200/80 bg-white/95" style={{ ...adminCardStyle, padding: "24px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
                <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>Recent Usage Entries</h3>
                <span style={{ color: adminColors.muted, fontSize: "14px" }}>
@@ -538,6 +539,7 @@ function AdminUsagePage() {
                                        type="button"
                                        onClick={() => handleDeleteUsage(entry._id)}
                                        disabled={deletingUsageId === entry._id}
+                                       className="btn-danger shadow-sm disabled:opacity-70"
                                        style={{ ...usageActionButtonStyle("danger"), opacity: deletingUsageId === entry._id ? 0.7 : 1 }}
                                     >
                                        <FiTrash2 size={16} />
@@ -559,6 +561,7 @@ function AdminUsagePage() {
                               type="button"
                               onClick={() => setEntriesPage((current) => Math.max(1, current - 1))}
                               disabled={entriesPage === 1}
+                              className="btn-secondary shadow-sm disabled:opacity-55"
                               style={{ ...usageActionButtonStyle("neutral"), opacity: entriesPage === 1 ? 0.55 : 1 }}
                            >
                               Previous
@@ -567,6 +570,7 @@ function AdminUsagePage() {
                               type="button"
                               onClick={() => setEntriesPage((current) => Math.min(totalEntryPages, current + 1))}
                               disabled={entriesPage === totalEntryPages}
+                              className="btn-secondary shadow-sm disabled:opacity-55"
                               style={{ ...usageActionButtonStyle("neutral"), opacity: entriesPage === totalEntryPages ? 0.55 : 1 }}
                            >
                               Next
@@ -585,7 +589,7 @@ function MetricCard({ label, value, tone }) {
    const palette = tonePalettes[tone] || tonePalettes.blue;
 
    return (
-      <div style={{ ...adminCardStyle, padding: "22px", background: palette.background, border: `1px solid ${palette.border}` }}>
+      <div className="rounded-[22px] shadow-sm" style={{ ...adminCardStyle, padding: "22px", background: palette.background, border: `1px solid ${palette.border}` }}>
          <div style={{ color: adminColors.muted, fontSize: "13px", fontWeight: "700", marginBottom: "10px" }}>{label}</div>
          <div style={{ color: adminColors.text, fontSize: "28px", fontWeight: "800" }}>{value}</div>
       </div>
@@ -595,7 +599,7 @@ function MetricCard({ label, value, tone }) {
 // Reuse the same card shell for both appliance and room breakdown lists.
 function BreakdownCard({ title, items, emptyText }) {
    return (
-      <div style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "16px" }}>
+      <div className="card border border-slate-200/80 bg-white/95" style={{ ...adminCardStyle, padding: "24px", display: "grid", gap: "16px" }}>
          <h3 style={{ margin: 0, color: adminColors.text, fontWeight: "700", fontSize: "20px" }}>{title}</h3>
          {items.length === 0 ? (
             <Message tone="info" text={emptyText} />
@@ -631,10 +635,10 @@ function Message({ tone, text }) {
          ? { background: adminColors.accentSoft, color: adminColors.accent }
          : tone === "success"
             ? { background: adminColors.greenSoft, color: adminColors.green }
-            : { background: adminColors.blueSoft, color: adminColors.blue };
+            : { background: adminColors.greenSoft, color: adminColors.green };
 
    return (
-      <div style={{ padding: "14px 16px", borderRadius: "16px", background: palette.background, color: palette.color, fontWeight: "600" }}>
+      <div className="rounded-2xl shadow-sm" style={{ padding: "14px 16px", borderRadius: "16px", background: palette.background, color: palette.color, fontWeight: "600" }}>
          {text}
       </div>
    );

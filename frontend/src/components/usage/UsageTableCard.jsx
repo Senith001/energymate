@@ -35,7 +35,7 @@ function UsageTableCard({
   }, [page, totalPages]);
 
   return (
-    <div style={{ ...cardStyle, padding: "24px" }}>
+    <div className="card border border-slate-200/80 bg-white/95" style={{ ...cardStyle, padding: "24px" }}>
       <div
         style={{
           display: "flex",
@@ -72,10 +72,9 @@ function UsageTableCard({
           </select>
           <button
             onClick={onAdd}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2"
             style={{
               border: "none",
-              background: colors.green,
-              color: "#ffffff",
               padding: "12px 18px",
               borderRadius: "14px",
               display: "flex",
@@ -160,6 +159,7 @@ function UsageTableCard({
               type="button"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page === 1}
+              className="btn-secondary shadow-sm disabled:opacity-55"
               style={{ ...pageButtonStyle, opacity: page === 1 ? 0.55 : 1 }}
             >
               Previous
@@ -168,6 +168,7 @@ function UsageTableCard({
               type="button"
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={page === totalPages}
+              className="btn-secondary shadow-sm disabled:opacity-55"
               style={{ ...pageButtonStyle, opacity: page === totalPages ? 0.55 : 1 }}
             >
               Next

@@ -1,5 +1,14 @@
 import { body, param, query } from "express-validator";
 import { validate } from "../middlewares/validate.middleware.js";
+
+function isFutureDate(value) {
+  const selectedDate = new Date(value);
+  const today = new Date();
+  selectedDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return selectedDate > today;
+}
+
 // Validate full usage creation payloads before the controller decides between manual and meter entry flows.
 const createUsageRules = [
   body("householdId")
@@ -7,7 +16,13 @@ const createUsageRules = [
     .isMongoId().withMessage("householdId must be a valid Mongo ID"),
   body("date")
     .notEmpty().withMessage("date is required")
-    .isISO8601().withMessage("date must be a valid ISO-8601 date"),
+    .isISO8601().withMessage("date must be a valid ISO-8601 date")
+    .custom((value) => {
+      if (isFutureDate(value)) {
+        throw new Error("date cannot be in the future");
+      }
+      return true;
+    }),
   body("entryType")
     .optional()
     .isIn(["manual", "meter"]).withMessage("entryType must be 'manual' or 'meter'"),
@@ -34,6 +49,11 @@ const createUsageRules = [
     }
     return true;
   }),
+    if (hasPreviousReading && hasCurrentReading && Number(currentReading) < Number(previousReading)) {
+      throw new Error("currentReading must be >= previousReading");
+    }
+      return true;
+    }),
   validate,
 ];
 
@@ -42,7 +62,13 @@ const updateUsageRules = [
   param("id").isMongoId().withMessage("Invalid usage ID"),
   body("date")
     .optional()
-    .isISO8601().withMessage("date must be a valid ISO-8601 date"),
+    .isISO8601().withMessage("date must be a valid ISO-8601 date")
+    .custom((value) => {
+      if (isFutureDate(value)) {
+        throw new Error("date cannot be in the future");
+      }
+      return true;
+    }),
   body("entryType")
     .optional()
     .isIn(["manual", "meter"]).withMessage("entryType must be 'manual' or 'meter'"),
@@ -120,7 +146,13 @@ const applianceUsageLogCreateRules = [
     .isMongoId().withMessage("applianceId must be a valid Mongo ID"),
   body("date")
     .notEmpty().withMessage("date is required")
-    .isISO8601().withMessage("date must be a valid ISO-8601 date"),
+    .isISO8601().withMessage("date must be a valid ISO-8601 date")
+    .custom((value) => {
+      if (isFutureDate(value)) {
+        throw new Error("date cannot be in the future");
+      }
+      return true;
+    }),
   body("hoursUsed")
     .notEmpty().withMessage("hoursUsed is required")
     .isFloat({ min: 0, max: 24 }).withMessage("hoursUsed must be between 0 and 24"),
@@ -138,7 +170,13 @@ const applianceUsageLogUpdateRules = [
   param("logId").isMongoId().withMessage("Invalid appliance usage log ID"),
   body("date")
     .optional()
-    .isISO8601().withMessage("date must be a valid ISO-8601 date"),
+    .isISO8601().withMessage("date must be a valid ISO-8601 date")
+    .custom((value) => {
+      if (isFutureDate(value)) {
+        throw new Error("date cannot be in the future");
+      }
+      return true;
+    }),
   body("hoursUsed")
     .optional()
     .isFloat({ min: 0, max: 24 }).withMessage("hoursUsed must be between 0 and 24"),
