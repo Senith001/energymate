@@ -151,33 +151,33 @@ const UserManagement = () => {
 
 // --- Styles ---
 const styles = {
-  center: { display: "flex", justifyContent: "center", alignItems: "center", height: "100%", fontSize: "18px", color: "#6b7280" },
-  container: { padding: "30px", backgroundColor: "#f3f4f6", minHeight: "100vh", fontFamily: "'Inter', sans-serif" },
-  header: { marginBottom: "30px" },
-  title: { margin: "0 0 8px 0", fontSize: "28px", color: "#111827", fontWeight: "700" },
-  subtitle: { margin: 0, fontSize: "15px", color: "#6b7280" },
-  errorBox: { padding: "12px", backgroundColor: "#fee2e2", color: "#991b1b", borderRadius: "8px", marginBottom: "20px", border: "1px solid #fecaca" },
-  card: { backgroundColor: "white", borderRadius: "12px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", overflow: "hidden" },
-  toolbar: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px", borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb" },
-  searchBox: { display: "flex", alignItems: "center", backgroundColor: "white", border: "1px solid #d1d5db", borderRadius: "8px", width: "300px", overflow: "hidden" },
-  searchInput: { border: "none", outline: "none", padding: "10px", width: "100%", fontSize: "14px" },
-  userCount: { fontSize: "14px", color: "#4b5563" },
+  center: { display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", fontSize: "18px", color: "#64748b", fontFamily: "'Inter', sans-serif" },
+  container: { padding: "40px", backgroundColor: "#f8fafc", minHeight: "100vh", fontFamily: "'Inter', sans-serif", color: "#0f172a" },
+  header: { marginBottom: "30px", borderBottom: "1px solid #e2e8f0", paddingBottom: "20px" },
+  title: { margin: "0 0 10px 0", fontSize: "32px", color: "#0f172a", fontWeight: "900", letterSpacing: "-0.5px" },
+  subtitle: { margin: 0, fontSize: "15px", color: "#64748b", fontWeight: "500" },
+  errorBox: { padding: "12px", backgroundColor: "#fef2f2", color: "#991b1b", borderRadius: "8px", marginBottom: "20px", border: "1px solid #fee2e2" },
+  card: { backgroundColor: "white", borderRadius: "20px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)", border: "1px solid #e2e8f0", overflow: "hidden" },
+  toolbar: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 30px", borderBottom: "1px solid #e2e8f0", backgroundColor: "white" },
+  searchBox: { display: "flex", alignItems: "center", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", width: "300px", overflow: "hidden", transition: "0.2s" },
+  searchInput: { border: "none", outline: "none", padding: "12px", width: "100%", fontSize: "14px", backgroundColor: "transparent" },
+  userCount: { fontSize: "14px", color: "#64748b", fontWeight: "600" },
   tableContainer: { overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
-  tableHeader: { backgroundColor: "#f3f4f6", color: "#374151", fontSize: "14px", textTransform: "uppercase", letterSpacing: "0.05em" },
-  th: { padding: "15px 20px", fontWeight: "600", borderBottom: "1px solid #e5e7eb" },
-  tableRow: { borderBottom: "1px solid #e5e7eb", transition: "background-color 0.2s" },
-  td: { padding: "15px 20px", color: "#4b5563", fontSize: "15px" },
+  tableHeader: { backgroundColor: "#f8fafc", color: "#475569", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: "700" },
+  th: { padding: "16px 30px", borderBottom: "1px solid #e2e8f0" },
+  tableRow: { borderBottom: "1px solid #f1f5f9", transition: "background-color 0.2s" },
+  td: { padding: "16px 30px", color: "#334155", fontSize: "14px", fontWeight: "500" },
   actionButtons: { display: "flex", gap: "10px" },
-  deleteBtn: { padding: "8px", backgroundColor: "#fee2e2", color: "#dc2626", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer", transition: "0.2s" },
-  noData: { padding: "30px", textAlign: "center", color: "#6b7280" },
+  deleteBtn: { padding: "8px", backgroundColor: "#fef2f2", color: "#ef4444", border: "1px solid #fee2e2", borderRadius: "8px", cursor: "pointer", transition: "0.2s" },
+  noData: { padding: "30px", textAlign: "center", color: "#64748b" },
   
   // Modal Styles
-  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
-  modalContent: { backgroundColor: "white", padding: "30px", borderRadius: "12px", width: "400px", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" },
-  modalActions: { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" },
-  cancelBtn: { padding: "10px 15px", backgroundColor: "white", border: "1px solid #d1d5db", borderRadius: "6px", cursor: "pointer", color: "#374151", fontWeight: "600" },
-  confirmDeleteBtn: { padding: "10px 15px", backgroundColor: "#dc2626", border: "none", borderRadius: "6px", cursor: "pointer", color: "white", fontWeight: "600" }
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
+  modalContent: { backgroundColor: "white", padding: "32px", borderRadius: "20px", width: "400px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", border: "1px solid #e2e8f0" },
+  modalActions: { display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" },
+  cancelBtn: { padding: "10px 16px", backgroundColor: "white", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", color: "#475569", fontWeight: "600" },
+  confirmDeleteBtn: { padding: "10px 16px", backgroundColor: "#ef4444", border: "none", borderRadius: "8px", cursor: "pointer", color: "white", fontWeight: "600", boxShadow: "0 2px 8px rgba(239,68,68,0.25)" }
 };
 
 export default UserManagement;

@@ -6,7 +6,7 @@ function HouseholdPage() {
   const [activeHousehold, setActiveHousehold] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
-  
+
   // Form fields
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
@@ -24,7 +24,7 @@ function HouseholdPage() {
       setLoading(true);
       const response = await api.get("/households");
       setHouseholds(response.data);
-      
+
       if (response.data.length > 0) {
         // Find if we had one previously selected
         const savedId = localStorage.getItem("selectedHouseholdId") || localStorage.getItem("activeHouseholdId");
@@ -170,7 +170,7 @@ function HouseholdPage() {
             Household
           </h1>
           <p style={{ margin: 0, fontSize: "22px", color: "#64748b", display: "flex", alignItems: "center", gap: "10px" }}>
-            Manage your family profile and energy targets 
+            Manage your family profile and energy targets
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
             </svg>
@@ -180,8 +180,8 @@ function HouseholdPage() {
         <button
           onClick={handleEditClick}
           style={{
-            background: "linear-gradient(to right, #10b981, #059669)", 
-            color: "white", 
+            background: "linear-gradient(to right, #10b981, #059669)",
+            color: "white",
             border: "none",
             borderRadius: "20px",
             padding: "18px 32px",
@@ -199,7 +199,7 @@ function HouseholdPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg> 
+              </svg>
               Create Household
             </>
           )}
@@ -220,14 +220,14 @@ function HouseholdPage() {
           </div>
           <h2 style={{ fontSize: "36px", fontWeight: "800", color: "#0f172a" }}>No Active Household</h2>
           <p style={{ fontSize: "20px", color: "#64748b", maxWidth: "500px", margin: "0 auto 40px auto" }}>To start tracking your energy footprint, please set up your primary household profile.</p>
-          <button 
+          <button
             onClick={handleEditClick}
-            style={{ 
-              background: "#059669", 
-              color: "white", 
-              padding: "18px 48px", 
-              border: "none", 
-              borderRadius: "20px", 
+            style={{
+              background: "#059669",
+              color: "white",
+              padding: "18px 48px",
+              border: "none",
+              borderRadius: "20px",
               fontWeight: "700",
               fontSize: "18px",
               cursor: "pointer",
@@ -241,14 +241,14 @@ function HouseholdPage() {
         <>
           <div style={glassPanel}>
             <div style={{ display: "flex", alignItems: "center", gap: "32px", flexWrap: "wrap" }}>
-              <div style={{ 
-                width: "120px", 
-                height: "120px", 
-                borderRadius: "32px", 
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
+              <div style={{
+                width: "120px",
+                height: "120px",
+                borderRadius: "32px",
+                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 fontSize: "60px",
                 color: "white",
                 boxShadow: "0 12px 30px rgba(16, 185, 129, 0.3)"
@@ -286,7 +286,7 @@ function HouseholdPage() {
               <div style={{ color: "#64748b", fontSize: "13px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Status</div>
               <div style={{ fontSize: "24px", fontWeight: "900", color: "#166534" }}>Operational</div>
             </div>
- 
+
             <div style={statCard}>
               <div style={iconCircle("#f5f3ff")}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5b21b6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -299,7 +299,7 @@ function HouseholdPage() {
               <div style={{ color: "#64748b", fontSize: "13px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Occupants</div>
               <div style={{ fontSize: "28px", fontWeight: "900", color: "#5b21b6" }}>{activeHousehold.occupants || 0} Members</div>
             </div>
- 
+
             <div style={statCard}>
               <div style={iconCircle("#fff7ed")}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9a3412" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -351,7 +351,7 @@ function HouseholdPage() {
         <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
           <div style={{ background: "white", padding: "30px", borderRadius: "20px", width: "450px", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
             <h2>{activeHousehold ? "Edit Household" : "Create Household"}</h2>
-            
+
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "20px" }}>
               <div>
                 <label style={{ fontSize: "14px", fontWeight: "700", display: "block", marginBottom: "4px" }}>Household Name</label>
@@ -381,13 +381,13 @@ function HouseholdPage() {
             </div>
 
             <div style={{ marginTop: "30px", display: "flex", gap: "10px" }}>
-              <button 
+              <button
                 onClick={() => setShowPopup(false)}
                 style={{ flex: 1, padding: "14px", borderRadius: "12px", border: "none", background: "#d1d5db", fontWeight: "700", cursor: "pointer" }}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleSaveHousehold}
                 style={{ flex: 1, padding: "14px", borderRadius: "12px", border: "none", background: "#0b8f3a", color: "white", fontWeight: "700", cursor: "pointer" }}
               >
