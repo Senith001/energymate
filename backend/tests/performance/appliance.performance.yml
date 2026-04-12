@@ -1,0 +1,11 @@
+config:
+  target: "http://localhost:5001"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+
+scenarios:
+  - name: "Appliance API load test"
+    flow:
+      - get:
+          url: "/api/appliances"
