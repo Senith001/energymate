@@ -5,8 +5,10 @@ import {
   getMonthlySummary,
   getUsages,
   getUsageByRooms,
-  getUsageByAppliances
+  getUsageByAppliances,
+  getWeatherImpact
 } from "../../utils/usageAPI";
+import { getWeatherRecommendation, getWeatherIconEmoji } from "./tipsForWeather";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ function Dashboard() {
   const [chartData, setChartData] = useState([]);
   const [roomUsageData, setRoomUsageData] = useState([]);
   const [applianceUsageData, setApplianceUsageData] = useState([]);
+  const [weatherData, setWeatherData] = useState(null);
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [hoveredSlice, setHoveredSlice] = useState(null);
   const [hoveredAppliance, setHoveredAppliance] = useState(null);
@@ -72,13 +75,15 @@ function Dashboard() {
       const month = now.getMonth() + 1;
       const year = now.getFullYear();
 
-      const [householdRes, roomsRes, appliancesRes, summaryPayload, roomBreakdownPayload, applianceBreakdownPayload] = await Promise.all([
-        api.get(`/households/${targetId}`),
+      const householdRes = await api.get(`/households/${targetId}`);
+      
+      const [roomsRes, appliancesRes, summaryPayload, roomBreakdownPayload, applianceBreakdownPayload, weatherRes] = await Promise.all([
         api.get(`/households/${targetId}/rooms`),
         api.get(`/households/${targetId}/appliances`),
         getMonthlySummary(targetId, month, year),
         getUsageByRooms(targetId, month, year),
-        getUsageByAppliances(targetId, month, year)
+        getUsageByAppliances(targetId, month, year),
+        getWeatherImpact(targetId, month, year, { city: householdRes.data.city }).catch(() => null)
       ]);
 
       setActiveHousehold(householdRes.data);
@@ -87,6 +92,7 @@ function Dashboard() {
       setUsageSummary(summaryPayload.data);
       setRoomUsageData(roomBreakdownPayload?.data?.breakdown || []);
       setApplianceUsageData(applianceBreakdownPayload?.data?.breakdown || []);
+      setWeatherData(weatherRes?.data?.weather || null);
 
       // Filter and process chart data
       const targetUsages = allUsages.filter(u => u.householdId === targetId || (u.householdId?._id || u.householdId) === targetId);
@@ -225,8 +231,16 @@ function Dashboard() {
           <h1 style={{ fontSize: "56px", fontWeight: "900", margin: "12px 0 8px 0", color: "#0f172a", letterSpacing: "-1px" }}>
             Dashboard
           </h1>
-          <p style={{ fontSize: "22px", color: "#64748b", margin: 0 }}>
-            {activeHousehold.name} <span style={{ color: "#cbd5e1", margin: "0 10px" }}>|</span> {activeHousehold.city}
+          <p style={{ fontSize: "22px", color: "#64748b", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+            {activeHousehold.name} 
+            <span style={{ color: "#cbd5e1", margin: "0 2px" }}>|</span> 
+            {activeHousehold.city}
+            {weatherData && (
+              <span style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "12px", background: "white", padding: "4px 12px", borderRadius: "12px", fontSize: "18px", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+                <span>{getWeatherIconEmoji(weatherData.description)}</span>
+                <span style={{ fontWeight: "800", color: "#0f172a" }}>{Math.round(weatherData.temperature)}°C</span>
+              </span>
+            )}
           </p>
         </div>
         <button
@@ -249,6 +263,26 @@ function Dashboard() {
           Manage Home
         </button>
       </div>
+
+      {weatherData && (
+        <div style={{
+          ...glassPanel,
+          padding: "16px 24px",
+          marginBottom: "48px",
+          display: "flex",
+          alignItems: "center",
+          gap: "16px",
+          background: "linear-gradient(90deg, #f0fdf4 0%, rgba(255,255,255,0.7) 100%)",
+          borderLeft: "6px solid #10b981",
+          borderRadius: "16px 24px 24px 16px"
+        }}>
+          <div style={{ fontSize: "24px" }}>💡</div>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontWeight: "800", color: "#059669", textTransform: "uppercase", fontSize: "12px", letterSpacing: "1px", display: "block", marginBottom: "2px" }}>Recommended Action</span>
+            <p style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#1e293b" }}>{getWeatherRecommendation(weatherData)}</p>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: "24px", marginBottom: "48px", flexWrap: "wrap" }}>
         <div style={statCard()}>
@@ -465,14 +499,14 @@ function Dashboard() {
                         <filter id="premium-shadow" x="-20%" y="-20%" width="140%" height="140%">
                           <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
                           <feOffset dx="0" dy="4" result="offsetblur" />
-                          <feComponentTransfer><feFuncA type="linear" slope="0.3"/></feComponentTransfer>
-                          <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+                          <feComponentTransfer><feFuncA type="linear" slope="0.3" /></feComponentTransfer>
+                          <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                         </filter>
                       </defs>
 
                       {/* Matching the BreakdownDonut style track */}
                       <circle cx="50" cy="50" r="32" fill="none" stroke="#e9edf2" strokeWidth="18" />
-                      
+
                       {roomUsageData.map((r, i) => {
                         const usageColors = ["#2a8c5f", "#fbbf24", "#3b82f6", "#ef4444", "#9d4edd", "#3db7b9"];
                         const totalUnits = roomUsageData.reduce((sum, item) => sum + item.allocatedUsage, 0);
@@ -484,18 +518,18 @@ function Dashboard() {
                         const centerY = 50;
                         const startAngle = (currentOffset / 100) * 360 - 90;
                         const endAngle = startAngle + (percentage * 360);
-                        
+
                         const startRad = (startAngle * Math.PI) / 180;
                         const endRad = (endAngle * Math.PI) / 180;
-                        
+
                         const x1 = centerX + radius * Math.cos(startRad);
                         const y1 = centerY + radius * Math.sin(startRad);
                         const x2 = centerX + radius * Math.cos(endRad);
                         const y2 = centerY + radius * Math.sin(endRad);
-                        
+
                         const largeArcFlag = percentage > 0.5 ? 1 : 0;
                         const d = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
-                        
+
                         currentOffset += (percentage * 100);
                         const isHovered = hoveredSlice === r.roomId;
                         const color = usageColors[i % usageColors.length];
@@ -510,8 +544,8 @@ function Dashboard() {
                             strokeLinecap="butt"
                             onMouseEnter={() => setHoveredSlice(r.roomId)}
                             onMouseLeave={() => setHoveredSlice(null)}
-                            style={{ 
-                              cursor: "pointer", 
+                            style={{
+                              cursor: "pointer",
                               transition: "all 0.3s ease",
                               opacity: !hoveredSlice || isHovered ? 1 : 0.4,
                               transform: isHovered ? "scale(1.02)" : "scale(1)",
@@ -520,7 +554,7 @@ function Dashboard() {
                           />
                         );
                       })}
-                      
+
                       <text x="50" y="46" textAnchor="middle" fill="#64748b" style={{ fontSize: "4.5px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>Total Energy</text>
                       <text x="50" y="58" textAnchor="middle" fill="#0f172a" style={{ fontSize: "11px", fontWeight: "900" }}>
                         {Math.round(total)}
@@ -542,11 +576,11 @@ function Dashboard() {
                 const isHovered = hoveredSlice === r.roomId;
 
                 return (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     onMouseEnter={() => setHoveredSlice(r.roomId)}
                     onMouseLeave={() => setHoveredSlice(null)}
-                    style={{ 
+                    style={{
                       display: "flex", alignItems: "center", gap: "16px", padding: "16px", borderRadius: "24px",
                       background: isHovered ? "white" : "rgba(255,255,255,0.3)",
                       border: "1px solid",
@@ -556,7 +590,7 @@ function Dashboard() {
                       cursor: "pointer"
                     }}
                   >
-                    <div style={{ 
+                    <div style={{
                       width: "52px", height: "52px", borderRadius: "16px", background: roomStyles.color,
                       display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px",
                       boxShadow: `0 8px 15px ${roomStyles.color}88`
@@ -718,7 +752,7 @@ function Dashboard() {
 
       <div style={{ textAlign: "center", marginTop: "80px", borderTop: "1px solid #e2e8f0", paddingTop: "40px" }}>
         <p style={{ color: "#94a3b8", fontSize: "15px", fontWeight: "500" }}>
-          ©️ 2025 <span style={{ color: "#10b981", fontWeight: "800" }}>PowerSave</span> | Dynamic Household Intelligence 🌱
+          © 2025 <span style={{ color: "#10b981", fontWeight: "800" }}>PowerSave</span> | Dynamic Household Intelligence 🌱
         </p>
       </div>
     </div>
