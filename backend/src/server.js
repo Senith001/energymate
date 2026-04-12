@@ -16,6 +16,7 @@ import usageRoutes from "./routes/usageRoutes.js";
 import billRoutes from "./routes/billRoutes.js";
 import tariffRoutes from "./routes/tariffRoutes.js";
 import recommendationRoutes from "./routes/recommendationRoutes.js";
+import postRoutes from "./routes/post.routes.js";
 
 // Middlewares
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
@@ -47,12 +48,13 @@ app.get("/health", (req, res) => {
 
 // User routes
 app.use("/api/users", userRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 // Household system routes
 app.use("/api/households", householdRoutes);
 app.use("/api", roomRoutes);
 app.use("/api", applianceRoutes);
-app.use("/api/feedback", feedbackRoutes);
 app.use("/api/support", supportTicketRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 

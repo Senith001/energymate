@@ -32,34 +32,37 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "14px",
-    background: "rgba(255, 255, 255, 0.05)",
+    background: "white",
     padding: "10px 18px",
     borderRadius: "999px",
-    border: "1px solid #450a0a"
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.02)"
   },
   avatar: {
     width: "46px",
     height: "46px",
     borderRadius: "50%",
-    background: "#ef4444",
+    background: "#ecfdf5",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "26px",
-    color: "white"
+    fontSize: "22px",
   },
   name: {
-    fontSize: "18px",
+    fontSize: "16px",
     fontWeight: "700",
-    color: "#f9fafb",
+    color: "#0f172a",
   },
   logoutBtn: {
     fontSize: "14px",
     color: "#ef4444",
-    background: "none",
-    border: "none",
+    background: "#fef2f2",
+    border: "1px solid #fee2e2",
+    borderRadius: "8px",
+    padding: "6px 14px",
     cursor: "pointer",
-    fontWeight: "bold"
+    fontWeight: "bold",
+    marginLeft: "8px"
   }
 };
 

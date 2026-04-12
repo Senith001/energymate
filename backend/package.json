@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "src/server.js",
   "scripts": {
+    "predev": "npm run kill-port",
     "dev": "nodemon src/server.js",
+    "kill-port": "npx cross-port-killer 5001 || exit 0",
     "start": "node src/server.js",
     "test": "vitest run",
     "test:watch": "vitest",

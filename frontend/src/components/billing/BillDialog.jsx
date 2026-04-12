@@ -161,126 +161,126 @@ function BillDialog({
       >
         {!preview ? (
           <>
-        <h3 style={{ margin: "0 0 18px 0", fontSize: "22px", color: colors.text }}>{title}</h3>
-        {formError || submitError ? <InlineError text={formError || submitError} /> : null}
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
-            <label style={labelStyle}>
-              Month
-              <input
-                style={inputStyle}
-                type="number"
-                min="1"
-                max="12"
-                value={form.month}
-                onChange={(event) => updateForm({ month: event.target.value })}
-              />
-            </label>
-            <label style={labelStyle}>
-              Year
-              <input
-                style={inputStyle}
-                type="number"
-                min="2000"
-                max="2100"
-                value={form.year}
-                onChange={(event) => updateForm({ year: event.target.value })}
-              />
-            </label>
-          </div>
-
-          {calculatorMode ? (
-            <div style={{ display: "grid", gap: "10px" }}>
-              <div style={{ color: colors.text, fontWeight: "600" }}>Calculation Source</div>
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                <button type="button" onClick={() => updateForm({ source: "manual" })} style={pillStyle(form.source === "manual")}>
-                  Enter Details
-                </button>
-                <button type="button" onClick={() => updateForm({ source: "usage" })} style={pillStyle(form.source === "usage")}>
-                  Use Current Usage
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {form.source === "manual" ? (
-            <>
-              <div style={{ display: "grid", gap: "10px" }}>
-                <div style={{ color: colors.text, fontWeight: "600" }}>Entry Mode</div>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <button type="button" onClick={() => updateForm({ mode: "units" })} style={pillStyle(form.mode === "units")}>
-                    Total Units
-                  </button>
-                  <button type="button" onClick={() => updateForm({ mode: "readings" })} style={pillStyle(form.mode === "readings")}>
-                    Meter Readings
-                  </button>
-                </div>
-              </div>
-
-              {form.mode === "readings" ? (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
-                  <label style={labelStyle}>
-                    Previous Reading
-                    <input
-                      style={inputStyle}
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={form.previousReading}
-                      onChange={(event) => updateForm({ previousReading: event.target.value })}
-                    />
-                  </label>
-                  <label style={labelStyle}>
-                    Current Reading
-                    <input
-                      style={inputStyle}
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={form.currentReading}
-                      onChange={(event) => updateForm({ currentReading: event.target.value })}
-                    />
-                  </label>
-                </div>
-              ) : (
+            <h3 style={{ margin: "0 0 18px 0", fontSize: "22px", color: colors.text }}>{title}</h3>
+            {formError || submitError ? <InlineError text={formError || submitError} /> : null}
+            <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
                 <label style={labelStyle}>
-                  Total Units (kWh)
+                  Month
                   <input
                     style={inputStyle}
                     type="number"
-                    min="0"
-                    step="0.1"
-                    value={form.totalUnits}
-                    onChange={(event) => updateForm({ totalUnits: event.target.value })}
+                    min="1"
+                    max="12"
+                    value={form.month}
+                    onChange={(event) => updateForm({ month: event.target.value })}
                   />
                 </label>
+                <label style={labelStyle}>
+                  Year
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    value={form.year}
+                    onChange={(event) => updateForm({ year: event.target.value })}
+                  />
+                </label>
+              </div>
+
+              {calculatorMode ? (
+                <div style={{ display: "grid", gap: "10px" }}>
+                  <div style={{ color: colors.text, fontWeight: "600" }}>Calculation Source</div>
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    <button type="button" onClick={() => updateForm({ source: "manual" })} style={pillStyle(form.source === "manual")}>
+                      Enter Details
+                    </button>
+                    <button type="button" onClick={() => updateForm({ source: "usage" })} style={pillStyle(form.source === "usage")}>
+                      Use Current Usage
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {form.source === "manual" ? (
+                <>
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    <div style={{ color: colors.text, fontWeight: "600" }}>Entry Mode</div>
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                      <button type="button" onClick={() => updateForm({ mode: "units" })} style={pillStyle(form.mode === "units")}>
+                        Total Units
+                      </button>
+                      <button type="button" onClick={() => updateForm({ mode: "readings" })} style={pillStyle(form.mode === "readings")}>
+                        Meter Readings
+                      </button>
+                    </div>
+                  </div>
+
+                  {form.mode === "readings" ? (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
+                      <label style={labelStyle}>
+                        Previous Reading
+                        <input
+                          style={inputStyle}
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={form.previousReading}
+                          onChange={(event) => updateForm({ previousReading: event.target.value })}
+                        />
+                      </label>
+                      <label style={labelStyle}>
+                        Current Reading
+                        <input
+                          style={inputStyle}
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={form.currentReading}
+                          onChange={(event) => updateForm({ currentReading: event.target.value })}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label style={labelStyle}>
+                      Total Units (kWh)
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={form.totalUnits}
+                        onChange={(event) => updateForm({ totalUnits: event.target.value })}
+                      />
+                    </label>
+                  )}
+                </>
+              ) : (
+                <div
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: "14px",
+                    background: colors.blueSoft,
+                    color: colors.text,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  The calculator will estimate this bill from the current saved usage entries for the selected month and year.
+                </div>
               )}
-            </>
-          ) : (
-            <div
-              style={{
-                padding: "14px 16px",
-                borderRadius: "14px",
-                background: colors.blueSoft,
-                color: colors.text,
-                lineHeight: 1.5,
-              }}
-            >
-              The calculator will estimate this bill from the current saved usage entries for the selected month and year.
-            </div>
-          )}
 
-          {preview ? <PreviewCard preview={preview} /> : null}
+              {preview ? <PreviewCard preview={preview} /> : null}
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
-            <button type="button" onClick={onClose} style={buttonStyle("secondary")}>
-              Cancel
-            </button>
-            <button type="submit" disabled={submitting || previewLoading} style={{ ...buttonStyle("primary"), opacity: submitting || previewLoading ? 0.7 : 1 }}>
-              {previewLoading ? "Calculating..." : submitting ? "Saving..." : submitLabel}
-            </button>
-          </div>
-        </form>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
+                <button type="button" onClick={onClose} style={buttonStyle("secondary")}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting || previewLoading} style={{ ...buttonStyle("primary"), opacity: submitting || previewLoading ? 0.7 : 1 }}>
+                  {previewLoading ? "Calculating..." : submitting ? "Saving..." : submitLabel}
+                </button>
+              </div>
+            </form>
           </>
         ) : (
           <BillSummaryContent

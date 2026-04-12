@@ -8,40 +8,51 @@ function AdminSidebar() {
   const { user } = useAuth();
 
   const menuItems = [
-    { name: "Control Center", path: "/admin/dashboard", icon: "" },
-    { name: "User Management", path: "/admin/users", icon: "" },
-    { name: "Household Management", path: "/admin/households", icon: "" },
-    { name: "Feedback", path: "/admin/feedback", icon: "" },
-    { name: "Support Tickets", path: "/admin/support", icon: "" },
-    { name: "System Settings", path: "/admin/settings", icon: "" },
-    { name: "Usage & Billing", path: "/admin/usage-billing", icon: "" },
+    { name: "Control Center", path: "/admin/dashboard", icon: "⚙️" },
+    { name: "User Management", path: "/admin/users", icon: "👥" },
+    { name: "Household Management", path: "/admin/households", icon: "🏠" },
+    { name: "Public Posts", path: "/admin/posts", icon: "📰" },
+    { name: "Feedback", path: "/admin/feedback", icon: "💬" },
+    { name: "Support Tickets", path: "/admin/support", icon: "🎫" },
+    { name: "Usage & Billing", path: "/admin/usage-billing", icon: <FiBarChart2 /> },
+    { name: "System Settings", path: "/admin/settings", icon: "🛠️" },
   ];
 
   return (
     <div style={styles.sidebar}>
-      <h1 style={{ marginBottom: "20px" }}>
-        <span style={{ color: "white" }}>Power</span>
-        <span style={{ color: "#22c55e" }}>Save</span>
-        <span style={styles.adminBadge}>ADMIN</span>
-      </h1>
-
-      <div style={styles.welcomeBox}>
-        <h3>Welcome,</h3>
-        <h2>{user?.name || "Admin"}</h2>
+      <div style={{ marginBottom: "24px", paddingTop: "4px", display: "flex", alignItems: "center", gap: "10px" }}>
+        <img src="/logo.png" alt="EnergyMate" style={{ width: 34, height: 34, borderRadius: 8, objectFit: "cover", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }} />
+        <h1 style={{ margin: 0, fontSize: "18px", fontWeight: "900", display: "flex", alignItems: "center" }}>
+          <div>
+            <span style={{ color: "#0f172a" }}>Energy</span><span style={{ color: "#10b981" }}>Mate</span>
+          </div>
+          <span style={styles.adminBadge}>ADMIN</span>
+        </h1>
       </div>
 
-      {menuItems.map((item) => (
-        <Link
-          key={item.path}
-          to={item.path}
-          style={{
-            ...styles.link,
-            background: location.pathname === item.path ? "#b91c1c" : "transparent",
-          }}
-        >
-          {item.icon} {item.name}
-        </Link>
-      ))}
+      <div style={styles.welcomeBox}>
+        <h3 style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>Welcome,</h3>
+        <h2 style={{ margin: 0, fontSize: "16px", color: "#0f172a", fontWeight: "800" }}>{user?.name || "Admin"}</h2>
+      </div>
+
+      {menuItems.map((item) => {
+        const isActive = location.pathname === item.path;
+        return (
+          <Link
+            key={item.path}
+            to={item.path}
+            style={{
+              ...styles.link,
+              background: isActive ? "#ecfdf5" : "transparent",
+              color: isActive ? "#065f46" : "#64748b",
+              fontWeight: isActive ? "700" : "500",
+              borderLeft: isActive ? "3px solid #10b981" : "3px solid transparent",
+            }}
+          >
+            {item.icon} {item.name}
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -50,33 +61,40 @@ const styles = {
   sidebar: {
     width: "280px",
     minHeight: "100vh",
-    background: "linear-gradient(180deg, #7f1d1d, #450a0a)",
-    color: "white",
+    background: "#ffffff",
+    borderRight: "1px solid #e2e8f0",
+    color: "#0f172a",
     padding: "20px",
-    borderRadius: "0 30px 30px 0",
+    display: "flex",
+    flexDirection: "column",
+    flexShrink: 0,
   },
   adminBadge: {
-    fontSize: "12px",
+    fontSize: "10px",
     marginLeft: "10px",
-    color: "#fca5a5",
-    border: "1px solid #fca5a5",
-    padding: "2px 5px",
-    borderRadius: "4px"
+    color: "#059669",
+    backgroundColor: "#dcfce7",
+    padding: "3px 6px",
+    borderRadius: "6px",
+    fontWeight: "800",
   },
   welcomeBox: {
-    background: "rgba(255,255,255,0.1)",
-    padding: "15px",
-    borderRadius: "20px",
-    marginBottom: "20px",
+    background: "#f8fafc",
+    padding: "16px",
+    borderRadius: "16px",
+    marginBottom: "24px",
+    border: "1px solid #e2e8f0",
   },
   link: {
-    display: "block",
-    padding: "15px",
-    marginBottom: "10px",
-    borderRadius: "15px",
-    color: "white",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "12px 14px",
+    marginBottom: "4px",
+    borderRadius: "12px",
     textDecoration: "none",
-    transition: "0.3s ease",
+    transition: "0.2s ease",
+    fontSize: "14px",
   }
 };
 

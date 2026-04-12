@@ -81,46 +81,52 @@ const AdminDashboard = () => {
   );
 };
 
-// Dark red/burgundy styling to match the Admin theme
+// Clean Crisp Emerald Air styling to match the primary application
 const styles = {
   container: {
-    padding: "30px",
-    backgroundColor: "#1a0505", 
+    padding: "40px",
+    backgroundColor: "#f8fafc", 
     minHeight: "100vh",
-    color: "white",
-    fontFamily: "Arial, sans-serif",
+    color: "#0f172a",
+    fontFamily: "'Inter', sans-serif",
   },
   header: {
     marginBottom: "30px",
-    borderBottom: "1px solid #450a0a", 
+    borderBottom: "1px solid #e2e8f0", 
     paddingBottom: "20px",
   },
   title: {
     margin: "0 0 10px 0",
-    color: "#f87171", 
+    color: "#0f172a", 
+    fontWeight: "900",
+    letterSpacing: "-0.5px",
+    fontSize: "32px",
   },
   subtitle: {
     margin: 0,
-    color: "#fca5a5", 
+    color: "#64748b",
+    fontWeight: "500",
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
     gap: "24px",
   },
   card: {
-    backgroundColor: "#2b0909", 
+    backgroundColor: "white", 
     padding: "24px",
-    borderRadius: "8px",
-    border: "1px solid #450a0a", 
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.5)",
+    borderRadius: "16px",
+    border: "1px solid #e2e8f0", 
+    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.03)",
   },
   cardTitle: {
     marginTop: 0,
-    color: "#f9fafb", 
-    borderBottom: "1px solid #450a0a",
-    paddingBottom: "10px",
+    color: "#0f172a", 
+    borderBottom: "1px solid #e2e8f0",
+    paddingBottom: "16px",
     marginBottom: "20px",
+    fontWeight: "700",
+    fontSize: "16px",
   },
   table: {
     width: "100%",
@@ -128,30 +134,35 @@ const styles = {
     textAlign: "left",
   },
   tableHeader: {
-    backgroundColor: "#450a0a", 
+    backgroundColor: "#f8fafc", 
   },
   th: {
-    padding: "12px",
-    color: "#fca5a5", 
-    fontWeight: "bold",
-    fontSize: "14px",
+    padding: "14px 12px",
+    color: "#475569", 
+    fontWeight: "700",
+    fontSize: "12px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    borderBottom: "1px solid #e2e8f0",
   },
   tableRow: {
-    borderBottom: "1px solid #450a0a",
+    borderBottom: "1px solid #f1f5f9",
+    transition: "background-color 0.2s",
   },
   td: {
-    padding: "12px",
-    color: "#e5e7eb", 
+    padding: "16px 12px",
+    color: "#334155",
     fontSize: "14px",
+    fontWeight: "500",
   },
   badge: {
-    backgroundColor: "rgba(239, 68, 68, 0.15)", 
-    color: "#ef4444",
-    padding: "4px 8px",
-    borderRadius: "4px",
+    backgroundColor: "#ecfdf5", 
+    color: "#10b981",
+    padding: "6px 12px",
+    borderRadius: "99px",
     fontSize: "12px",
-    fontWeight: "bold",
-    border: "1px solid rgba(239, 68, 68, 0.3)",
+    fontWeight: "700",
+    border: "1px solid #dcfce7",
   },
 };
 

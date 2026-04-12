@@ -73,9 +73,9 @@ const AdminHouseholdPage = () => {
         <h3 style={styles.cardTitle}>Registered Households ({totalCount})</h3>
         
         {loading ? (
-          <p style={{ color: "#fca5a5" }}>Loading households...</p>
+          <p style={{ color: "#64748b" }}>Loading households...</p>
         ) : households.length === 0 ? (
-          <p style={{ color: "#fca5a5" }}>No households found in the system.</p>
+          <p style={{ color: "#64748b" }}>No households found in the system.</p>
         ) : (
           <>
             <div style={{ overflowX: "auto" }}>
@@ -209,35 +209,41 @@ const styles = {
   container: {
     padding: "10px",
     backgroundColor: "transparent", 
-    color: "white",
-    fontFamily: "Arial, sans-serif",
+    color: "#0f172a",
+    fontFamily: "'Inter', sans-serif",
   },
   header: {
     marginBottom: "30px",
-    borderBottom: "1px solid #450a0a", 
+    borderBottom: "1px solid #e2e8f0", 
     paddingBottom: "20px",
   },
   title: {
     margin: "0 0 10px 0",
-    color: "#f87171", 
+    color: "#0f172a", 
+    fontWeight: "900",
+    fontSize: "32px",
+    letterSpacing: "-0.5px"
   },
   subtitle: {
     margin: 0,
-    color: "#fca5a5", 
+    color: "#64748b",
+    fontWeight: "500", 
   },
   card: {
-    backgroundColor: "#2b0909", 
-    padding: "24px",
-    borderRadius: "15px",
-    border: "1px solid #450a0a", 
-    boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+    backgroundColor: "white", 
+    padding: "30px",
+    borderRadius: "20px",
+    border: "1px solid #e2e8f0", 
+    boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
   },
   cardTitle: {
     marginTop: 0,
-    color: "#f9fafb", 
-    borderBottom: "1px solid #450a0a",
-    paddingBottom: "15px",
+    color: "#0f172a", 
+    borderBottom: "1px solid #e2e8f0",
+    paddingBottom: "16px",
     marginBottom: "20px",
+    fontWeight: "700",
+    fontSize: "18px",
   },
   table: {
     width: "100%",
@@ -245,62 +251,62 @@ const styles = {
     textAlign: "left",
   },
   tableHeader: {
-    backgroundColor: "#450a0a", 
+    backgroundColor: "#f8fafc", 
   },
   th: {
-    padding: "15px",
-    color: "#fca5a5", 
-    fontWeight: "bold",
-    fontSize: "14px",
+    padding: "16px 12px",
+    color: "#475569", 
+    fontWeight: "700",
+    fontSize: "12px",
     textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    borderBottom: "1px solid #e2e8f0"
   },
   tableRow: {
-    borderBottom: "1px solid #450a0a",
+    borderBottom: "1px solid #f1f5f9",
     transition: "background 0.2s",
   },
   td: {
-    padding: "15px",
-    color: "#e5e7eb", 
-    fontSize: "15px",
+    padding: "16px 12px",
+    color: "#334155", 
+    fontSize: "14px",
+    fontWeight: "500",
   },
   pagination: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: "25px",
-    padding: "15px",
-    background: "rgba(255,255,255,0.03)",
-    borderRadius: "15px",
+    padding: "16px 20px",
+    background: "#f8fafc",
+    borderRadius: "16px",
+    border: "1px solid #e2e8f0"
   },
   pageBtn: {
     padding: "10px 24px",
-    background: "#b91c1c", 
-    color: "white",
-    border: "none",
-    borderRadius: "12px",
+    background: "white", 
+    color: "#0f172a",
+    border: "1px solid #cbd5e1",
+    borderRadius: "10px",
     fontWeight: "700",
     cursor: "pointer",
     transition: "0.2s",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
   },
   pageInfo: {
-    color: "#fca5a5",
-    fontSize: "16px",
-  },
-  badge: {
-    padding: "6px 14px",
-    borderRadius: "8px",
-    fontSize: "13px",
-    fontWeight: "700",
-    display: "inline-block",
+    color: "#475569",
+    fontSize: "14px",
+    fontWeight: "500"
   },
   badgeBtn: {
-    padding: "10px 18px",
-    borderRadius: "12px",
-    fontSize: "14px",
+    padding: "8px 14px",
+    borderRadius: "10px",
+    fontSize: "13px",
     fontWeight: "700",
     border: "none",
     cursor: "pointer",
     transition: "transform 0.1s",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.05)"
   },
   modalOverlay: {
     position: "fixed",
@@ -308,43 +314,45 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
-    backdropFilter: "blur(5px)",
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    backdropFilter: "blur(6px)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
   },
   modalContent: {
-    backgroundColor: "#2b0909",
+    backgroundColor: "white",
     width: "70%",
     maxWidth: "800px",
     maxHeight: "80vh",
     borderRadius: "24px",
-    padding: "30px",
-    border: "1px solid #450a0a",
+    padding: "36px",
+    border: "1px solid #e2e8f0",
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+    boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
   },
   modalHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: "20px",
-    borderBottom: "1px solid #450a0a",
-    paddingBottom: "15px",
+    borderBottom: "1px solid #e2e8f0",
+    paddingBottom: "16px",
+    color: "#0f172a"
   },
   modalBody: {
     flex: 1,
     overflowY: "auto",
     padding: "10px 0",
+    color: "#334155"
   },
   closeBtn: {
     background: "none",
     border: "none",
-    color: "#fca5a5",
+    color: "#64748b",
     fontSize: "32px",
     cursor: "pointer",
     lineHeight: 1,

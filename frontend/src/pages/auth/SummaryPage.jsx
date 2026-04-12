@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../services/api";
-import { BsX, BsStarFill } from "react-icons/bs"; 
+import { motion, AnimatePresence } from "framer-motion";
+import { FiCheck, FiArrowLeft, FiStar, FiAlertCircle, FiX } from "react-icons/fi";
 
 const SummaryPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const formData = location.state?.formData;
 
-  // Protect route: If someone navigates here directly without data, send them back
   useEffect(() => {
     if (!formData) {
       navigate("/register");
@@ -27,27 +27,18 @@ const SummaryPage = () => {
 
     try {
       const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`;
-
       await api.post("/users/register", {
         name: fullName,
         email: formData.email,
         password: formData.password,
         phone: formData.phone 
       });
-
-      // Navigate to OTP upon successful registration creation
       navigate("/verify-otp", { state: { email: formData.email } });
-      
     } catch (err) {
-      const responseData = err.response?.data;
-      const serverMessage = responseData?.message || "";
-
-      // Trigger the Modal if email exists
+      const serverMessage = err.response?.data?.message || "";
       if (serverMessage.toLowerCase().includes("already registered") || serverMessage.toLowerCase().includes("exists")) {
         setErrorModal({ show: true, message: serverMessage });
-      } 
-      // Generic fallback
-      else {
+      } else {
         setGlobalError(serverMessage || "Cannot connect to the server. Please try again later.");
       }
     } finally {
@@ -55,156 +46,174 @@ const SummaryPage = () => {
     }
   };
 
-  const handleBack = () => {
-    // Navigate back to register and pass the form data so inputs remain filled
-    navigate("/register", { state: { formData } });
-  };
-
-  if (!formData) return null; // Prevent rendering if redirecting
+  if (!formData) return null;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.splitCard}>
-        
-        {/* LEFT PANEL */}
-        <div style={styles.leftPanel}>
-          <h1 style={styles.brandTitle}>⚡ ENERGYMATE</h1>
-          <h2 style={styles.welcomeTitle}>Welcome to EnergyMate</h2>
-          <p style={styles.welcomeText}>
-            Join us to track your electricity usage, manage your household appliances, and reduce your energy bills efficiently.
-          </p>
-        </div>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-[-5%] left-[-5%] w-96 h-96 bg-emerald-100/50 rounded-full blur-3xl" />
+      <div className="absolute bottom-[-5%] right-[-5%] w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl" />
 
-        {/* RIGHT PANEL */}
-        <div style={styles.rightPanel}>
-          {/* Progress Indicator - Step 2 */}
-          <div style={styles.progressRow}>
-            <div style={{...styles.progressLine, background: "#1d4ed8"}}></div>
-            <div style={{...styles.progressLine, background: "#1d4ed8"}}></div>
-            <div style={styles.progressLine}></div>
-          </div>
-
-        <h2 style={styles.title}>Summary</h2>
-        <p style={styles.subtitle}>Please check the information is correct before continue</p>
-
-        {/* Member Badge Area */}
-        <div style={styles.badgeArea}>
-          <div style={styles.badgeIcon}>
-            <BsStarFill color="#60a5fa" size={20} />
-          </div>
-          <span style={styles.badgeText}>Standard Account</span>
-        </div>
-
-        {globalError && <div style={styles.globalErrorBox}>{globalError}</div>}
-
-        {/* Data Grid */}
-        <div style={styles.grid}>
-          <div style={styles.dataBlock}>
-            <span style={styles.dataLabel}>First name</span>
-            <span style={styles.dataValue}>{formData.firstName.toUpperCase()}</span>
-          </div>
-          <div style={styles.dataBlock}>
-            <span style={styles.dataLabel}>Last name</span>
-            <span style={styles.dataValue}>{formData.lastName.toUpperCase()}</span>
-          </div>
-          <div style={styles.dataBlock}>
-            <span style={styles.dataLabel}>Mobile number</span>
-            <span style={styles.dataValue}>+94 {formData.phone}</span>
-          </div>
-          <div style={styles.dataBlock}>
-            <span style={styles.dataLabel}>Email</span>
-            <span style={styles.dataValue}>{formData.email}</span>
-          </div>
-        </div>
-
-        {/* Terms & Conditions */}
-        <div style={styles.termsWrapper}>
-          <input 
-            type="checkbox" 
-            id="terms" 
-            checked={termsAccepted}
-            onChange={(e) => setTermsAccepted(e.target.checked)}
-            style={styles.checkbox}
-          />
-          <label htmlFor="terms" style={styles.termsLabel}>
-            I agree to the <span style={styles.linkText}>terms and conditions</span>
-          </label>
-        </div>
-
-        {/* Action Buttons */}
-        <div style={styles.actionRow}>
-          <button onClick={handleBack} disabled={isLoading} style={styles.backBtn}>Back</button>
-          <button 
-            onClick={handleRegister} 
-            disabled={!termsAccepted || isLoading} 
-            style={{...styles.registerBtn, opacity: (!termsAccepted || isLoading) ? 0.7 : 1}}
-          >
-            {isLoading ? "Processing..." : "Register"}
-          </button>
-        </div>
-        </div>
-      </div>
-
-      {/* ✅ POPUP MODAL FOR 'ALREADY REGISTERED' ERRORS */}
-      {errorModal.show && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-              <button onClick={() => setErrorModal({ show: false, message: "" })} style={styles.closeBtn}>
-                <BsX size={28} />
-              </button>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-6xl w-full bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.06)] border border-slate-100 overflow-hidden flex flex-col md:flex-row z-10"
+      >
+        {/* Left Side: Visual/Context */}
+        <div className="hidden md:flex md:w-5/12 bg-slate-50 items-center justify-center p-12 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 to-transparent opacity-60" />
+          <div className="relative z-10 flex flex-col items-center">
+             <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <img src="/assets/auth_register_hero.png" alt="Check Information" className="w-full h-auto max-w-[280px]" />
+            </motion.div>
+            <div className="mt-12 text-center space-y-3 px-4">
+              <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight">Review Your Profile</h3>
+              <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                Check if your provided details are correct before initializing your energy dashboard.
+              </p>
             </div>
-            <div style={styles.modalBody}>
-              <div style={styles.errorCircle}>
-                <BsX size={40} color="white" />
+          </div>
+        </div>
+
+        {/* Right Side: Summary Body */}
+        <div className="w-full md:w-7/12 p-8 lg:p-14">
+          {/* Progress Indicator */}
+          <div className="flex gap-2 mb-10">
+            <div className="h-1.5 flex-1 bg-emerald-600 rounded-full" />
+            <div className="h-1.5 flex-1 bg-emerald-600 rounded-full" />
+            <div className="h-1.5 flex-1 bg-slate-100 rounded-full" />
+          </div>
+
+          <div className="mb-10 text-center md:text-left">
+            <div className="flex items-center gap-3 mb-6 transition-all">
+              <img src="/logo.png" alt="EnergyMate Logo" className="w-10 h-10 rounded-xl shadow-[0_4px_16px_rgba(16,185,129,0.2)]" />
+              <h1 className="text-xl font-black text-slate-900 tracking-tighter">
+                ENERGYMATE
+              </h1>
+            </div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Final Summary</h2>
+            <p className="text-slate-500 font-medium mt-2">Almost there! Review and confirm your information.</p>
+          </div>
+
+          {globalError && (
+            <div className="mb-8 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-bold text-center">
+              {globalError}
+            </div>
+          )}
+
+          {/* Member Card */}
+          <div className="bg-emerald-50/50 border border-emerald-100 rounded-[2rem] p-6 mb-10 flex items-center gap-5">
+            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
+               <FiStar className="w-7 h-7 fill-emerald-600" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest">Account Type</p>
+              <h4 className="text-lg font-black text-slate-900">Standard Member</h4>
+            </div>
+          </div>
+
+          {/* Data Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10">
+            <div className="space-y-1">
+              <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">Full Name</p>
+              <p className="text-base font-black text-slate-800">{formData.firstName} {formData.lastName}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">Mobile Number</p>
+              <p className="text-base font-black text-slate-800">+94 {formData.phone}</p>
+            </div>
+            <div className="space-y-1 sm:col-span-2 border-t border-slate-50 pt-4">
+              <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">Email Address</p>
+              <p className="text-base font-black text-slate-800">{formData.email}</p>
+            </div>
+          </div>
+
+          {/* Terms */}
+          <div className="flex items-center gap-3 mb-10">
+            <label className="relative flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="w-6 h-6 bg-slate-100 border-2 border-slate-200 rounded-lg peer-checked:bg-emerald-600 peer-checked:border-emerald-600 transition-all flex items-center justify-center">
+                <FiCheck className="text-white w-4 h-4" />
               </div>
-              <h3 style={styles.modalMessage}>{errorModal.message}</h3>
-            </div>
+            </label>
+            <p className="text-sm font-medium text-slate-500">
+              I agree to the <span className="text-emerald-600 font-bold hover:underline cursor-pointer">Terms & Conditions</span>
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+               onClick={() => navigate("/register", { state: { formData } })}
+               disabled={isLoading}
+               className="flex-1 py-4 px-6 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+            >
+              <FiArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              <span>Edit Details</span>
+            </button>
+            <button
+              onClick={handleRegister}
+              disabled={!termsAccepted || isLoading}
+              className="flex-[1.5] py-4 px-6 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                  <>
+                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <span>Initialize Account</span>
+                  <FiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
           </div>
         </div>
-      )}
+      </motion.div>
 
+      {/* Error Modal */}
+      <AnimatePresence>
+        {errorModal.show && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setErrorModal({ show: false, message: "" })}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              className="relative w-full max-w-md bg-white rounded-[2rem] p-8 shadow-2xl flex flex-col items-center text-center"
+            >
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-6">
+                 <FiAlertCircle className="w-10 h-10" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">Registration Issue</h3>
+              <p className="text-slate-500 font-medium mb-8 leading-relaxed">{errorModal.message}</p>
+              <button
+                onClick={() => setErrorModal({ show: false, message: "" })}
+                className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-colors"
+              >
+                Close Window
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
-};
-
-// --- STYLES ---
-const styles = {
-  container: { display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "#ffffff", padding: "20px", fontFamily: "'Inter', Arial, sans-serif" }, // White background
-  splitCard: { display: "flex", width: "100%", maxWidth: "1000px", background: "linear-gradient(135deg, #0ea5e9, #0284c7)", borderRadius: "16px", overflow: "hidden", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", minHeight: "550px" },
-  leftPanel: { flex: 1, padding: "50px", color: "white", display: "flex", flexDirection: "column", justifyContent: "center" },
-  brandTitle: { fontSize: "24px", fontWeight: "800", letterSpacing: "1px", marginBottom: "40px" },
-  welcomeTitle: { fontSize: "32px", fontWeight: "700", marginBottom: "15px", lineHeight: "1.2" },
-  welcomeText: { fontSize: "16px", lineHeight: "1.6", color: "#e0f2fe" },
-  rightPanel: { flex: 1.3, padding: "40px 50px", display: "flex", flexDirection: "column", backgroundColor: "white", borderRadius: "12px", margin: "10px" }, // Inner white card
-  progressRow: { display: "flex", gap: "8px", marginBottom: "30px" },
-  progressLine: { height: "5px", flex: 1, backgroundColor: "#e2e8f0", borderRadius: "4px" },
-  title: { margin: "0 0 5px 0", fontSize: "22px", color: "#1e3a8a", fontWeight: "700" },
-  subtitle: { margin: "0 0 30px 0", fontSize: "14px", color: "#64748b" },
-  badgeArea: { display: "flex", alignItems: "center", gap: "15px", paddingBottom: "30px", borderBottom: "1px solid #f1f5f9", marginBottom: "30px" },
-  badgeIcon: { width: "45px", height: "45px", borderRadius: "50%", backgroundColor: "#eff6ff", border: "2px solid #93c5fd", display: "flex", justifyContent: "center", alignItems: "center" },
-  badgeText: { fontSize: "16px", color: "#1e3a8a", fontWeight: "600" },
-  grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px", marginBottom: "40px" },
-  dataBlock: { display: "flex", flexDirection: "column", gap: "6px" },
-  dataLabel: { fontSize: "13px", color: "#64748b", fontWeight: "500" },
-  dataValue: { fontSize: "16px", color: "#0f172a", fontWeight: "600" },
-  termsWrapper: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "40px" },
-  checkbox: { width: "18px", height: "18px", cursor: "pointer" },
-  termsLabel: { fontSize: "14px", color: "#64748b", cursor: "pointer" },
-  linkText: { color: "#1d4ed8", fontWeight: "600" },
-  actionRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  backBtn: { padding: "12px 35px", backgroundColor: "white", color: "#1e3a8a", border: "1px solid #1e3a8a", borderRadius: "8px", fontSize: "15px", fontWeight: "600", cursor: "pointer" },
-  registerBtn: { padding: "12px 35px", backgroundColor: "#1d4ed8", color: "white", border: "none", borderRadius: "8px", fontSize: "15px", fontWeight: "600", cursor: "pointer", transition: "0.2s" },
-  globalErrorBox: { padding: "12px", backgroundColor: "#fee2e2", color: "#991b1b", borderRadius: "8px", marginBottom: "20px", fontSize: "14px", textAlign: "center", border: "1px solid #fecaca" },
-
-  // Modal Styles
-  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.4)", zIndex: 2000, display: "flex", justifyContent: "center", alignItems: "center", backdropFilter: "blur(4px)" },
-  modalContent: { backgroundColor: "white", borderRadius: "16px", width: "90%", maxWidth: "450px", padding: "20px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" },
-  modalHeader: { display: "flex", justifyContent: "flex-end" },
-  closeBtn: { background: "none", border: "none", color: "#6b7280", cursor: "pointer", padding: "5px" },
-  modalBody: { display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 20px 40px" },
-  errorCircle: { width: "70px", height: "70px", backgroundColor: "#dc2626", borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "25px", boxShadow: "0 4px 10px rgba(220, 38, 38, 0.3)" },
-  modalMessage: { margin: 0, fontSize: "20px", color: "#374151", textAlign: "center", fontWeight: "600" }
 };
 
 export default SummaryPage;
