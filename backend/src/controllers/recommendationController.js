@@ -4,8 +4,7 @@ import rf from "../utils/responseFormatter.js";
 import Household from "../models/Household.js";
 import Bill from "../models/bill.js";
 import Appliance from "../models/Appliance.js";
-import RecommendationTemplate from "../models/RecommendationTemplate.js";
-import RecommendationStatus from "../models/RecommendationStatus.js";
+import Recommendation from "../models/Recommendation.js";
 
 import {
   getEnergyTipsFromGemini,
@@ -13,23 +12,29 @@ import {
   getPredictionFromGemini,
 } from "../services/geminiService.js";
 
-/* ===================== HELPERS ===================== */
+import {
+  cacheGet,
+  cacheSet,
+  checkCooldown,
+  setCooldown,
+  cacheInvalidate,
+} from "../utils/aiCache.js";
+
+/* ═══════════════════════════════════════════════════════╗
+   HELPERS
+╚══════════════════════════════════════════════════════ */
 function getUserId(req) {
-  // support both styles: _id (mongoose) OR id (string)
   return req.user?._id || req.user?.id || null;
 }
 
 export async function verifyHouseholdOwnership(householdId, userId) {
   if (!mongoose.Types.ObjectId.isValid(householdId)) return null;
-
   const household = await Household.findById(householdId).lean();
   if (!household) return null;
 
   const ownerId = household.userId?.toString();
   const requesterId = userId?.toString();
-
-  if (!ownerId || !requesterId) return null;
-  if (ownerId !== requesterId) return null;
+  if (!ownerId || !requesterId || ownerId !== requesterId) return null;
 
   return household;
 }
@@ -40,7 +45,6 @@ async function buildAiInputs(householdId) {
       .sort({ year: 1, month: 1 })
       .select("month year totalUnits totalCost previousReading currentReading")
       .lean(),
-    
     Appliance.find({ householdId })
       .select("name wattage quantity defaultHoursPerDay category efficiencyRating")
       .lean(),
@@ -57,258 +61,288 @@ async function buildAiInputs(householdId) {
 
   const applianceUsage = appliances.map((a) => ({
     name: a?.name ?? "Unknown",
-    // these may be undefined if schema doesn't have them - that's OK
     category: a?.category ?? null,
     wattage: typeof a?.wattage === "number" ? a.wattage : null,
     quantity: typeof a?.quantity === "number" ? a.quantity : 1,
-    usedHoursPerDay:
-      typeof a?.defaultHoursPerDay === "number" ? a.defaultHoursPerDay : 0,
+    usedHoursPerDay: typeof a?.defaultHoursPerDay === "number" ? a.defaultHoursPerDay : 0,
     efficiencyRating: a?.efficiencyRating ?? null,
   }));
 
   return { billHistory, applianceUsage };
 }
 
-/* =====================
-   AI ENDPOINTS
-   Base: /api/recommendations/households/:householdId/ai/...
-===================== */
+/** Shared error handler for AI endpoints. */
+function handleAiError(res, err, context = "AI request") {
+  const msg = String(err?.message || "Unknown error");
+  console.error(`❌ ${context}:`, msg);
 
+  if (err?.isQuotaError || msg.includes("429") || msg.includes("quota") || msg.includes("Too Many Requests")) {
+    return rf.error(res, "Gemini API quota exceeded. Please wait a moment and try again.", 429, msg);
+  }
+  if (msg.includes("No usage data") || msg.includes("Not enough") || msg.includes("We need at least one month")) {
+    return rf.error(res, msg, 400);
+  }
+  return rf.error(res, `${context} failed. Please try again.`, 502, msg);
+}
+
+/** Sets cache headers so the frontend knows if the response is fresh or cached. */
+function setCacheHeaders(res, cacheHit, ageMs = 0) {
+  res.setHeader("X-Cache", cacheHit ? "HIT" : "MISS");
+  res.setHeader("X-Cache-Age", cacheHit ? Math.round(ageMs / 1000) : 0);
+  res.setHeader("X-Cache-TTL", "21600"); // 6 hours
+}
+
+/* ═══════════════════════════════════════════════════════╗
+   AI ENDPOINTS — with cache + cooldown
+╚══════════════════════════════════════════════════════ */
+
+// POST /api/recommendations/households/:householdId/ai/tips
 export async function generateEnergyTips(req, res) {
   try {
     const { householdId } = req.params;
-
     const userId = getUserId(req);
     if (!userId) return rf.error(res, "Unauthorized", 401);
 
     const household = await verifyHouseholdOwnership(householdId, userId);
     if (!household) return rf.error(res, "Household not found or access denied", 403);
 
-    const { billHistory, applianceUsage } = await buildAiInputs(householdId);
-    if (!billHistory.length) return rf.error(res, "No bill history found", 404);
-
-    const tips = await getEnergyTipsFromGemini(billHistory, applianceUsage);
-    return rf.success(res, { tips }, "Energy tips generated");
-  } catch (err) {
-    const msg = String(err?.message || "");
-    if (msg.includes("429") || msg.includes("Too Many Requests") || msg.includes("quota")) {
-      return rf.error(res, "Gemini quota/rate limit exceeded. Try again in a few seconds.", 429, msg);
+    // ── Serve from cache ─────────────────────────────────
+    const cached = cacheGet(householdId, "tips");
+    if (cached) {
+      setCacheHeaders(res, true, cached.ageMs);
+      return rf.success(res, {
+        tips: cached.data,
+        generatedAt: new Date(cached.generatedAt).toISOString(),
+        fromCache: true,
+      }, "Energy tips fetched from cache");
     }
-    return rf.error(res, "Gemini AI failed to generate energy-saving tips", 502, msg);
+
+    // ── Cooldown check ────────────────────────────────────
+    const cooldownCheck = checkCooldown(householdId, "tips");
+    if (cooldownCheck) {
+      return rf.error(
+        res,
+        `Please wait ${Math.ceil(cooldownCheck.retryAfterMs / 1000)} seconds before generating new tips.`,
+        429
+      );
+    }
+
+    // ── Build inputs ──────────────────────────────────────
+    const { billHistory, applianceUsage } = await buildAiInputs(householdId);
+    if (!billHistory.length) {
+      return rf.error(res, "No billing records found. Please add your electricity bills first.", 400);
+    }
+
+    // ── Call Gemini ───────────────────────────────────────
+    setCooldown(householdId, "tips");
+    const tips = await getEnergyTipsFromGemini(billHistory, applianceUsage);
+    
+    // Save to history
+    await Recommendation.create({
+      householdId,
+      type: "tips",
+      tips: tips.map(t => ({
+        title: t.title,
+        description: t.recommendation, // Map AI recommendation field to model description
+        learnMore: t.learnMore
+      })),
+      generatedBy: userId
+    });
+
+    cacheSet(householdId, "tips", tips);
+
+    const now = new Date().toISOString();
+    setCacheHeaders(res, false);
+    return rf.success(res, { tips, generatedAt: now, fromCache: false }, "Energy tips generated and saved to history");
+
+  } catch (err) {
+    return handleAiError(res, err, "Energy tips");
   }
 }
 
+// POST /api/recommendations/households/:householdId/ai/strategies
 export async function generateCostStrategies(req, res) {
   try {
     const { householdId } = req.params;
-
     const userId = getUserId(req);
     if (!userId) return rf.error(res, "Unauthorized", 401);
 
     const household = await verifyHouseholdOwnership(householdId, userId);
     if (!household) return rf.error(res, "Household not found or access denied", 403);
 
+    // ── Serve from cache ─────────────────────────────────
+    const cached = cacheGet(householdId, "strategies");
+    if (cached) {
+      setCacheHeaders(res, true, cached.ageMs);
+      return rf.success(res, {
+        strategy: cached.data,
+        generatedAt: new Date(cached.generatedAt).toISOString(),
+        fromCache: true,
+      }, "Cost strategy fetched from cache");
+    }
+
+    // ── Cooldown check ────────────────────────────────────
+    const cooldownCheck = checkCooldown(householdId, "strategies");
+    if (cooldownCheck) {
+      return rf.error(
+        res,
+        `Please wait ${Math.ceil(cooldownCheck.retryAfterMs / 1000)} seconds before generating a new strategy.`,
+        429
+      );
+    }
+
+    // ── Build inputs ──────────────────────────────────────
     const { billHistory, applianceUsage } = await buildAiInputs(householdId);
-    if (!billHistory.length) return rf.error(res, "No bill history found", 404);
+    if (!billHistory.length) {
+      return rf.error(res, "No billing records found. Please add your electricity bills first.", 400);
+    }
 
+    // ── Call Gemini ───────────────────────────────────────
+    setCooldown(householdId, "strategies");
     const strategy = await getCostStrategiesFromGemini(billHistory, applianceUsage);
-    return rf.success(res, { strategy }, "Cost strategy generated");
+    
+    // Save to history
+    await Recommendation.create({
+      householdId,
+      type: "strategy",
+      strategies: [{
+        title: strategy.title,
+        summary: strategy.summary,
+        details: strategy.details,
+        problem: strategy.problem || "High consumption",
+        strategy: strategy.summary,
+        controls: strategy.details
+      }],
+      generatedBy: userId
+    });
+
+    cacheSet(householdId, "strategies", strategy);
+
+    const now = new Date().toISOString();
+    setCacheHeaders(res, false);
+    return rf.success(res, { strategy, generatedAt: now, fromCache: false }, "Cost strategy generated and saved to history");
+
   } catch (err) {
-    const msg = String(err?.message || "");
-    const raw = err?.raw || err?.failures || null; 
-
-    
-    if (msg.includes("429") || msg.includes("Too Many Requests") || msg.includes("quota")) {
-      return rf.error(res, "Gemini quota/rate limit exceeded. Try again later.", 429, msg);
-    }
-
-    
-    const looksLikeTruncate =
-      msg.toLowerCase().includes("unexpected end of json") ||
-      msg.toLowerCase().includes("unexpected end of input") ||
-      msg.toLowerCase().includes("non-json") ||
-      msg.toLowerCase().includes("invalid strategy") ||
-      msg.toLowerCase().includes("gemini failed to generate cost strategy");
-
-    if (looksLikeTruncate) {
-      
-      return rf.error(
-        res,
-        "AI cost strategy generation failed due to invalid provider output. Please try again.",
-        502,
-        raw ? String(raw) : msg
-      );
-    }
-
-    
-    if (msg.includes("Gemini failed")) {
-      return rf.error(
-        res,
-        "AI cost strategy generation temporarily unavailable due to provider limitations",
-        503,
-        JSON.stringify({
-          provider: "Gemini",
-          note: "Energy tips and predictions are available",
-          detail: msg,
-        })
-      );
-    }
-
-    // Default
-    return rf.error(res, "Failed to generate strategies", 502, msg);
+    return handleAiError(res, err, "Cost strategy");
   }
 }
+
+// POST /api/recommendations/households/:householdId/ai/predictions
 export async function generatePredictions(req, res) {
   try {
     const { householdId } = req.params;
-
     const userId = getUserId(req);
     if (!userId) return rf.error(res, "Unauthorized", 401);
 
     const household = await verifyHouseholdOwnership(householdId, userId);
     if (!household) return rf.error(res, "Household not found or access denied", 403);
 
+    // ── Serve from cache ─────────────────────────────────
+    const cached = cacheGet(householdId, "predictions");
+    if (cached) {
+      setCacheHeaders(res, true, cached.ageMs);
+      return rf.success(res, {
+        prediction: cached.data,
+        generatedAt: new Date(cached.generatedAt).toISOString(),
+        fromCache: true,
+      }, "Predictions fetched from cache");
+    }
+
+    // ── Cooldown check ────────────────────────────────────
+    const cooldownCheck = checkCooldown(householdId, "predictions");
+    if (cooldownCheck) {
+      return rf.error(
+        res,
+        `Please wait ${Math.ceil(cooldownCheck.retryAfterMs / 1000)} seconds before generating new predictions.`,
+        429
+      );
+    }
+
+    // ── Build inputs ──────────────────────────────────────
     const bills = await Bill.find({ householdId })
       .sort({ year: 1, month: 1 })
-      .select("month year totalUnits")
+      .select("month year totalUnits totalCost")
       .lean();
 
-    if (!bills.length) return rf.error(res, "No bill history found", 404);
+    if (!bills.length) {
+      return rf.error(res, "No billing records found. Please add your electricity bills first.", 400);
+    }
 
     const billHistory = bills.map((b) => ({
       month: b.month,
       year: b.year,
-      consumption: b.totalUnits,
+      totalUnits: b.totalUnits,
+      totalCost: b.totalCost,
     }));
 
+    // ── Call Gemini ───────────────────────────────────────
+    setCooldown(householdId, "predictions");
     const prediction = await getPredictionFromGemini(billHistory);
-    return rf.success(res, { prediction }, "Prediction generated");
-  } catch (err) {
-    const msg = String(err?.message || "");
-    if (msg.includes("429") || msg.includes("Too Many Requests") || msg.includes("quota")) {
-      return rf.error(res, "Gemini quota/rate limit exceeded. Try again later.", 429, msg);
-    }
-    return rf.error(res, "Failed to generate prediction", 502, msg);
-  }
-}
-// =========================
-// ADMIN CRUD: Template Library
-// Base: /api/recommendations/admin/templates
-// =========================
-export async function adminCreateTemplate(req, res) {
-  try {
-    const created = await RecommendationTemplate.create(req.body);
-    return rf.success(res, created, "Template created", 201);
-  } catch (err) {
-    return rf.error(res, err.message, 400);
-  }
-}
-
-export async function adminListTemplates(req, res) {
-  try {
-    const rows = await RecommendationTemplate.find().sort({ isActive: -1, createdAt: -1 });
-    return rf.success(res, rows, "Templates fetched");
-  } catch (err) {
-    return rf.error(res, "Server error", 500, err.message);
-  }
-}
-
-export async function adminGetTemplate(req, res) {
-  try {
-    const row = await RecommendationTemplate.findById(req.params.id);
-    if (!row) return rf.error(res, "Template not found", 404);
-    return rf.success(res, row, "Template fetched");
-  } catch (err) {
-    return rf.error(res, "Server error", 500, err.message);
-  }
-}
-
-export async function adminUpdateTemplate(req, res) {
-  try {
-    const updated = await RecommendationTemplate.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
+    
+    // Save to history
+    await Recommendation.create({
+      householdId,
+      type: "prediction",
+      predictionTable: prediction.predictionTable.map(p => ({
+        month: `${p.year}-${String(p.month).padStart(2, "0")}`,
+        predictedConsumption: p.predictedConsumption
+      })),
+      predictionInsights: prediction.insights,
+      generatedBy: userId
     });
-    if (!updated) return rf.error(res, "Template not found", 404);
-    return rf.success(res, updated, "Template updated");
+
+    cacheSet(householdId, "predictions", prediction);
+
+    const now = new Date().toISOString();
+    setCacheHeaders(res, false);
+    return rf.success(res, { prediction, generatedAt: now, fromCache: false }, "Predictions generated and saved to history");
+
   } catch (err) {
-    return rf.error(res, err.message, 400);
+    return handleAiError(res, err, "Predictions");
   }
 }
 
-export async function adminDeleteTemplate(req, res) {
-  try {
-    const deleted = await RecommendationTemplate.findByIdAndDelete(req.params.id);
-    if (!deleted) return rf.error(res, "Template not found", 404);
-
-    // clean statuses referencing this template (optional but nice)
-    await RecommendationStatus.deleteMany({ templateId: deleted._id });
-
-    return rf.success(res, deleted, "Template deleted");
-  } catch (err) {
-    return rf.error(res, "Server error", 500, err.message);
-  }
-}
-
-// =========================
-// USER VIEW + STATUS UPDATE
-// Base: /api/recommendations/households/:householdId/templates
-// =========================
-export async function userListTemplates(req, res) {
+// DELETE /api/recommendations/households/:householdId/ai/cache
+// Allows force-refresh by clearing the cache for this household
+export async function clearAiCache(req, res) {
   try {
     const { householdId } = req.params;
-
     const userId = getUserId(req);
     if (!userId) return rf.error(res, "Unauthorized", 401);
 
     const household = await verifyHouseholdOwnership(householdId, userId);
     if (!household) return rf.error(res, "Household not found or access denied", 403);
 
-    const { category, priority } = req.query;
+    cacheInvalidate(householdId, "tips");
+    cacheInvalidate(householdId, "strategies");
+    cacheInvalidate(householdId, "predictions");
 
-    const filter = { isActive: true };
-    if (category) filter.category = category;
-    if (priority) filter.priority = priority;
-
-    const [templates, statuses] = await Promise.all([
-      RecommendationTemplate.find(filter).sort({ createdAt: -1 }).lean(),
-      RecommendationStatus.find({ householdId }).lean(),
-    ]);
-
-    const statusMap = new Map(statuses.map((s) => [String(s.templateId), s.status]));
-
-    const rows = templates.map((t) => ({
-      ...t,
-      status: statusMap.get(String(t._id)) || "active",
-    }));
-
-    return rf.success(res, rows, "Recommendations fetched");
+    return rf.success(res, null, "AI cache cleared. Next request will regenerate from Gemini.");
   } catch (err) {
     return rf.error(res, "Server error", 500, err.message);
   }
 }
-export async function userUpdateTemplateStatus(req, res) {
-  try {
-    const { householdId, templateId } = req.params;
-    const { status } = req.body;
 
+// GET /api/recommendations/households/:householdId/history
+export async function getHouseholdRecommendationHistory(req, res) {
+  try {
+    const { householdId } = req.params;
+    const { type } = req.query; // tips, strategy, or prediction
     const userId = getUserId(req);
     if (!userId) return rf.error(res, "Unauthorized", 401);
 
     const household = await verifyHouseholdOwnership(householdId, userId);
     if (!household) return rf.error(res, "Household not found or access denied", 403);
 
-    if (!["active", "applied", "dismissed"].includes(status)) {
-      return rf.error(res, "Invalid status", 400);
-    }
+    const query = { householdId };
+    if (type) query.type = type;
 
-    const updated = await RecommendationStatus.findOneAndUpdate(
-      { householdId, templateId },
-      { status, updatedAt: new Date() },
-      { upsert: true, new: true, runValidators: true }
-    );
+    const history = await Recommendation.find(query)
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
 
-    return rf.success(res, updated, "Status updated");
+    return rf.success(res, history, "Recommendation history fetched");
   } catch (err) {
     return rf.error(res, "Server error", 500, err.message);
   }

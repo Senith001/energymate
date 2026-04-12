@@ -36,8 +36,8 @@ function BillingPage() {
   const [tableYearFilter, setTableYearFilter] = useState("all");
   const [householdName, setHouseholdName] = useState(
     localStorage.getItem("selectedHouseholdName") ||
-      localStorage.getItem("householdName") ||
-      (user?.name ? `${user.name}'s Household` : "Household")
+    localStorage.getItem("householdName") ||
+    (user?.name ? `${user.name}'s Household` : "Household")
   );
 
   useEffect(() => {
@@ -818,4 +818,3 @@ const selectorStyle = {
 };
 
 export default BillingPage;
-

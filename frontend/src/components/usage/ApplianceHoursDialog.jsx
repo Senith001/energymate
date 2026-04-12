@@ -233,13 +233,13 @@ function ApplianceHoursDialog({
                       gap: "12px",
                       flexWrap: "wrap",
                     }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: "700", color: colors.text }}>{applianceName}</div>
+                  >
+                    <div>
+                      <div style={{ fontWeight: "700", color: colors.text }}>{applianceName}</div>
                       <div style={{ color: colors.muted, marginTop: "4px" }}>
                         {new Date(log.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </div>
-                      </div>
+                    </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <div style={{ fontWeight: "700", color: colors.text }}>{Number(log.hoursUsed || 0).toFixed(1)} hrs</div>
                       <button type="button" onClick={() => onEdit(log)} style={miniButtonStyle}>

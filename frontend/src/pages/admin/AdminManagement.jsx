@@ -50,7 +50,7 @@ const AdminManagement = () => {
     if (!window.confirm(`Are you sure you want to revoke access for ${name}?`)) return;
     try {
       await api.delete(`/users/superadmin/admins/${id}`);
-      setAdmins(admins.filter(a => (a._id || a.id) !== id));
+      fetchAdmins();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete admin.");
     }

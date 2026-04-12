@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import api from "../../services/api";
-
-// Professional icons
-import { BsEnvelopePaperFill, BsArrowLeft } from "react-icons/bs";
+import { motion } from "framer-motion";
+import { FiMail, FiArrowLeft, FiRefreshCw, FiCheckCircle, FiClock } from "react-icons/fi";
 
 const VerifyOtpPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
   const userEmail = location.state?.email || "your registered email"; 
 
-  // --- STATES ---
   const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
-  const [timeLeft, setTimeLeft] = useState(60); // 2 minute countdown
+  const [timeLeft, setTimeLeft] = useState(60);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const [resendMessage, setResendMessage] = useState(""); // ✅ Added for clean UI feedback
+  const [resendMessage, setResendMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // If a user navigates here without an email in state, redirect them back
   useEffect(() => {
     if (!location.state?.email) {
       navigate("/register");
     }
   }, [location.state, navigate]);
 
-  // --- TIMER LOGIC ---
   useEffect(() => {
     if (timeLeft > 0) {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -37,10 +32,9 @@ const VerifyOtpPage = () => {
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m}m : ${s < 10 ? '0' : ''}${s}s`;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // --- OTP INPUT HANDLERS ---
   const handleOtpInput = (e, index) => {
     const val = e.target.value;
     if (/[^0-9]/.test(val)) return; 
@@ -49,7 +43,7 @@ const VerifyOtpPage = () => {
     newOtp[index] = val;
     setOtpValues(newOtp);
     setError(null);
-    setResendMessage(""); // Clear resend message when they start typing
+    setResendMessage("");
 
     if (val && index < 5) {
       document.getElementById(`otp-${index + 1}`).focus();
@@ -62,33 +56,21 @@ const VerifyOtpPage = () => {
     }
   };
 
-  // --- API HANDLERS ---
   const handleVerify = async (e) => {
     e.preventDefault();
     const otpString = otpValues.join("");
-
     if (otpString.length !== 6) {
       setError("Please enter the complete 6-digit code.");
       return;
     }
-
     setIsLoading(true);
     setError(null);
-    setResendMessage("");
-
     try {
-      await api.post("/users/verify-otp", { 
-        email: userEmail, 
-        otp: otpString 
-      });
-
+      await api.post("/users/verify-otp", { email: userEmail, otp: otpString });
       setSuccess(true);
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
-
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid or expired OTP. Please try again.");
+      setError(err.response?.data?.message || "Invalid or expired OTP.");
     } finally {
       setIsLoading(false);
     }
@@ -96,77 +78,105 @@ const VerifyOtpPage = () => {
 
   const handleResend = async () => {
     if (timeLeft > 0) return; 
-    
     setOtpValues(["", "", "", "", "", ""]);
     setError(null);
-    setResendMessage("");
     setIsLoading(true);
-
     try {
       await api.post("/users/resend-otp", { email: userEmail });
       setTimeLeft(60); 
-      setResendMessage("A new OTP has been sent to your email!"); // ✅ Display nice UI message
-      
-      // Auto-hide the message after 5 seconds
+      setResendMessage("Verification code resent to your inbox!");
       setTimeout(() => setResendMessage(""), 5000);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to resend OTP.");
+      setError("Failed to resend OTP.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.splitCard}>
-        
-        {/* LEFT PANEL */}
-        <div style={styles.leftPanel}>
-          <h1 style={styles.brandTitle}>⚡ ENERGYMATE</h1>
-          <h2 style={styles.welcomeTitle}>Welcome to EnergyMate</h2>
-          <p style={styles.welcomeText}>
-            Join us to track your electricity usage, manage your household appliances, and reduce your energy bills efficiently.
-          </p>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
+      <div className="absolute top-[-5%] left-[-5%] w-96 h-96 bg-emerald-100/50 rounded-full blur-3xl" />
+      <div className="absolute bottom-[-5%] right-[-10%] w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl" />
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-6xl w-full bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.06)] border border-slate-100 overflow-hidden flex flex-col md:flex-row z-10"
+      >
+        {/* Left Side: Visual */}
+        <div className="hidden md:flex md:w-5/12 bg-slate-50 items-center justify-center p-12 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 to-transparent opacity-60" />
+          <div className="relative z-10 flex flex-col items-center">
+            <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
+              <img src="/assets/auth_register_hero.png" alt="Verify OTP" className="w-full h-auto max-w-[280px]" />
+            </motion.div>
+            <div className="mt-12 text-center space-y-3 px-4">
+              <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight">Verification Required</h3>
+              <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                Check your inbox! We've sent a 6-digit security code to your email address for account authentication.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT PANEL */}
-        <div style={styles.rightPanel}>
-          <div style={styles.progressRow}>
-            <div style={{...styles.progressLine, background: "#1d4ed8"}}></div>
-            <div style={{...styles.progressLine, background: "#1d4ed8"}}></div>
-            <div style={{...styles.progressLine, background: "#1d4ed8"}}></div>
-          </div>
-          
-          <div style={styles.iconWrapper}>
-            <BsEnvelopePaperFill size={36} color="#0284c7" />
+        {/* Right Side: Form */}
+        <div className="w-full md:w-7/12 p-8 lg:p-14 flex flex-col items-center">
+          {/* Progress Indicator */}
+          <div className="flex gap-2 mb-14 w-full">
+            <div className="h-1.5 flex-1 bg-emerald-600 rounded-full" />
+            <div className="h-1.5 flex-1 bg-emerald-600 rounded-full" />
+            <div className="h-1.5 flex-1 bg-emerald-600 rounded-full" />
           </div>
 
-          <h2 style={styles.title}>Verify Your Email</h2>
-          <p style={styles.subtitle}>
-            We have sent a 6-digit confirmation code to <br/>
-            <strong style={{color: "#1f2937"}}>{userEmail}</strong>.
-          </p>
+          <div className="flex items-center gap-3 mb-10 transition-all">
+            <img src="/logo.png" alt="EnergyMate Logo" className="w-10 h-10 rounded-xl shadow-[0_4px_16px_rgba(16,185,129,0.2)]" />
+            <h1 className="text-xl font-black text-slate-900 tracking-tighter">
+              ENERGYMATE
+            </h1>
+          </div>
 
-          {error && <div style={styles.errorBox}>{error}</div>}
-          
-          {/* ✅ Inline Success Message for Resend */}
-          {resendMessage && <div style={styles.inlineSuccessText}>{resendMessage}</div>}
-          
-          {success ? (
-            <div style={styles.successBox}>
-              Email verified successfully! Redirecting to login...
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Verify Your Email</h2>
+            <p className="text-slate-500 font-medium mt-3">
+              Enter the verification code sent to <br />
+              <span className="text-slate-900 font-black">{userEmail}</span>
+            </p>
+          </div>
+
+          {error && (
+            <div className="w-full mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-bold text-center">
+              {error}
             </div>
+          )}
+
+          {resendMessage && (
+            <div className="w-full mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl text-[13px] font-bold text-center animate-bounce">
+              {resendMessage}
+            </div>
+          )}
+
+          {success ? (
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-full py-10 bg-emerald-50 border border-emerald-100 rounded-3xl flex flex-col items-center gap-4"
+            >
+               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+                  <FiCheckCircle className="w-8 h-8 text-emerald-600" />
+               </div>
+               <p className="text-emerald-700 font-black text-lg">Verification Successful!</p>
+               <p className="text-emerald-600/70 text-sm font-medium">Redirecting you to login...</p>
+            </motion.div>
           ) : (
-            <form onSubmit={handleVerify} style={{ width: "100%" }}>
-              
-              <div style={styles.timerRow}>
-                <span>⏱️ Code expires in:</span>
-                <strong style={{ color: timeLeft <= 30 ? "#ef4444" : "#0284c7" }}>
+            <form onSubmit={handleVerify} className="w-full max-w-sm space-y-10">
+              <div className="flex items-center justify-center gap-4 mb-2">
+                <FiClock className={`w-4 h-4 ${timeLeft <= 20 ? 'text-red-500 animate-pulse' : 'text-slate-400'}`} />
+                <span className={`text-sm font-black tracking-widest ${timeLeft <= 20 ? 'text-red-500' : 'text-slate-700'}`}>
                   {formatTime(timeLeft)}
-                </strong>
+                </span>
               </div>
 
-              <div style={styles.otpContainer}>
+              <div className="flex justify-between gap-2.5">
                 {otpValues.map((val, index) => (
                   <input
                     key={index}
@@ -176,81 +186,51 @@ const VerifyOtpPage = () => {
                     value={val}
                     onChange={(e) => handleOtpInput(e, index)}
                     onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                    style={{
-                      ...styles.otpInput,
-                      borderColor: val ? "#0284c7" : "#d1d5db",
-                      backgroundColor: val ? "#f0f9ff" : "white"
-                    }}
+                    className="w-11 sm:w-14 h-14 sm:h-16 text-2xl font-black text-center bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all text-slate-900"
                     autoFocus={index === 0}
                   />
                 ))}
               </div>
 
-              <button 
-                type="submit" 
-                disabled={isLoading || otpValues.join("").length !== 6} 
-                style={{
-                  ...styles.verifyBtn,
-                  opacity: (isLoading || otpValues.join("").length !== 6) ? 0.7 : 1
-                }}
+              <button
+                type="submit"
+                disabled={isLoading || otpValues.join("").length !== 6}
+                className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? "Processing..." : "Verify Account"}
+                {isLoading ? (
+                  <>
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Verifying...</span>
+                  </>
+                ) : (
+                  <span>Verify Account</span>
+                )}
               </button>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={timeLeft > 0 || isLoading}
+                  className="inline-flex items-center gap-2 text-sm font-black text-slate-400 hover:text-emerald-600 disabled:opacity-50 disabled:hover:text-slate-400 transition-colors"
+                >
+                  <FiRefreshCw className={isLoading ? "animate-spin" : ""} />
+                  Resend Verification Code
+                </button>
+              </div>
             </form>
           )}
 
-          <div style={styles.footer}>
-            <p style={styles.footerText}>
-              Didn't receive the code?{" "}
-              <button 
-                type="button" 
-                onClick={handleResend} 
-                disabled={timeLeft > 0 || isLoading}
-                style={{
-                  ...styles.resendBtn,
-                  color: timeLeft > 0 ? "#9ca3af" : "#0284c7",
-                  cursor: timeLeft > 0 ? "default" : "pointer"
-                }}
-              >
-                Resend OTP
-              </button>
-            </p>
-            
-            <Link to="/login" style={styles.backLink}>
-              <BsArrowLeft style={{ marginTop: "2px" }} /> Back to Login
-            </Link>
+          <div className="mt-12 w-full pt-8 border-t border-slate-50 flex flex-col items-center">
+             <Link to="/login" className="flex items-center gap-2 text-slate-500 font-bold hover:text-slate-800 transition-colors text-sm">
+                <FiArrowLeft className="w-4 h-4" />
+                Return to Login
+             </Link>
           </div>
-
         </div>
-      </div>
+      </motion.div>
     </div>
   );
-};
-
-const styles = {
-  container: { display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "#ffffff", padding: "20px", fontFamily: "'Inter', Arial, sans-serif" }, 
-  splitCard: { display: "flex", width: "100%", maxWidth: "1000px", background: "linear-gradient(135deg, #0ea5e9, #0284c7)", borderRadius: "16px", overflow: "hidden", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", minHeight: "550px" },
-  leftPanel: { flex: 1, padding: "50px", color: "white", display: "flex", flexDirection: "column", justifyContent: "center" },
-  brandTitle: { fontSize: "24px", fontWeight: "800", letterSpacing: "1px", marginBottom: "40px" },
-  welcomeTitle: { fontSize: "32px", fontWeight: "700", marginBottom: "15px", lineHeight: "1.2" },
-  welcomeText: { fontSize: "16px", lineHeight: "1.6", color: "#e0f2fe" },
-  rightPanel: { flex: 1.3, padding: "40px 50px", display: "flex", flexDirection: "column", backgroundColor: "white", borderRadius: "12px", margin: "10px", alignItems: "center" }, 
-  progressRow: { display: "flex", gap: "8px", marginBottom: "20px", width: "100%" },
-  progressLine: { height: "5px", flex: 1, backgroundColor: "#e2e8f0", borderRadius: "4px" },
-  iconWrapper: { width: "70px", height: "70px", borderRadius: "50%", backgroundColor: "#e0f2fe", display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "20px" },
-  title: { margin: "0 0 10px 0", fontSize: "24px", color: "#1f2937", fontWeight: "700" },
-  subtitle: { margin: "0 0 25px 0", fontSize: "15px", color: "#6b7280", textAlign: "center", lineHeight: "1.5" },
-  timerRow: { display: "flex", justifyContent: "center", gap: "8px", fontSize: "14px", color: "#4b5563", fontWeight: "600", marginBottom: "20px" },
-  otpContainer: { display: "flex", justifyContent: "space-between", gap: "10px", marginBottom: "30px", width: "100%" },
-  otpInput: { width: "50px", height: "60px", fontSize: "24px", textAlign: "center", borderRadius: "10px", border: "2px solid #d1d5db", outline: "none", color: "#1f2937", fontWeight: "bold", transition: "all 0.2s" },
-  verifyBtn: { width: "100%", padding: "14px", backgroundColor: "#0284c7", color: "white", border: "none", borderRadius: "8px", fontSize: "16px", fontWeight: "600", cursor: "pointer", transition: "0.2s" },
-  errorBox: { width: "100%", padding: "12px", backgroundColor: "#fee2e2", color: "#991b1b", borderRadius: "8px", marginBottom: "20px", fontSize: "14px", textAlign: "center", border: "1px solid #fecaca" },
-  successBox: { width: "100%", padding: "16px", backgroundColor: "#dcfce7", color: "#166534", borderRadius: "8px", textAlign: "center", fontSize: "15px", fontWeight: "600", border: "1px solid #bbf7d0" },
-  inlineSuccessText: { color: "#16a34a", fontSize: "14px", fontWeight: "600", marginBottom: "15px", textAlign: "center" }, // ✅ Added style for resend success
-  footer: { marginTop: "25px", display: "flex", flexDirection: "column", alignItems: "center", gap: "15px", width: "100%", borderTop: "1px solid #f3f4f6", paddingTop: "20px" },
-  footerText: { margin: 0, fontSize: "14px", color: "#6b7280" },
-  resendBtn: { background: "none", border: "none", fontWeight: "700", padding: 0, marginLeft: "5px" },
-  backLink: { display: "flex", alignItems: "center", gap: "6px", color: "#4b5563", textDecoration: "none", fontSize: "14px", fontWeight: "600", transition: "0.2s" }
 };
 
 export default VerifyOtpPage;
