@@ -20,7 +20,7 @@ const RegisterPage = () => {
 
   const validateField = (name, value, allData) => {
     let error = null;
-    const nameRegex = /^[A-Za-z]+$/; 
+    const nameRegex = /^[A-Za-z\s]+$/; 
 
     switch (name) {
       case "firstName":
@@ -278,8 +278,7 @@ const RegisterPage = () => {
               </button>
               <button
                 type="submit"
-                disabled={Object.values(errors).some(e => e !== null)}
-                className="flex-[1.5] py-4 px-6 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-[1.5] py-4 px-6 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group"
               >
                 <span>Continue to Summary</span>
                 <FiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

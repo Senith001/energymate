@@ -12,6 +12,9 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import VerifyOtpPage from './pages/auth/VerifyOtpPage';
 import SummaryPage from "./pages/auth/SummaryPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
+import PasswordChangedPage from "./pages/auth/PasswordChangedPage";
 import LandingPage from "./pages/LandingPage";
 import PostDetails from "./pages/PostDetails";
 import AIHubPage from "./pages/AIHubPage";
@@ -24,6 +27,7 @@ import AdminPosts from "./pages/admin/AdminPosts";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
+import AdminManagement from "./pages/admin/AdminManagement";
 import AdminHouseholdPage from "./pages/admin/AdminHouseholdPage";
 import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
@@ -69,6 +73,9 @@ function App() {
           <Route path="/news/:id" element={<PostDetails />} />
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
           <Route path="/summary" element={<SummaryPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/password-changed" element={<PasswordChangedPage />} />
           <Route path="/admin-setup-bootstrap" element={<SuperadminSetup />} />
 
           {/* Protected AI Hub Route */}
@@ -82,7 +89,8 @@ function App() {
           {/* Protected Admin Layout Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} /> 
+            <Route path="users" element={<UserManagement />} />
+            <Route path="management" element={<AdminManagement />} />
             <Route path="households" element={<AdminHouseholdPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="support" element={<AdminSupportPage />} />

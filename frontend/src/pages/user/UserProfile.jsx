@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import Navbar from "../../components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FiUser, FiMail, FiPhone, FiMapPin, FiCamera, 
-  FiTrash2, FiShield, FiCheckCircle, FiX, FiCheck, FiArrowRight
+  FiTrash2, FiShield, FiCheckCircle, FiX, FiCheck, FiArrowRight, FiArrowLeft
 } from "react-icons/fi";
 
 const UserProfile = () => {
@@ -77,28 +77,38 @@ const UserProfile = () => {
 
   const validateField = (name, value, allData = {}) => {
     let error = null;
+    const trimmedVal = typeof value === 'string' ? value.trim() : value;
     switch (name) {
       case "name":
-        if (!value.trim()) error = "Name is required";
-        else if (value.trim().length > 30) error = "Max 30 characters";
-        else if (!/^[A-Za-z ]+$/.test(value.trim())) error = "Letters and spaces only";
+        if (!trimmedVal) error = "Name is required";
+        else if (trimmedVal.length > 30) error = "Name must not exceed 30 characters";
+        else if (!/^[A-Za-z ]+$/.test(trimmedVal)) error = "Name cannot contain special characters/digits";
         break;
       case "phone":
-        if (!value.trim()) error = "Mobile required";
-        else if (!/^(0[0-9]{9}|(77|76|74|78|75|71|70|72)[0-9]{7})$/.test(value.trim())) error = "Invalid mobile format";
+        if (!trimmedVal) error = "Mobile number is required";
+        else if (!/^(0[0-9]{9}|(77|76|74|78|75|71|70)[0-9]{7})$/.test(trimmedVal)) error = "Invalid mobile number";
         break;
       case "address":
-        if (!value.trim()) error = "Address required";
-        else if (!/^[A-Za-z0-9/\-, ]+$/.test(value.trim())) error = "Invalid characters";
+        if (!trimmedVal) error = "Address is required";
+        else if (trimmedVal.length > 100) error = "Address must not exceed 100 characters";
+        else if (!/^[A-Za-z0-9/\-, ]+$/.test(trimmedVal)) error = "Address can only contain letters, numbers, '/', and '-'";
         break;
       case "city":
-        if (!value.trim()) error = "City required";
+        if (!trimmedVal) error = "City is required";
+        else if (trimmedVal.length > 50) error = "City must not exceed 50 characters";
+        else if (!/^[A-Za-z ]+$/.test(trimmedVal)) error = "City can only contain English letters and spaces";
         break;
       case "oldPassword":
-        if (!value && (allData.newPassword || allData.confirmPassword)) error = "Current password required";
+        if (!value && (allData.newPassword || allData.confirmPassword)) error = "Old password is required";
         break;
       case "newPassword":
-        if (value && value.length < 8) error = "At least 8 characters";
+        if (value) {
+          if (value.length < 8) error = "Password must be at least 8 characters long";
+          else if (!/[a-z]/.test(value)) error = "Password must contain at least one lowercase letter";
+          else if (!/[A-Z]/.test(value)) error = "Password must contain at least one uppercase letter";
+          else if (!/\d/.test(value)) error = "Password must contain at least one number";
+          else if (!/[^A-Za-z0-9]/.test(value)) error = "Password must contain at least one special character";
+        }
         break;
       case "confirmPassword":
         if (value && value !== allData.newPassword) error = "Passwords must match";
@@ -220,11 +230,18 @@ const UserProfile = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter">
-      <Navbar />
-      
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        {/* HEADER CARD */}
+    <div className="min-h-screen font-inter" style={{ background: "#f3f4f6" }}>
+      <div style={{ padding: "30px", boxSizing: "border-box", overflowX: "auto", minHeight: "100vh" }}>
+        <Navbar />
+        
+        <div className="max-w-5xl mx-auto pt-8 pb-12">
+          <div className="mb-6">
+            <Link to="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-emerald-600 font-black text-[13px] uppercase tracking-widest transition-colors">
+              <FiArrowLeft className="w-4 h-4" /> Back to Dashboard
+            </Link>
+          </div>
+
+          {/* HEADER CARD */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -253,13 +270,7 @@ const UserProfile = () => {
                    </div>
                 </div>
                 <p className="text-slate-400 font-bold mb-4">Member ID: <span className="text-slate-900">{userId}</span></p>
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 inline-flex items-center gap-3">
-                   <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-600">⚡</div>
-                   <div className="pr-4">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Standard Level</p>
-                      <p className="text-xs font-black text-slate-900">EnergyMate Primary</p>
-                   </div>
-                </div>
+                
              </div>
           </div>
           
@@ -287,19 +298,19 @@ const UserProfile = () => {
         </AnimatePresence>
 
         {/* CONTENT SECTIONS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="w-full">
           {/* Main Form */}
-          <div className="lg:col-span-2 space-y-12">
+          <div className="w-full space-y-12">
             <form onSubmit={handleSaveChanges} className="space-y-12">
               <section className="space-y-8">
                 <div className="flex items-center gap-3">
-                   <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Personal Core</h2>
+                   <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Personal Details</h2>
                    <div className="h-px flex-1 bg-slate-100" />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Identity</label>
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Name</label>
                     <div className="relative group">
                        <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                        <input name="name" value={formData.name} onChange={handleProfileChange} className={`w-full pl-12 pr-4 py-4 bg-white border ${errors.name ? 'border-rose-300 ring-4 ring-rose-50' : 'border-slate-200'} rounded-2xl focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 font-bold text-slate-900 transition-all`} />
@@ -316,7 +327,7 @@ const UserProfile = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Link</label>
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Number</label>
                     <div className="relative group">
                        <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                        <input name="phone" value={formData.phone} onChange={handleProfileChange} className={`w-full pl-12 pr-4 py-4 bg-white border ${errors.phone ? 'border-rose-300 ring-4 ring-rose-50' : 'border-slate-200'} rounded-2xl focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 font-bold text-slate-900 transition-all`} />
@@ -325,7 +336,7 @@ const UserProfile = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Primary Zone (City)</label>
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">City</label>
                     <div className="relative group">
                        <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                        <input name="city" value={formData.city} onChange={handleProfileChange} className={`w-full pl-12 pr-4 py-4 bg-white border ${errors.city ? 'border-rose-300 ring-4 ring-rose-50' : 'border-slate-200'} rounded-2xl focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 font-bold text-slate-900 transition-all`} />
@@ -334,7 +345,7 @@ const UserProfile = () => {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Street Address</label>
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Home Address</label>
                     <div className="relative group">
                        <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                        <input name="address" value={formData.address} onChange={handleProfileChange} className={`w-full pl-12 pr-4 py-4 bg-white border ${errors.address ? 'border-rose-300 ring-4 ring-rose-50' : 'border-slate-200'} rounded-2xl focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 font-bold text-slate-900 transition-all`} />
@@ -344,26 +355,25 @@ const UserProfile = () => {
                 </div>
               </section>
 
-              <section className="space-y-8 bg-slate-900 rounded-[2.5rem] p-8 md:p-12 text-white overflow-hidden relative shadow-2xl">
-                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+              <section className="space-y-8 bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 overflow-hidden relative shadow-sm">
                  <div className="flex items-center gap-3 relative z-10">
-                    <h2 className="text-xl font-black uppercase tracking-tighter italic">Security Layer</h2>
-                    <div className="h-px flex-1 bg-white/10" />
+                    <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900">Change Passkey</h2>
+                    <div className="h-px flex-1 bg-slate-100" />
                  </div>
                  
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-3 gap-6 relative z-10">
                    {['oldPassword', 'newPassword', 'confirmPassword'].map((field, i) => (
                       <div key={i} className="space-y-1.5">
-                         <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                             {field === 'oldPassword' ? 'Current Access' : field === 'newPassword' ? 'Next Key' : 'Verify Key'}
                          </label>
                          <input 
                           type="password" name={field} value={passwordData[field]} onChange={handlePasswordChange}
                           autoComplete="off"
-                          className={`w-full px-5 py-4 bg-white/5 border ${errors[field] ? 'border-rose-500/50' : 'border-white/10'} rounded-2xl focus:outline-none focus:border-emerald-500 focus:bg-white/10 transition-all font-bold placeholder:text-white/20`} 
+                          className={`w-full px-5 py-4 bg-white border ${errors[field] ? 'border-rose-300 ring-4 ring-rose-50' : 'border-slate-200'} rounded-2xl focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 transition-all font-bold text-slate-900 placeholder:text-slate-300`} 
                           placeholder="••••••••"
                         />
-                        {errors[field] && <p className="text-[9px] text-rose-400 font-black uppercase ml-1">{errors[field]}</p>}
+                        {errors[field] && <p className="text-[9px] text-rose-500 font-black uppercase ml-1">{errors[field]}</p>}
                       </div>
                    ))}
                  </div>
@@ -376,7 +386,7 @@ const UserProfile = () => {
                   className="flex items-center gap-2.5 px-6 py-4 text-slate-400 hover:text-rose-600 font-black text-xs uppercase tracking-widest transition-all group"
                 >
                    <FiTrash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                   Purge Account
+                   Delete Account
                 </button>
                 <button 
                   type="submit" 
@@ -390,8 +400,7 @@ const UserProfile = () => {
                      </>
                    ) : (
                      <>
-                        <span>Update Dashboard</span>
-                        <FiArrowRight />
+                        <span>Save Changes</span>
                      </>
                    )}
                 </button>
@@ -399,41 +408,7 @@ const UserProfile = () => {
             </form>
           </div>
 
-          {/* Side Widgets */}
-          <div className="space-y-8">
-             <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-10 -mt-10" />
-                <FiShield className="text-3xl text-emerald-600 mb-6 relative z-10" />
-                <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight mb-3">Privacy First</h3>
-                <p className="text-slate-500 font-bold text-sm leading-relaxed mb-6">
-                   Your profile data is encrypted. EnergyMate never shares your energy consumption logs with third parties without authority.
-                </p>
-                <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 flex items-center justify-center gap-3">
-                   <FiCheckCircle className="text-emerald-600" />
-                   <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest uppercase">AES-256 Encrypted</span>
-                </div>
-             </div>
 
-             <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1 italic relative z-10">Energy Progress</p>
-                <h3 className="text-xl font-black mb-6 relative z-10 tracking-tight">Standard Tier</h3>
-                <div className="space-y-4 mb-8 relative z-10">
-                   <div className="flex items-center gap-3 text-xs font-bold text-white/80">
-                      <FiCheck className="text-emerald-400" /> Real-time tracking
-                   </div>
-                   <div className="flex items-center gap-3 text-xs font-bold text-white/80">
-                      <FiCheck className="text-emerald-400" /> AI Recommendations
-                   </div>
-                   <div className="flex items-center gap-3 text-xs font-bold text-white/80 opacity-40 italic">
-                      <FiX /> Advanced Forecasting
-                   </div>
-                </div>
-                <button className="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
-                   Upgrade Plan
-                </button>
-             </div>
-          </div>
         </div>
       </div>
 
@@ -470,7 +445,7 @@ const UserProfile = () => {
               <div className="bg-rose-600 p-10 text-white relative">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10" />
                  <h2 className="text-3xl font-black tracking-tight italic mb-2">Wait!</h2>
-                 <p className="text-white/80 font-bold opacity-80 uppercase tracking-widest text-[10px]">Purging Account Identity</p>
+                 <p className="text-white/80 font-bold opacity-80 uppercase tracking-widest text-[10px]">Deleting Account Identity</p>
               </div>
               <div className="p-10 space-y-8">
                 <div className="space-y-4">
@@ -488,7 +463,7 @@ const UserProfile = () => {
                    <p className="text-xs font-bold text-slate-600 italic">● Membership payments are non-refundable.</p>
                 </div>
                 <label className="flex items-center gap-4 cursor-pointer group">
-                  <div onClick={() => setTermsAccepted(!termsAccepted)} className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all ${termsAccepted ? 'bg-rose-600 border-rose-600' : 'bg-white border-slate-200 group-hover:border-rose-300'}`}>
+                  <div className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all ${termsAccepted ? 'bg-rose-600 border-rose-600' : 'bg-white border-slate-200 group-hover:border-rose-300'}`}>
                     {termsAccepted && <FiCheck className="text-white w-4 h-4" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
@@ -536,6 +511,7 @@ const UserProfile = () => {
           </div>
         )}
       </AnimatePresence>
+    </div>
     </div>
   );
 };

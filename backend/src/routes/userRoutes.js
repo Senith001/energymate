@@ -1,20 +1,20 @@
 import express from "express";
-import {registerUser, loginUser, verifyOtp, forgotPassword, resetPassword, changeMyPassword} from "../controllers/userController.js";
+import { registerUser, loginUser, verifyOtp, forgotPassword, resetPassword, changeMyPassword } from "../controllers/userController.js";
 import { registerAdmin } from "../controllers/userController.js";
 import { protect, authorize } from "../middlewares/auth.middleware.js";
 import { createAdmin } from "../controllers/userController.js";
 
-import { 
-    getAllUsers, 
+import {
+    getAllUsers,
     getUserById,
-    deleteUser, 
-    changeUserPassword, 
-    deleteAdmin, 
-    changeAdminPassword, 
-    getAllAdmins, 
-    getAdminById, 
+    deleteUser,
+    changeUserPassword,
+    deleteAdmin,
+    changeAdminPassword,
+    getAllAdmins,
+    getAdminById,
     getAuditLogs,
-    requestAccountDeletion, 
+    requestAccountDeletion,
     confirmAccountDeletion,
     resendOtp
 } from "../controllers/userController.js";
@@ -23,7 +23,7 @@ import { getMyProfile, updateMyProfile, uploadMyAvatar, deleteMyAvatar } from ".
 import { uploadAvatar } from "../middlewares/upload.middleware.js";
 
 import { validate } from "../middlewares/validate.middleware.js";
-import {registerValidator, resetPasswordValidator, changeMyPasswordValidator, adminChangeUserPasswordValidator, updateProfileValidator} from "../validators/user.validators.js";
+import { registerValidator, resetPasswordValidator, changeMyPasswordValidator, adminChangeUserPasswordValidator, updateProfileValidator } from "../validators/user.validators.js";
 
 const router = express.Router();
 
@@ -36,11 +36,11 @@ router.post("/login", loginUser); //Common Login route for both users and admins
 
 // ---  ADMIN ROUTES ---
 
-router.post("/admin/create", protect, authorize("admin"), createAdmin);
+router.post("/admin/create", protect, authorize("superadmin"), createAdmin);
 router.get("/admin/users", protect, authorize("admin", "superadmin"), getAllUsers);
 router.get("/admin/users/:id", protect, authorize("admin", "superadmin"), getUserById);
 router.delete("/admin/users/:id", protect, authorize("admin", "superadmin"), deleteUser);
-router.put( "/admin/users/:id/password", protect, authorize("admin"), adminChangeUserPasswordValidator, validate, changeUserPassword);
+router.put("/admin/users/:id/password", protect, authorize("admin"), adminChangeUserPasswordValidator, validate, changeUserPassword);
 
 // --- SUPER ADMIN ROUTES ---
 

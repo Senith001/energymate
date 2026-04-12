@@ -93,13 +93,13 @@ const AdminLoginPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-medium"
-                  placeholder="admin.id@energymate.com"
+                  placeholder="admin@energymate.com"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[13px] font-bold text-slate-700 ml-1 uppercase tracking-wider">Access Token / Password</label>
+              <label className="text-[13px] font-bold text-slate-700 ml-1 uppercase tracking-wider">Password</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-600 transition-colors">
                   <FiLock className="w-5 h-5" />
