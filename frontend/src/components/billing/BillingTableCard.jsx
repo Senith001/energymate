@@ -38,7 +38,7 @@ function BillingTableCard({
   }, [page, totalPages]);
 
   return (
-    <div style={{ ...cardStyle, padding: "24px" }}>
+    <div className="card border border-slate-200/80 bg-white/95" style={{ ...cardStyle, padding: "24px" }}>
       <div
         style={{
           display: "flex",
@@ -66,11 +66,16 @@ function BillingTableCard({
               </option>
             ))}
           </select>
-          <button onClick={onCreate} style={buttonStyle(colors.green, "#ffffff", "none")}>
+          <button onClick={onCreate} className="inline-flex items-center gap-2 rounded-xl bg-[#10a36c] px-4 py-2 text-white font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0d8b5c] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2" style={buttonStyle(undefined, undefined, "none")}>
             <Icon name="plus" color="#ffffff" size={16} />
             Add Bill
           </button>
-          <button onClick={onGenerate} disabled={generating} style={buttonStyle(colors.greenSoft, colors.green, `1px solid rgba(42, 140, 95, 0.18)`)}>
+          <button
+            onClick={onGenerate}
+            disabled={generating}
+            className="inline-flex items-center gap-2 rounded-xl border border-[rgba(42,140,95,0.18)] bg-[#f3fbf7] px-4 py-2 text-[#10a36c] font-semibold shadow-sm transition-all duration-200 hover:bg-[#e8f7ef] focus:outline-none focus:ring-2 focus:ring-[#10a36c] focus:ring-offset-2 disabled:opacity-70"
+            style={buttonStyle(undefined, undefined, `1px solid rgba(42, 140, 95, 0.18)`)}
+          >
             <Icon name="refresh" color={colors.green} size={16} />
             {generating ? "Generating..." : "Generate Bill"}
           </button>
@@ -163,6 +168,7 @@ function BillingTableCard({
               type="button"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page === 1}
+              className="btn-secondary shadow-sm disabled:opacity-55"
               style={{ ...pageButtonStyle, opacity: page === 1 ? 0.55 : 1 }}
             >
               Previous
@@ -171,6 +177,7 @@ function BillingTableCard({
               type="button"
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={page === totalPages}
+              className="btn-secondary shadow-sm disabled:opacity-55"
               style={{ ...pageButtonStyle, opacity: page === totalPages ? 0.55 : 1 }}
             >
               Next

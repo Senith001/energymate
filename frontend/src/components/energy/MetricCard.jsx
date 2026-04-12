@@ -13,30 +13,27 @@ function MetricCard({ title, value, subtitle, trend, icon, tone = "green" }) {
 
   return (
     <div
+      className="min-w-0 rounded-[28px] border px-6 py-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)] transition-all duration-200"
       style={{
         ...cardStyle,
         background: palette.background,
         border: `1px solid ${palette.border}`,
-        padding: "24px",
-        minWidth: 0,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ color: colors.muted, fontWeight: "600", marginBottom: "10px" }}>{title}</div>
-          <div style={{ color: colors.text, fontSize: "24px", fontWeight: "800", marginBottom: "8px" }}>{value}</div>
+      <div className="flex justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-2.5 text-[15px] font-semibold" style={{ color: colors.muted }}>
+            {title}
+          </div>
+          <div className="mb-2 text-[24px] font-extrabold leading-tight md:text-[26px]" style={{ color: colors.text }}>
+            {value}
+          </div>
           <div style={{ color: colors.muted }}>{subtitle}</div>
         </div>
         <div
+          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl"
           style={{
-            width: "46px",
-            height: "46px",
-            borderRadius: "16px",
             background: palette.iconBg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
           }}
         >
           <Icon name={icon} color={palette.icon} />
@@ -44,7 +41,7 @@ function MetricCard({ title, value, subtitle, trend, icon, tone = "green" }) {
       </div>
 
       {trend ? (
-        <div style={{ display: "flex", gap: "8px", marginTop: "18px", fontSize: "14px", flexWrap: "wrap" }}>
+        <div className="mt-[18px] flex flex-wrap gap-2 text-sm">
           <span style={{ color: trend.value >= 0 ? colors.red : colors.green, fontWeight: "700" }}>
             {trend.value >= 0 ? "↑" : "↓"} {Math.abs(trend.value).toFixed(1)}%
           </span>

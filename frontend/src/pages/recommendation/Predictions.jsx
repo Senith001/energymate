@@ -70,6 +70,7 @@ function PredictionsTable({ rows }) {
           <tr className="bg-gray-50 border-b border-gray-100">
             <th className="text-left px-4 py-3 font-semibold text-gray-600">Month</th>
             <th className="text-right px-4 py-3 font-semibold text-gray-600">Predicted (kWh)</th>
+            <th className="text-right px-4 py-3 font-semibold text-gray-600">Est. Cost (LKR)</th>
             <th className="text-center px-4 py-3 font-semibold text-gray-600">Trend</th>
           </tr>
         </thead>
@@ -89,6 +90,11 @@ function PredictionsTable({ rows }) {
                 <td className="px-4 py-3.5 text-right">
                   <span className={`font-mono font-semibold ${isUp ? "text-red-600" : isDown ? "text-green-600" : "text-gray-800"}`}>
                     {usage}
+                  </span>
+                </td>
+                <td className="px-4 py-3.5 text-right">
+                  <span className="font-mono text-gray-600 font-medium">
+                    {row.predictedCostLKR?.toLocaleString() || "—"}
                   </span>
                 </td>
                 <td className="px-4 py-3.5 flex justify-center">

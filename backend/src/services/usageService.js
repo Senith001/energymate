@@ -33,9 +33,11 @@ function calculateCost(totalUnits, tariff) {
     const slabWidth = upTo === Infinity ? remaining : upTo - prevLimit;
     const unitsInSlab = Math.min(remaining, slabWidth);
     const cost = +(unitsInSlab * slab.rate).toFixed(2);
+    const rangeStart = +(prevLimit + 1).toFixed(2);
+    const rangeEnd = +(prevLimit + unitsInSlab).toFixed(2);
 
     breakdown.push({
-      range: `${prevLimit + 1}–${prevLimit + unitsInSlab} kWh`,
+      range: `${rangeStart}–${rangeEnd} kWh`,
       units: unitsInSlab,
       rate: slab.rate,
       cost,

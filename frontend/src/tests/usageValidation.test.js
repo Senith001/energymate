@@ -58,4 +58,16 @@ describe("validateUsageForm", () => {
 
     expect(message).toBe("Usage date is required.");
   });
+
+  it("rejects future usage dates", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const message = validateUsageForm({
+      date: tomorrow.toISOString().slice(0, 10),
+      entryType: "manual",
+      unitsUsed: "8",
+    });
+
+    expect(message).toBe("Usage date cannot be in the future.");
+  });
 });

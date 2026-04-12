@@ -5,8 +5,10 @@ import {
   getMonthlySummary,
   getUsages,
   getUsageByRooms,
-  getUsageByAppliances
+  getUsageByAppliances,
+  getWeatherImpact
 } from "../../utils/usageAPI";
+import { getWeatherRecommendation, getWeatherIconEmoji } from "./tipsForWeather";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ function Dashboard() {
   const [chartData, setChartData] = useState([]);
   const [roomUsageData, setRoomUsageData] = useState([]);
   const [applianceUsageData, setApplianceUsageData] = useState([]);
+  const [weatherData, setWeatherData] = useState(null);
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [hoveredSlice, setHoveredSlice] = useState(null);
   const [hoveredAppliance, setHoveredAppliance] = useState(null);
@@ -72,13 +75,15 @@ function Dashboard() {
       const month = now.getMonth() + 1;
       const year = now.getFullYear();
 
-      const [householdRes, roomsRes, appliancesRes, summaryPayload, roomBreakdownPayload, applianceBreakdownPayload] = await Promise.all([
-        api.get(`/households/${targetId}`),
+      const householdRes = await api.get(`/households/${targetId}`);
+      
+      const [roomsRes, appliancesRes, summaryPayload, roomBreakdownPayload, applianceBreakdownPayload, weatherRes] = await Promise.all([
         api.get(`/households/${targetId}/rooms`),
         api.get(`/households/${targetId}/appliances`),
         getMonthlySummary(targetId, month, year),
         getUsageByRooms(targetId, month, year),
-        getUsageByAppliances(targetId, month, year)
+        getUsageByAppliances(targetId, month, year),
+        getWeatherImpact(targetId, month, year, { city: householdRes.data.city }).catch(() => null)
       ]);
 
       setActiveHousehold(householdRes.data);
@@ -87,6 +92,7 @@ function Dashboard() {
       setUsageSummary(summaryPayload.data);
       setRoomUsageData(roomBreakdownPayload?.data?.breakdown || []);
       setApplianceUsageData(applianceBreakdownPayload?.data?.breakdown || []);
+      setWeatherData(weatherRes?.data?.weather || null);
 
       // Filter and process chart data
       const targetUsages = allUsages.filter(u => u.householdId === targetId || (u.householdId?._id || u.householdId) === targetId);
@@ -161,13 +167,16 @@ function Dashboard() {
   });
 
   const getRoomIcon = (name) => {
-    if (!name) return { icon: "", color: "#f1f5f9" };
+    if (!name) return { icon: "🏠", color: "#f1f5f9" };
     const lower = name.toLowerCase();
-    if (lower.includes("living")) return { icon: "", color: "#fef3c7" };
-    if (lower.includes("kitchen")) return { icon: "", color: "#dcfce7" };
-    if (lower.includes("bed")) return { icon: "", color: "#fee2e2" };
-    if (lower.includes("bath")) return { icon: "", color: "#dbeafe" };
-    return { icon: "", color: "#f1f5f9" };
+    if (lower.includes("living")) return { icon: "🛋️", color: "#fef3c7" };
+    if (lower.includes("kitchen")) return { icon: "🍳", color: "#dcfce7" };
+    if (lower.includes("bedroom") || lower.includes("bed")) return { icon: "🛏️", color: "#fee2e2" };
+    if (lower.includes("bathroom") || lower.includes("bath")) return { icon: "🚿", color: "#dbeafe" };
+    if (lower.includes("dining")) return { icon: "🍽️", color: "#fff7ed" };
+    if (lower.includes("garage")) return { icon: "🚗", color: "#f1f5f9" };
+    if (lower.includes("office") || lower.includes("work")) return { icon: "💻", color: "#e0f2fe" };
+    return { icon: "🏠", color: "#f1f5f9" };
   };
 
   if (loading) return (
@@ -222,8 +231,16 @@ function Dashboard() {
           <h1 style={{ fontSize: "56px", fontWeight: "900", margin: "12px 0 8px 0", color: "#0f172a", letterSpacing: "-1px" }}>
             Dashboard
           </h1>
-          <p style={{ fontSize: "22px", color: "#64748b", margin: 0 }}>
-            {activeHousehold.name} <span style={{ color: "#cbd5e1", margin: "0 10px" }}>|</span> {activeHousehold.city}
+          <p style={{ fontSize: "22px", color: "#64748b", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+            {activeHousehold.name} 
+            <span style={{ color: "#cbd5e1", margin: "0 2px" }}>|</span> 
+            {activeHousehold.city}
+            {weatherData && (
+              <span style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "12px", background: "white", padding: "4px 12px", borderRadius: "12px", fontSize: "18px", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+                <span>{getWeatherIconEmoji(weatherData.description)}</span>
+                <span style={{ fontWeight: "800", color: "#0f172a" }}>{Math.round(weatherData.temperature)}°C</span>
+              </span>
+            )}
           </p>
         </div>
         <button
@@ -246,6 +263,26 @@ function Dashboard() {
           Manage Home
         </button>
       </div>
+
+      {weatherData && (
+        <div style={{
+          ...glassPanel,
+          padding: "16px 24px",
+          marginBottom: "48px",
+          display: "flex",
+          alignItems: "center",
+          gap: "16px",
+          background: "linear-gradient(90deg, #f0fdf4 0%, rgba(255,255,255,0.7) 100%)",
+          borderLeft: "6px solid #10b981",
+          borderRadius: "16px 24px 24px 16px"
+        }}>
+          <div style={{ fontSize: "24px" }}>💡</div>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontWeight: "800", color: "#059669", textTransform: "uppercase", fontSize: "12px", letterSpacing: "1px", display: "block", marginBottom: "2px" }}>Recommended Action</span>
+            <p style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#1e293b" }}>{getWeatherRecommendation(weatherData)}</p>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: "24px", marginBottom: "48px", flexWrap: "wrap" }}>
         <div style={statCard()}>
@@ -458,59 +495,114 @@ function Dashboard() {
 
                   return (
                     <>
+                      <defs>
+                        <filter id="premium-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                          <feOffset dx="0" dy="4" result="offsetblur" />
+                          <feComponentTransfer><feFuncA type="linear" slope="0.3" /></feComponentTransfer>
+                          <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+                        </filter>
+                      </defs>
+
+                      {/* Matching the BreakdownDonut style track */}
+                      <circle cx="50" cy="50" r="32" fill="none" stroke="#e9edf2" strokeWidth="18" />
+
                       {roomUsageData.map((r, i) => {
-                        const percentage = total > 0 ? (r.allocatedUsage / total) * 100 : 0;
-                        const strokeDash = `${percentage} ${100 - percentage}`;
-                        const rotation = (currentOffset / 100) * 360 - 90;
-                        const color = colors[i % colors.length];
-                        currentOffset += percentage;
+                        const usageColors = ["#2a8c5f", "#fbbf24", "#3b82f6", "#ef4444", "#9d4edd", "#3db7b9"];
+                        const totalUnits = roomUsageData.reduce((sum, item) => sum + item.allocatedUsage, 0);
+                        const percentage = totalUnits > 0 ? (r.allocatedUsage / totalUnits) : 0;
+                        if (percentage === 0) return null;
+
+                        const radius = 32;
+                        const centerX = 50;
+                        const centerY = 50;
+                        const startAngle = (currentOffset / 100) * 360 - 90;
+                        const endAngle = startAngle + (percentage * 360);
+
+                        const startRad = (startAngle * Math.PI) / 180;
+                        const endRad = (endAngle * Math.PI) / 180;
+
+                        const x1 = centerX + radius * Math.cos(startRad);
+                        const y1 = centerY + radius * Math.sin(startRad);
+                        const x2 = centerX + radius * Math.cos(endRad);
+                        const y2 = centerY + radius * Math.sin(endRad);
+
+                        const largeArcFlag = percentage > 0.5 ? 1 : 0;
+                        const d = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
+
+                        currentOffset += (percentage * 100);
+                        const isHovered = hoveredSlice === r.roomId;
+                        const color = usageColors[i % usageColors.length];
 
                         return (
-                          <circle
+                          <path
                             key={i}
-                            cx="50" cy="50" r="40"
+                            d={d}
                             fill="transparent"
                             stroke={color}
-                            strokeWidth="12"
-                            strokeDasharray={strokeDash}
-                            strokeDashoffset="0"
-                            transform={`rotate(${rotation} 50 50)`}
-                            onMouseEnter={() => setHoveredSlice({ ...r, color })}
+                            strokeWidth="18"
+                            strokeLinecap="butt"
+                            onMouseEnter={() => setHoveredSlice(r.roomId)}
                             onMouseLeave={() => setHoveredSlice(null)}
                             style={{
                               cursor: "pointer",
                               transition: "all 0.3s ease",
-                              opacity: hoveredSlice?.roomId === r.roomId ? 1 : 0.85
+                              opacity: !hoveredSlice || isHovered ? 1 : 0.4,
+                              transform: isHovered ? "scale(1.02)" : "scale(1)",
+                              transformOrigin: "center"
                             }}
                           />
                         );
                       })}
-                      <circle cx="50" cy="50" r="30" fill="white" />
-                      <text x="50" y="48" textAnchor="middle" fill="#64748b" style={{ fontSize: "6px", fontWeight: "700" }}>TOTAL</text>
-                      <text x="50" y="58" textAnchor="middle" fill="#0f172a" style={{ fontSize: "10px", fontWeight: "900" }}>{Math.round(total)} kWh</text>
+
+                      <text x="50" y="46" textAnchor="middle" fill="#64748b" style={{ fontSize: "4.5px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>Total Energy</text>
+                      <text x="50" y="58" textAnchor="middle" fill="#0f172a" style={{ fontSize: "11px", fontWeight: "900" }}>
+                        {Math.round(total)}
+                        <tspan dx="1" dy="-1" style={{ fontSize: "5px", fontWeight: "700", fill: "#94a3b8" }}>kWh</tspan>
+                      </text>
                     </>
                   );
                 })()}
               </svg>
             </div>
 
-            <div style={{ flex: 1, minWidth: "300px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "16px" }}>
+            <div style={{ flex: 1, minWidth: "350px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "20px" }}>
               {roomUsageData.map((r, i) => {
                 const colors = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
                 const color = colors[i % colors.length];
-                const total = roomUsageData.reduce((sum, item) => sum + item.allocatedUsage, 0);
-                const pct = total > 0 ? Math.round((r.allocatedUsage / total) * 100) : 0;
+                const totalUsage = roomUsageData.reduce((sum, item) => sum + item.allocatedUsage, 0);
+                const pct = totalUsage > 0 ? Math.round((r.allocatedUsage / totalUsage) * 100) : 0;
+                const roomStyles = getRoomIcon(r.roomName);
+                const isHovered = hoveredSlice === r.roomId;
 
                 return (
-                  <div key={i} style={{
-                    display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderRadius: "16px",
-                    background: hoveredSlice?.roomId === r.roomId ? "#f8fafc" : "transparent",
-                    border: hoveredSlice?.roomId === r.roomId ? "1px solid #e2e8f0" : "1px solid transparent"
-                  }}>
-                    <div style={{ width: "10px", height: "10px", borderRadius: "3px", background: color }}></div>
+                  <div
+                    key={i}
+                    onMouseEnter={() => setHoveredSlice(r.roomId)}
+                    onMouseLeave={() => setHoveredSlice(null)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "16px", padding: "16px", borderRadius: "24px",
+                      background: isHovered ? "white" : "rgba(255,255,255,0.3)",
+                      border: "1px solid",
+                      borderColor: isHovered ? "#e2e8f0" : "transparent",
+                      boxShadow: isHovered ? "0 10px 30px rgba(0,0,0,0.06)" : "none",
+                      transition: "all 0.3s ease",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <div style={{
+                      width: "52px", height: "52px", borderRadius: "16px", background: roomStyles.color,
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px",
+                      boxShadow: `0 8px 15px ${roomStyles.color}88`
+                    }}>
+                      {roomStyles.icon}
+                    </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{r.roomName}</div>
-                      <div style={{ fontSize: "12px", fontWeight: "600", color: "#64748b" }}>{r.applianceCount} Devices • {pct}%</div>
+                      <div style={{ fontSize: "16px", fontWeight: "800", color: "#1e293b" }}>{r.roomName}</div>
+                      <div style={{ fontSize: "13px", fontWeight: "600", color: "#64748b", display: "flex", justifyContent: "space-between" }}>
+                        <span>{r.applianceCount} Devices</span>
+                        <span style={{ color: color, fontWeight: "900" }}>{pct}%</span>
+                      </div>
                     </div>
                   </div>
                 );

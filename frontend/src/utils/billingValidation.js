@@ -2,6 +2,9 @@
 export function validateBillForm(form, { requirePaidDateConsistency = false } = {}) {
   const monthValue = Number(form.month);
   const yearValue = Number(form.year);
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
   if (!Number.isInteger(monthValue) || monthValue < 1 || monthValue > 12) {
     return "Month must be between 1 and 12.";
@@ -9,6 +12,10 @@ export function validateBillForm(form, { requirePaidDateConsistency = false } = 
 
   if (!Number.isInteger(yearValue) || yearValue < 2000 || yearValue > 2100) {
     return "Year must be between 2000 and 2100.";
+  }
+
+  if (yearValue > currentYear || (yearValue === currentYear && monthValue > currentMonth)) {
+    return "Billing period cannot be in the future.";
   }
 
   if (form.mode === "readings") {

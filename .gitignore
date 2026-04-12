@@ -5,3 +5,4 @@ package-lock.json
 .DS_Store
 backend/uploads/user avatars/
 frontend/dist/
+backend/.mongodb-binaries/
