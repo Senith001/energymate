@@ -20,7 +20,7 @@ const createUsageRules = [
   body("currentReading")
     .optional()
     .isFloat({ min: 0 }).withMessage("currentReading must be a non-negative number"),
-  
+
   // Require enough raw input to derive usage, whether the entry is manual or based on meter readings.
   body().custom((value) => {
     const { unitsUsed, previousReading, currentReading } = value;
@@ -32,8 +32,8 @@ const createUsageRules = [
     if (!hasUnits && (!hasPreviousReading || !hasCurrentReading)) {
       throw new Error("Provide either unitsUsed OR both previousReading and currentReading");
     }
-      return true;
-    }),
+    return true;
+  }),
   validate,
 ];
 

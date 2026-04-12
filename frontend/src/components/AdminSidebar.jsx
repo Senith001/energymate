@@ -10,6 +10,7 @@ function AdminSidebar() {
   const menuItems = [
     { name: "Control Center", path: "/admin/dashboard", icon: "⚙️" },
     { name: "User Management", path: "/admin/users", icon: "👥" },
+    ...(user?.role === "superadmin" ? [{ name: "Admin Management", path: "/admin/management", icon: "🛡️" }] : []),
     { name: "Household Management", path: "/admin/households", icon: "🏠" },
     { name: "Public Posts", path: "/admin/posts", icon: "📰" },
     { name: "Feedback", path: "/admin/feedback", icon: "💬" },
@@ -26,7 +27,7 @@ function AdminSidebar() {
           <div>
             <span style={{ color: "#0f172a" }}>Energy</span><span style={{ color: "#10b981" }}>Mate</span>
           </div>
-          <span style={styles.adminBadge}>ADMIN</span>
+          <span style={styles.adminBadge}>{user?.role === "superadmin" ? "SUPER ADMIN" : "ADMIN"}</span>
         </h1>
       </div>
 

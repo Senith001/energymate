@@ -85,3 +85,4 @@ mongoose
     console.error("❌ MongoDB Connection Failed:", err.message);
     process.exit(1);
   });
+// Trigger nodemon restart

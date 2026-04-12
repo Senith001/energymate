@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -129,6 +130,11 @@ const LoginPage = () => {
                 </>
               )}
             </button>
+            <div className="mt-4 text-center">
+              <Link to="/forgot-password" className="text-[13px] font-black text-emerald-600 hover:text-emerald-700 hover:underline underline-offset-4 transition-all">
+                Forgot your password?
+              </Link>
+            </div>
           </form>
 
           <p className="text-center mt-10 text-slate-500 font-medium text-sm">

@@ -48,13 +48,13 @@ export const registerUser = async (req, res, next) => {
       // ✅ If the user exists AND is verified, stop them.
       if (user.isVerified) {
         return res.status(409).json({ message: "Email already registered" });
-      } 
+      }
       // ✅ If the user exists but is NOT verified...
       else {
         // DELETE the old unverified record entirely. 
         // This abandons their old sequential ID and clears their stale 'createdAt' timestamp.
         await User.deleteOne({ _id: user._id });
-        
+
         // CREATE a brand new record so the counter assigns them the latest sequential ID.
         const hashedPassword = await bcrypt.hash(password, 10);
         user = await User.create({
@@ -151,21 +151,21 @@ export const resendOtp = async (req, res, next) => {
       userId: user._id,
       purpose: "VERIFY_EMAIL",
       usedAt: null,
-      expiresAt: { $gt: new Date() } 
+      expiresAt: { $gt: new Date() }
     });
 
     if (activeOtp) {
-      return res.status(429).json({ 
-        message: "Your previous OTP is still valid. Please wait for it to expire before requesting a new one." 
+      return res.status(429).json({
+        message: "Your previous OTP is still valid. Please wait for it to expire before requesting a new one."
       });
     }
 
     // 3. Generate a new 6-digit OTP
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     const otpHash = await bcrypt.hash(otp, 10);
-    
+
     // Set expiration to 1 minute from now (matching your React frontend timer)
-    const expiresAt = new Date(Date.now() + 1 * 60 * 1000); 
+    const expiresAt = new Date(Date.now() + 1 * 60 * 1000);
 
     // 4. Delete any expired or old verification OTPs for this user to keep the DB clean
     await Otp.deleteMany({
@@ -476,9 +476,9 @@ export const changeMyPassword = async (req, res, next) => {
 export const getAllUsers = async (req, res, next) => {
   try {
     // Fetches only verified accounts that specifically have the "user" role
-    const users = await User.find({ 
-      isVerified: true, 
-      role: "user" 
+    const users = await User.find({
+      isVerified: true,
+      role: "user"
     }).select("-password");
 
     return res.status(200).json({
@@ -530,7 +530,7 @@ export const changeUserPassword = async (req, res, next) => {
       return res.status(400).json({ message: "New password required" });
     }
 
-    const user = await User.findById(id);
+    const user = await User.findOne({ userId: id });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -557,7 +557,7 @@ export const registerAdmin = async (req, res, next) => {
     const incoming = req.headers["x-admin-secret"];
 
     if (!incoming || incoming !== process.env.ADMIN_SECRET) {
-        return res.status(403).json({ message: "Unauthorized admin registration" });
+      return res.status(403).json({ message: "Unauthorized admin registration" });
     }
 
 
@@ -648,7 +648,7 @@ export const deleteAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const target = await User.findById(id);
+    const target = await User.findOne({ userId: id });
     if (!target) return res.status(404).json({ message: "Admin not found" });
 
     if (target.role !== "admin") {
@@ -675,7 +675,7 @@ export const changeAdminPassword = async (req, res, next) => {
       return res.status(400).json({ message: "new password is required" });
     }
 
-    const target = await User.findById(id);
+    const target = await User.findOne({ userId: id });
     if (!target) return res.status(404).json({ message: "Admin not found" });
 
     if (target.role !== "admin") {
@@ -782,7 +782,7 @@ export const uploadMyAvatar = async (req, res, next) => {
 
     // delete old avatar file if exists
     if (user.avatar?.filename) {
-      const oldPath = path.join(process.cwd(),"uploads","user avatars",user.avatar.filename);
+      const oldPath = path.join(process.cwd(), "uploads", "user avatars", user.avatar.filename);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
@@ -809,7 +809,7 @@ export const deleteMyAvatar = async (req, res, next) => {
     const user = req.user;
 
     if (user.avatar?.filename) {
-      const filePath = path.join(process.cwd(),"uploads","user avatars",user.avatar.filename);
+      const filePath = path.join(process.cwd(), "uploads", "user avatars", user.avatar.filename);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
@@ -838,8 +838,8 @@ export const getUserById = async (req, res, next) => {
     const user = await User.findOne({ userId: id, role: "user", isVerified: true }).select("-password");
 
     if (!user) {
-      return res.status(404).json({ 
-        message: "User not found" 
+      return res.status(404).json({
+        message: "User not found"
       });
     }
 
