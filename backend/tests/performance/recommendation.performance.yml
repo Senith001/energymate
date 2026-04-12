@@ -1,0 +1,25 @@
+config:
+  target: "http://localhost:5001"
+  phases:
+    - duration: 20
+      arrivalRate: 1
+      name: Warm up
+    - duration: 40
+      arrivalRate: 5
+      name: Sustained load
+  defaults:
+    headers:
+      Authorization: "Bearer {{ $processEnvironment.USER_TOKEN }}"
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "AI Recommendation Analysis"
+    flow:
+      - get:
+          url: "/api/recommendations/households/{{ $processEnvironment.HOUSEHOLD_ID }}/history"
+      - post:
+          url: "/api/recommendations/households/{{ $processEnvironment.HOUSEHOLD_ID }}/ai/energy-tips"
+      - post:
+          url: "/api/recommendations/households/{{ $processEnvironment.HOUSEHOLD_ID }}/ai/predictions"
+      - post:
+          url: "/api/recommendations/households/{{ $processEnvironment.HOUSEHOLD_ID }}/ai/cost-strategies"
