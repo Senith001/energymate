@@ -1,7 +1,8 @@
 // src/services/geminiService.js
 import "dotenv/config";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
+import { getTariff } from "./tarifService.js";
+import { calculateCost } from "./usageService.js";
 /* ═══════════════════════════════════════════════════════╗
    CONFIG
 ╚══════════════════════════════════════════════════════ */
@@ -99,7 +100,6 @@ async function generateJSON(
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: "application/json",
-          maxOutputTokens,
           temperature: attempt === retries ? 0 : temperature,
         },
       });
@@ -127,12 +127,12 @@ async function generateJSON(
       const msg = String(err?.message || "");
       console.warn(`⚠️  Gemini attempt ${attempt} failed:`, msg.slice(0, 120));
 
-      if (
-        msg.includes("429") ||
-        msg.includes("quota") ||
-        msg.includes("Too Many Requests")
-      ) {
-        throw Object.assign(err, { isQuotaError: true });
+      if (msg.includes("429") || msg.includes("quota") || msg.includes("Too Many Requests")) {
+        if (attempt === retries) {
+          throw Object.assign(err, { isQuotaError: true });
+        }
+        await wait(2000 * 2 ** (attempt - 1)); // Wait longer for quota issues
+        continue;
       }
 
       if (attempt < retries) await wait(500 * 2 ** (attempt - 1));
@@ -264,7 +264,11 @@ Each object:
   "learnMore": "https://www.ceb.lk/energy-saving-tips/en"
 }
 
-Rules: 5 distinct tips, realistic savings, short field values (see char limits), no text outside the array.
+Rules: 
+1. Provide 5 distinct tips highly tailored to the exact 'appliances' and usage trends in the Data.
+2. Explicitly mention the specific appliances listed in the data (e.g. if the user has a 'phone' or 'pc', give tips about those exact items).
+3. DO NOT give generic tips like "Upgrade to LED" unless no appliance data is provided.
+4. Keep all string values short. Provide realistic savings.
 
 Data: ${JSON.stringify(summary)}
 `.trim();
@@ -319,6 +323,10 @@ Return ONLY a single JSON object. No extra text. Keep ALL string values very sho
   "priority": "High"|"Medium"|"Low",
   "learnMore": "https://www.ceb.lk/energy-saving-tips/en"
 }
+
+Rules:
+- The strategy MUST directly target the active appliances ("phone", "pc", "fan", etc.) provided in the JSON Data if available.
+- Avoid generic advice unless no appliances are present. Provide exact optimization methods for the user's specific devices.
 
 Data: ${JSON.stringify(summary)}
 `.trim();
@@ -454,10 +462,17 @@ Bill history: ${JSON.stringify(
     ])
   );
 
+  const tariff = await getTariff();
   const finalTable = nextMonths.map((label) => {
     const [yy, mm] = label.split("-").map(Number);
-    const v = valueMap.get(label);
-    return { year: yy, month: mm, predictedConsumption: v ?? avg3 };
+    const v = valueMap.get(label) ?? avg3;
+    const costInfo = calculateCost(v, tariff);
+    return {
+      year: yy,
+      month: mm,
+      predictedConsumption: v,
+      predictedCostLKR: costInfo.totalCost,
+    };
   });
 
   const insights = Array.isArray(result?.insights)

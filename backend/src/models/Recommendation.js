@@ -20,9 +20,11 @@ const recommendationSchema = new mongoose.Schema({
     }],
 
     predictionTable: [{
+        year: Number,
         month: String,
         currentConsumption: Number,
-        predictedConsumption: Number
+        predictedConsumption: Number,
+        predictedCostLKR: Number
     }],
 
     predictionInsights: [{
