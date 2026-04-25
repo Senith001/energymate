@@ -9,6 +9,10 @@ import { useAuth } from "../context/AuthContext";
 import { getPosts } from "../services/postService";
 import api from "../services/api";
 
+const IMAGE_BASE_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace('/api', '')
+  : "http://localhost:5001";
+
 // ─── Counter ───────────────────────────────────────────────────────────
 function Counter({ target, suffix = "" }) {
   const [n, setN] = useState(0);
@@ -659,7 +663,7 @@ export default function LandingPage() {
               // Use only real admin posts
               const allPosts = posts.map(p => ({
                 _id: p._id,
-                image: `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001'}${p.image}`,
+                image: `${IMAGE_BASE_URL}${p.image}`,
                 date: new Date(p.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }),
                 tag: "💡 Insights",
                 tagColor: "#eef2ff",
