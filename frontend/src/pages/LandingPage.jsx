@@ -659,7 +659,7 @@ export default function LandingPage() {
               // Use only real admin posts
               const allPosts = posts.map(p => ({
                 _id: p._id,
-                image: `http://localhost:5001${p.image}`,
+                image: `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001'}${p.image}`,
                 date: new Date(p.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }),
                 tag: "💡 Insights",
                 tagColor: "#eef2ff",
