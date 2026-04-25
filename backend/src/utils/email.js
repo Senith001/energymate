@@ -17,12 +17,23 @@ export const sendEmail = async ({ to, subject, html }) => {
   const secure =
     process.env.EMAIL_SECURE === "true" || port === 465; // auto-secure for 465
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: { user, pass },
-  });
+  // Use the native Gmail service mapping to avoid IPv6/port timeout issues on cloud hosts
+  const transporter = nodemailer.createTransport(
+    host.includes("gmail.com")
+      ? {
+          service: "gmail",
+          auth: { user, pass },
+        }
+      : {
+          host,
+          port,
+          secure,
+          auth: { user, pass },
+          tls: {
+            rejectUnauthorized: false
+          }
+        }
+  );
 
   // checks SMTP connection
   await transporter.verify();
