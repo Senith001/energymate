@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import api from "../../services/api";
 import { motion } from "framer-motion";
 import { FiLock, FiCheckCircle, FiArrowRight } from "react-icons/fi";
@@ -7,6 +7,8 @@ import { FiLock, FiCheckCircle, FiArrowRight } from "react-icons/fi";
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = location.state?.from || "/login";
   const [email, setEmail] = useState("");
   const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
   const [newPassword, setNewPassword] = useState("");
@@ -14,6 +16,40 @@ const ResetPasswordPage = () => {
 
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const validateField = (name, value, allData = {}) => {
+    let err = null;
+    switch (name) {
+      case "newPassword":
+        if (value) {
+          if (value.length < 8) err = "Password must be at least 8 characters long";
+          else if (!/[a-z]/.test(value)) err = "Password must contain at least one lowercase letter";
+          else if (!/[A-Z]/.test(value)) err = "Password must contain at least one uppercase letter";
+          else if (!/\d/.test(value)) err = "Password must contain at least one number";
+          else if (!/[^A-Za-z0-9]/.test(value)) err = "Password must contain at least one special character";
+        }
+        break;
+      case "confirmPassword":
+        if (value && value !== allData.newPassword) err = "Passwords must match";
+        break;
+      default:
+        break;
+    }
+    return err;
+  };
+
+  const handleNewPasswordChange = (e) => {
+    const value = e.target.value;
+    setNewPassword(value);
+    setFieldErrors(prev => ({ ...prev, newPassword: validateField("newPassword", value, { newPassword: value, confirmPassword }) }));
+  };
+
+  const handleConfirmPasswordChange = (e) => {
+    const value = e.target.value;
+    setConfirmPassword(value);
+    setFieldErrors(prev => ({ ...prev, confirmPassword: validateField("confirmPassword", value, { newPassword, confirmPassword: value }) }));
+  };
 
   useEffect(() => {
     const emailParam = searchParams.get("email");
@@ -66,7 +102,7 @@ const ResetPasswordPage = () => {
 
     try {
       await api.post("/users/reset-password", { email, otp, newPassword });
-      navigate("/password-changed");
+      navigate("/password-changed", { state: { from: backPath } });
     } catch (err) {
       if (err.response && err.response.data) {
         setError(err.response.data.message || "Failed to reset password.");
@@ -125,8 +161,9 @@ const ResetPasswordPage = () => {
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
                   <FiLock className="w-5 h-5" />
                 </div>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-medium" placeholder="Enter new password" />
+                <input type="password" value={newPassword} onChange={handleNewPasswordChange} required className={`w-full pl-12 pr-4 py-4 bg-slate-50 border ${fieldErrors.newPassword ? 'border-rose-300 ring-4 ring-rose-50' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/10'} rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all font-medium`} placeholder="Enter new password" />
               </div>
+              {fieldErrors.newPassword && <p className="text-[9px] text-rose-500 font-black uppercase ml-1 mt-1.5">{fieldErrors.newPassword}</p>}
             </div>
 
             <div className="space-y-2">
@@ -135,11 +172,12 @@ const ResetPasswordPage = () => {
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
                   <FiLock className="w-5 h-5" />
                 </div>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-medium" placeholder="Confirm your new password" />
+                <input type="password" value={confirmPassword} onChange={handleConfirmPasswordChange} required className={`w-full pl-12 pr-4 py-4 bg-slate-50 border ${fieldErrors.confirmPassword ? 'border-rose-300 ring-4 ring-rose-50' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/10'} rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all font-medium`} placeholder="Confirm your new password" />
               </div>
+              {fieldErrors.confirmPassword && <p className="text-[9px] text-rose-500 font-black uppercase ml-1 mt-1.5">{fieldErrors.confirmPassword}</p>}
             </div>
 
-            <button type="submit" disabled={isLoading} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-70 mt-6">
+            <button type="submit" disabled={isLoading || Object.values(fieldErrors).some(e => e !== null)} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-70 mt-6">
               {isLoading ? (
                 <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Resetting...</span></>
               ) : (

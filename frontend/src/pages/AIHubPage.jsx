@@ -114,7 +114,7 @@ export default function AIHubPage() {
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                to="/"
+                to="/dashboard"
                 className="flex items-center gap-2 text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors py-1.5 px-3 rounded-lg hover:bg-slate-100"
               >
                 <FiArrowLeft className="w-4 h-4" />

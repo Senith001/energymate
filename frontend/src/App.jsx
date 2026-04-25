@@ -37,6 +37,7 @@ import AdminBillingPage from "./pages/bill/AdminBillingPage";
 import AdminTariffPage from "./pages/bill/AdminTariffPage";
 
 import SuperadminSetup from "./pages/admin/SuperadminSetup";
+import AdminPasswordPage from "./pages/admin/AdminPasswordPage";
 
 //User Pages
 import UserProfile from "./pages/user/UserProfile";
@@ -67,6 +68,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Auth Routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/home" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -89,6 +91,7 @@ function App() {
           {/* Protected Admin Layout Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="password" element={<AdminPasswordPage />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="management" element={<AdminManagement />} />
             <Route path="households" element={<AdminHouseholdPage />} />
@@ -110,8 +113,8 @@ function App() {
 
 
             {/* Protected Main Layout Routes */}
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Dashboard />} />
+            <Route element={<MainLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="households" element={<HouseholdPage />} />
               <Route path="rooms" element={<RoomsPage />} />
               <Route path="appliances" element={<AppliancesPage />} />

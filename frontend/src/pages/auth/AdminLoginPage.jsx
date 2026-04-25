@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import { motion } from "framer-motion";
@@ -132,6 +132,11 @@ const AdminLoginPage = () => {
                 </>
               )}
             </button>
+            <div className="mt-6 text-center">
+              <Link to="/forgot-password" state={{ from: "/admin-portal" }} className="text-[13px] font-black text-emerald-600 hover:text-emerald-700 hover:underline underline-offset-4 transition-all">
+                Forgot your password?
+              </Link>
+            </div>
           </form>
 
           <p className="mt-12 text-center text-slate-400 text-xs font-medium">
