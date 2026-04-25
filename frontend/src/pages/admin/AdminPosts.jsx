@@ -1,6 +1,7 @@
+// src/pages/admin/AdminPosts.jsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { FiPlus, FiTrash2, FiImage, FiFileText } from "react-icons/fi";
-import { getPosts, createPost, deletePost } from "../../services/postService";
+import { FiPlus, FiTrash2, FiImage, FiEdit2, FiEye, FiCalendar, FiUser } from "react-icons/fi";
+import { getPosts, createPost, updatePost, deletePost } from "../../services/postService";
 import {
   LoadingSpinner,
   EmptyState,
@@ -9,10 +10,22 @@ import {
   Modal,
 } from "../../components/ui/SharedComponents";
 
-function PostForm({ onSubmit, onCancel, loading }) {
-  const [form, setForm] = useState({ title: "", summary: "", content: "" });
+const BASE_URL = "http://localhost:5001";
+
+/* ─────────────────────────────────────────────────────────
+   Post Form — used for both Create and Edit
+───────────────────────────────────────────────────────── */
+function PostForm({ onSubmit, onCancel, loading, initialData }) {
+  const isEdit = !!initialData;
+  const [form, setForm] = useState({
+    title: initialData?.title || "",
+    summary: initialData?.summary || "",
+    content: initialData?.content || "",
+  });
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [preview, setPreview] = useState(
+    initialData?.image ? `${BASE_URL}${initialData.image}` : null
+  );
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
 
@@ -23,7 +36,7 @@ function PostForm({ onSubmit, onCancel, loading }) {
     if (!form.title.trim()) e.title = "Title is required";
     if (!form.summary.trim()) e.summary = "Summary is required";
     if (!form.content.trim()) e.content = "Content is required";
-    if (!file) e.file = "Image is required";
+    if (!isEdit && !file) e.file = "Image is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -39,24 +52,22 @@ function PostForm({ onSubmit, onCancel, loading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
-
     const formData = new FormData();
     formData.append("title", form.title);
     formData.append("summary", form.summary);
     formData.append("content", form.content);
-    formData.append("image", file);
-
+    if (file) formData.append("image", file);
     onSubmit(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Title */}
       <div>
         <label className="label">Post Title *</label>
         <input
           className={`input ${errors.title ? "border-red-400 focus:ring-red-400" : ""}`}
-          placeholder="e.g. New Energy Polices Announced"
+          placeholder="e.g. New Energy Policy Announced"
           value={form.title}
           onChange={(e) => set("title", e.target.value)}
         />
@@ -68,7 +79,7 @@ function PostForm({ onSubmit, onCancel, loading }) {
         <label className="label">Short Summary *</label>
         <input
           className={`input ${errors.summary ? "border-red-400" : ""}`}
-          placeholder="A quick 1-2 sentence preview for the Landing Page card..."
+          placeholder="A quick 1-2 sentence preview shown on the home page..."
           value={form.summary}
           onChange={(e) => set("summary", e.target.value)}
         />
@@ -77,77 +88,138 @@ function PostForm({ onSubmit, onCancel, loading }) {
 
       {/* Image Upload */}
       <div>
-        <label className="label">Cover Image *</label>
+        <label className="label">Cover Image {isEdit ? "(leave empty to keep current)" : "*"}</label>
         <div
           onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${errors.file ? "border-red-400 bg-red-50" : "border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/50"}`}
+          className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors
+            ${errors.file ? "border-red-400 bg-red-50" : "border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/30"}`}
         >
           {preview ? (
-            <img src={preview} alt="Preview" className="h-32 object-contain mb-2 rounded shadow-sm" />
+            <img src={preview} alt="Preview" className="h-36 object-contain mb-2 rounded-lg shadow-sm" />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-gray-400 mb-2 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-slate-400 mb-2 shadow-sm border border-slate-100">
               <FiImage className="w-5 h-5" />
             </div>
           )}
-          <p className="text-sm font-medium text-gray-700">
-            {file ? file.name : "Click to select an image (JPG, PNG)"}
+          <p className="text-sm font-semibold text-slate-600">
+            {file ? file.name : preview ? "Click to change image" : "Click to select image (JPG, PNG)"}
           </p>
+          <p className="text-xs text-slate-400 mt-1">Max 5MB</p>
         </div>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-        />
+        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
         {errors.file && <p className="text-red-500 text-xs mt-1">{errors.file}</p>}
       </div>
 
       {/* Content */}
       <div>
-        <label className="label">Full Post Content *</label>
+        <label className="label">Full Article Content *</label>
         <textarea
-          className={`input resize-none h-40 ${errors.content ? "border-red-400" : ""}`}
-          placeholder="Write the full article content here..."
+          className={`input resize-none h-44 ${errors.content ? "border-red-400" : ""}`}
+          placeholder="Write the full article content here. Use new lines to separate paragraphs."
           value={form.content}
           onChange={(e) => set("content", e.target.value)}
         />
         {errors.content && <p className="text-red-500 text-xs mt-1">{errors.content}</p>}
+        <p className="text-xs text-slate-400 mt-1">{form.content.length} characters</p>
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-        <button type="button" onClick={onCancel} className="btn-secondary">
-          Cancel
-        </button>
+      <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+        <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
         <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? <span className="spinner w-4 h-4" /> : null}
-          Publish Post
+          {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+          {isEdit ? "Save Changes" : "Publish Post"}
         </button>
       </div>
     </form>
   );
 }
 
-// ─────────────────────────────────────────────────────────
-// Main Page
-// ─────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────
+   Post Card
+───────────────────────────────────────────────────────── */
+function PostCard({ post, onEdit, onDelete }) {
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all duration-200 hover:-translate-y-0.5">
+      {/* Image */}
+      <div className="h-48 overflow-hidden bg-slate-100 relative">
+        <img
+          src={`${BASE_URL}${post.image}`}
+          alt={post.title}
+          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          onError={(e) => { e.target.src = "https://placehold.co/600x400/e2e8f0/94a3b8?text=No+Image"; }}
+        />
+        {/* Date badge */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700 shadow-sm">
+          <FiCalendar className="w-3 h-3" />
+          {new Date(post.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-5 flex-1 flex flex-col">
+        <h3 className="font-bold text-slate-900 text-base leading-snug mb-2 line-clamp-2">{post.title}</h3>
+        <p className="text-sm text-slate-500 leading-relaxed line-clamp-2 mb-4">{post.summary}</p>
+
+        {/* Author */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+            <FiUser className="w-3 h-3 text-emerald-600" />
+          </div>
+          <span className="text-xs font-semibold text-slate-500">{post.author?.name || "Admin"}</span>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+          <a
+            href={`/news/${post._id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors"
+          >
+            <FiEye className="w-3.5 h-3.5" /> Preview
+          </a>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onEdit(post)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+              title="Edit Post"
+            >
+              <FiEdit2 className="w-3.5 h-3.5" /> Edit
+            </button>
+            <button
+              onClick={() => onDelete(post._id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+              title="Delete Post"
+            >
+              <FiTrash2 className="w-3.5 h-3.5" /> Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   Main Page
+───────────────────────────────────────────────────────── */
 export default function AdminPosts() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Modals
   const [showCreate, setShowCreate] = useState(false);
+  const [editPost, setEditPost] = useState(null); // post object being edited
   const [formLoading, setFormLoading] = useState(false);
 
-  // ── Fetch ──────────────────────────────────────────────
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await getPosts();
-      setPosts(data || []);
+      const res = await getPosts();
+      // Handle both { data: [...] } and plain array responses
+      const list = res.data?.data || res.data || [];
+      setPosts(list);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load posts.");
     } finally {
@@ -155,11 +227,9 @@ export default function AdminPosts() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  // ── Create ─────────────────────────────────────────────
+  // Create
   const handleCreate = async (formData) => {
     setFormLoading(true);
     try {
@@ -167,40 +237,57 @@ export default function AdminPosts() {
       setShowCreate(false);
       fetchPosts();
     } catch (err) {
-      alert("Failed to publish post. Ensure image size is under 5MB.");
-      console.error(err);
+      alert(err.response?.data?.message || "Failed to publish post. Ensure image size is under 5MB.");
     } finally {
       setFormLoading(false);
     }
   };
 
-  // ── Delete ─────────────────────────────────────────────
+  // Edit
+  const handleEdit = async (formData) => {
+    setFormLoading(true);
+    try {
+      await updatePost(editPost._id, formData);
+      setEditPost(null);
+      fetchPosts();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to update post.");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Delete
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this public post?")) return;
+    if (!window.confirm("Are you sure you want to delete this post? This cannot be undone.")) return;
     try {
       await deletePost(id);
       fetchPosts();
     } catch (err) {
-      alert("Failed to delete.");
+      alert("Failed to delete post.");
     }
   };
 
-  // ─────────────────────────────────────────────────────
   return (
     <div className="space-y-6 fade-in">
-      {/* Page Header */}
       <PageHeader
         title="Manage Public Posts"
-        subtitle="Create dynamic articles to show on the Landing Page"
+        subtitle="Create and edit articles shown on the home page Insights section"
       >
-        <button
-          onClick={() => setShowCreate(true)}
-          className="btn-primary"
-        >
-          <FiPlus className="w-4 h-4" />
-          Publish New Post
+        <button onClick={() => setShowCreate(true)} className="btn-primary">
+          <FiPlus className="w-4 h-4" /> Publish New Post
         </button>
       </PageHeader>
+
+      {/* Stats bar */}
+      {!loading && !error && posts.length > 0 && (
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            {posts.length} {posts.length === 1 ? "article" : "articles"} published
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (
@@ -211,57 +298,52 @@ export default function AdminPosts() {
         <EmptyState
           icon="📝"
           title="No Published Posts"
-          description="Create your first post to replace the default static cards on the Landing Page."
+          description="Create your first post to show it in the Insights & Guides section on the home page."
           action={
             <button onClick={() => setShowCreate(true)} className="btn-primary">
-              <FiPlus className="w-4 h-4" />
-              Publish Post
+              <FiPlus className="w-4 h-4" /> Publish First Post
             </button>
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {posts.map((post) => (
-            <div key={post._id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition">
-              <div className="h-48 overflow-hidden relative bg-gray-100">
-                <img
-                  src={`http://localhost:5001${post.image}`}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-5 flex-1 flex flex-col">
-                <h3 className="font-bold text-gray-900 text-lg mb-2 leading-snug">{post.title}</h3>
-                <p className="text-sm text-gray-500 mb-4 line-clamp-2">{post.summary}</p>
-                <div className="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
-                  <span className="text-xs font-medium text-gray-400">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </span>
-                  <button
-                    onClick={() => handleDelete(post._id)}
-                    className="flex justify-center items-center w-8 h-8 rounded-full text-red-500 hover:bg-red-50 transition"
-                    title="Delete Post"
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
+            <PostCard
+              key={post._id}
+              post={post}
+              onEdit={setEditPost}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
 
-      {/* ── Create Modal ─────────────────────────────── */}
+      {/* Create Modal */}
       <Modal
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Publish New Public Post"
+        title="Publish New Post"
         size="lg"
       >
         <PostForm
           onSubmit={handleCreate}
           onCancel={() => setShowCreate(false)}
           loading={formLoading}
+        />
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        isOpen={!!editPost}
+        onClose={() => setEditPost(null)}
+        title="Edit Post"
+        size="lg"
+      >
+        <PostForm
+          onSubmit={handleEdit}
+          onCancel={() => setEditPost(null)}
+          loading={formLoading}
+          initialData={editPost}
         />
       </Modal>
     </div>

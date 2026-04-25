@@ -10,13 +10,13 @@ async function testToggle() {
       console.log("No feedback found to test with.");
       return;
     }
-    
+
     console.log("Found feedback:", feedback._id);
     console.log("Current showOnHome:", feedback.showOnHome);
-    
+
     feedback.showOnHome = !feedback.showOnHome;
     await feedback.save();
-    
+
     console.log("Saved successfully! New showOnHome:", feedback.showOnHome);
   } catch (err) {
     console.error("ERROR DURING TOGGLE TEST:", err);

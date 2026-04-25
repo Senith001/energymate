@@ -1,9 +1,11 @@
+// src/routes/post.routes.js
 import express from "express";
-import { 
-  createPost, 
-  getPosts, 
-  getPostById, 
-  deletePost 
+import {
+  createPost,
+  getPosts,
+  getPostById,
+  updatePost,
+  deletePost,
 } from "../controllers/post.controller.js";
 import { protect, authorize } from "../middlewares/auth.middleware.js";
 import { uploadPostImage } from "../middlewares/upload.middleware.js";
@@ -16,6 +18,7 @@ router.route("/")
 
 router.route("/:id")
   .get(getPostById)
+  .put(protect, authorize("admin", "superadmin"), uploadPostImage.single("image"), updatePost)
   .delete(protect, authorize("admin", "superadmin"), deletePost);
 
 export default router;

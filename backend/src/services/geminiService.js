@@ -1,85 +1,59 @@
 // src/services/geminiService.js
+// ─── Powered by Groq API (Free, Fast, No credit card needed) ───
+// Drop-in replacement — all existing imports/exports unchanged.
+
 import "dotenv/config";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import { getTariff } from "./tarifService.js";
 import { calculateCost } from "./usageService.js";
+
 /* ═══════════════════════════════════════════════════════╗
    CONFIG
 ╚══════════════════════════════════════════════════════ */
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) throw new Error("GEMINI_API_KEY is not set in environment");
+const apiKey = process.env.GROQ_API_KEY;
+if (!apiKey) throw new Error("GROQ_API_KEY is not set in environment");
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const genAI = new GoogleGenerativeAI(apiKey);
+// Free Groq models — llama-3.3-70b is best for JSON tasks
+const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const client = new Groq({ apiKey });
 
 /* ═══════════════════════════════════════════════════════╗
-   CORE: low-level generate call
+   CORE
 ╚══════════════════════════════════════════════════════ */
-
-function getModel() {
-  return genAI.getGenerativeModel({ model: MODEL }, { apiVersion: "v1beta" });
-}
-
-function extractText(result) {
-  try {
-    const t = result?.response?.text?.();
-    if (t?.trim()) return t.trim();
-  } catch (_) { }
-  const parts = result?.response?.candidates?.[0]?.content?.parts || [];
-  return parts.map((p) => p?.text || "").join("").trim();
+function wait(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 function stripFences(text) {
   return (text || "")
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/i, "")
+    .replace(/^`+|`+$/g, "")
     .trim();
 }
 
-/** Exponential back-off — waits before a retry. */
-function wait(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-/**
- * Attempts to recover a partial JSON array when Gemini truncates mid-string.
- * Scans for complete objects `{ ... }` and returns what it can parse.
- */
 function partialJsonRecovery(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch (_) { }
+  try { return JSON.parse(raw); } catch (_) { }
+
+  const arrMatch = raw.match(/\[[\s\S]*\]/);
+  if (arrMatch) { try { return JSON.parse(arrMatch[0]); } catch (_) { } }
+
+  const objMatch = raw.match(/\{[\s\S]*\}/);
+  if (objMatch) { try { return JSON.parse(objMatch[0]); } catch (_) { } }
 
   const objects = [];
-  let depth = 0,
-    inStr = false,
-    escape = false,
-    start = -1;
+  let depth = 0, inStr = false, escape = false, start = -1;
   for (let i = 0; i < raw.length; i++) {
     const ch = raw[i];
-    if (escape) {
-      escape = false;
-      continue;
-    }
-    if (ch === "\\" && inStr) {
-      escape = true;
-      continue;
-    }
-    if (ch === '"') {
-      inStr = !inStr;
-      continue;
-    }
+    if (escape) { escape = false; continue; }
+    if (ch === "\\" && inStr) { escape = true; continue; }
+    if (ch === '"') { inStr = !inStr; continue; }
     if (inStr) continue;
-    if (ch === "{") {
-      if (depth === 0) start = i;
-      depth++;
-    } else if (ch === "}") {
+    if (ch === "{") { if (depth === 0) start = i; depth++; }
+    else if (ch === "}") {
       depth--;
       if (depth === 0 && start !== -1) {
-        try {
-          const obj = JSON.parse(raw.slice(start, i + 1));
-          objects.push(obj);
-        } catch (_) { }
+        try { objects.push(JSON.parse(raw.slice(start, i + 1))); } catch (_) { }
         start = -1;
       }
     }
@@ -87,69 +61,90 @@ function partialJsonRecovery(raw) {
   return objects.length > 0 ? objects : null;
 }
 
-async function generateJSON(
-  prompt,
-  { maxOutputTokens = 2500, temperature = 0.3, retries = 3 } = {}
-) {
-  const model = getModel();
+async function generateJSON(prompt, { maxTokens = 3000, temperature = 0.3, retries = 3 } = {}) {
   let lastErr;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: attempt === retries ? 0 : temperature,
-        },
+      const completion = await client.chat.completions.create({
+        model: MODEL,
+        max_tokens: maxTokens,
+        temperature: attempt === retries ? 0 : temperature,
+        response_format: { type: "json_object" }, // Groq native JSON mode
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a precise JSON generator for an energy management app in Sri Lanka. " +
+              "Return ONLY valid JSON — no markdown, no explanation, no extra text. " +
+              "Your response must be directly parseable by JSON.parse().",
+          },
+          { role: "user", content: prompt },
+        ],
       });
 
-      const raw = stripFences(extractText(result));
-      console.log(`✅ Gemini JSON (attempt ${attempt}):\n`, raw.slice(0, 300));
+      const raw = stripFences(completion.choices?.[0]?.message?.content?.trim() || "");
+      console.log(`✅ Groq JSON (attempt ${attempt}):\n`, raw.slice(0, 400));
 
-      if (!raw) throw new Error("Gemini returned empty response");
+      if (!raw) throw new Error("Groq returned empty response");
 
       let parsed;
       try {
         parsed = JSON.parse(raw);
       } catch (parseErr) {
         parsed = partialJsonRecovery(raw);
-        if (!parsed) throw parseErr;
-        console.warn(
-          `⚠️  Gemini attempt ${attempt}: partial recovery extracted ${Array.isArray(parsed) ? parsed.length : 1
-          } item(s)`
-        );
+        if (!parsed) {
+          console.error("Unparseable response:\n", raw.slice(0, 600));
+          throw parseErr;
+        }
+        console.warn(`⚠️  Partial recovery: ${Array.isArray(parsed) ? parsed.length : 1} item(s)`);
       }
 
       return parsed;
     } catch (err) {
       lastErr = err;
       const msg = String(err?.message || "");
-      console.warn(`⚠️  Gemini attempt ${attempt} failed:`, msg.slice(0, 120));
+      const status = err?.status || err?.statusCode || 0;
+      console.warn(`⚠️  Groq attempt ${attempt} failed:`, msg.slice(0, 200));
 
-      if (msg.includes("429") || msg.includes("quota") || msg.includes("Too Many Requests")) {
-        if (attempt === retries) {
-          throw Object.assign(err, { isQuotaError: true });
-        }
-        await wait(2000 * 2 ** (attempt - 1)); // Wait longer for quota issues
+      // 401 — bad API key
+      if (status === 401 || msg.includes("401") || msg.includes("invalid_api_key")) {
+        throw Object.assign(
+          new Error("Groq API key invalid. Check GROQ_API_KEY in .env. Get a free key at https://console.groq.com"),
+          { isAuthError: true }
+        );
+      }
+
+      // 429 — rate limit
+      if (status === 429 || msg.includes("429") || msg.includes("rate_limit") || msg.includes("Too Many")) {
+        if (attempt === retries) throw Object.assign(err, { isQuotaError: true });
+        const delay = 5000 * 2 ** (attempt - 1);
+        console.log(`⏳ Rate limited. Waiting ${delay / 1000}s...`);
+        await wait(delay);
         continue;
       }
 
-      if (attempt < retries) await wait(500 * 2 ** (attempt - 1));
+      // 503 — model overloaded
+      if (status === 503 || msg.includes("overloaded") || msg.includes("unavailable")) {
+        if (attempt === retries) throw err;
+        await wait(3000 * attempt);
+        continue;
+      }
+
+      if (attempt < retries) await wait(800 * 2 ** (attempt - 1));
     }
   }
 
-  throw lastErr || new Error("Gemini AI request failed after all retries");
+  throw lastErr || new Error("Groq AI request failed after all retries");
 }
 
 /* ═══════════════════════════════════════════════════════╗
    DATA HELPERS
 ╚══════════════════════════════════════════════════════ */
 function buildSummary(billHistory = [], applianceUsage = []) {
-  const sorted = [...billHistory].sort((a, b) => {
-    if (a.year !== b.year) return a.year - b.year;
-    return a.month - b.month;
-  });
+  const sorted = [...billHistory].sort((a, b) =>
+    a.year !== b.year ? a.year - b.year : a.month - b.month
+  );
 
   const last = sorted[sorted.length - 1] || null;
   const last3 = sorted.slice(-3);
@@ -157,9 +152,7 @@ function buildSummary(billHistory = [], applianceUsage = []) {
 
   const avg = (arr, key) =>
     arr.length > 0
-      ? Math.round(
-        arr.reduce((s, b) => s + (Number(b[key]) || 0), 0) / arr.length
-      )
+      ? Math.round(arr.reduce((s, b) => s + (Number(b[key]) || 0), 0) / arr.length)
       : 0;
 
   let trend = "stable";
@@ -180,19 +173,20 @@ function buildSummary(billHistory = [], applianceUsage = []) {
         costLKR: last.totalCost,
       }
       : null,
-    avgLast3Months: {
-      units: avg(last3, "totalUnits"),
-      costLKR: avg(last3, "totalCost"),
-    },
-    avgLast6Months: {
-      units: avg(last6, "totalUnits"),
-      costLKR: avg(last6, "totalCost"),
-    },
-    appliances: (applianceUsage || []).slice(0, 8).map((a) => ({
+    avgLast3Months: { units: avg(last3, "totalUnits"), costLKR: avg(last3, "totalCost") },
+    avgLast6Months: { units: avg(last6, "totalUnits"), costLKR: avg(last6, "totalCost") },
+    allMonths: sorted.map((b) => ({
+      period: `${b.year}-${String(b.month).padStart(2, "0")}`,
+      units: b.totalUnits,
+      costLKR: b.totalCost,
+    })),
+    appliances: (applianceUsage || []).slice(0, 10).map((a) => ({
       name: a?.name ?? "Unknown",
+      category: a?.category ?? null,
       wattage: a?.wattage ?? null,
       quantity: a?.quantity ?? 1,
       hoursPerDay: a?.usedHoursPerDay ?? a?.defaultHoursPerDay ?? 0,
+      efficiencyRating: a?.efficiencyRating ?? null,
     })),
   };
 }
@@ -203,22 +197,18 @@ function buildSummary(billHistory = [], applianceUsage = []) {
 function validateTip(t) {
   return (
     t &&
-    typeof t.title === "string" &&
-    typeof t.recommendation === "string" &&
+    typeof t.title === "string" && t.title.length > 0 &&
+    typeof t.recommendation === "string" && t.recommendation.length > 0 &&
     ["High", "Medium", "Low"].includes(t.priority)
   );
 }
 
-// FIX: strengthened — also checks that details array exists and is non-empty
 function validateStrategy(s) {
   return (
     s &&
-    typeof s.title === "string" &&
-    s.title.length > 0 &&
-    typeof s.summary === "string" &&
-    s.summary.length > 0 &&
-    Array.isArray(s.details) &&
-    s.details.length > 0
+    typeof s.title === "string" && s.title.length > 0 &&
+    typeof s.summary === "string" && s.summary.length > 0 &&
+    Array.isArray(s.details) && s.details.length > 0
   );
 }
 
@@ -227,7 +217,8 @@ function validatePrediction(p) {
     p &&
     typeof p.year === "number" &&
     typeof p.month === "number" &&
-    typeof p.predictedConsumption === "number"
+    typeof p.predictedConsumption === "number" &&
+    p.predictedConsumption > 0
   );
 }
 
@@ -239,7 +230,6 @@ export async function getEnergyTipsFromGemini(billHistory, applianceUsage) {
   if (!Array.isArray(applianceUsage)) applianceUsage = [];
 
   const validBills = billHistory.filter((b) => b.totalUnits > 0);
-
   if (validBills.length === 0 && applianceUsage.length === 0) {
     throw new Error(
       "No usage data available. Please add billing records with actual usage (> 0 units) or appliances first."
@@ -247,47 +237,52 @@ export async function getEnergyTipsFromGemini(billHistory, applianceUsage) {
   }
 
   const summary = buildSummary(validBills, applianceUsage);
+  const hasAppliances = summary.appliances.length > 0;
 
-  const prompt = `
-You are an energy-saving advisor for Sri Lanka (LKR currency).
-Return ONLY a JSON array of exactly 5 objects. No extra text.
+  const prompt = `You are an expert energy-saving advisor for Sri Lanka (LKR currency, Ceylon Electricity Board).
 
-Each object:
+Household energy data:
+${JSON.stringify(summary, null, 2)}
+
+${hasAppliances
+      ? `These SPECIFIC appliances are in this home: ${JSON.stringify(summary.appliances)}.
+Every single tip MUST reference one of these exact appliances by name. Do NOT give generic tips.`
+      : "No appliance data. Give actionable general energy-saving tips for Sri Lankan households."
+    }
+
+Return a JSON object with a "tips" array containing exactly 5 tip objects:
 {
-  "title": "<50 chars>",
-  "problem": "<80 chars>",
-  "recommendation": "<120 chars>",
-  "implementation": ["step1 <60 chars>", "step2 <60 chars>", "step3 <60 chars>"],
-  "expectedSavings": { "unitsPerMonth": <int>, "costLKR": <int> },
-  "priority": "High"|"Medium"|"Low",
-  "category": "lighting"|"appliances"|"cooling"|"cooking"|"general",
-  "learnMore": "https://www.ceb.lk/energy-saving-tips/en"
+  "tips": [
+    {
+      "title": "action-oriented title under 55 chars",
+      "problem": "specific waste issue under 90 chars",
+      "recommendation": "specific action to take under 130 chars",
+      "implementation": ["step 1 under 65 chars", "step 2 under 65 chars", "step 3 under 65 chars"],
+      "expectedSavings": { "unitsPerMonth": 15, "costLKR": 450 },
+      "priority": "High",
+      "category": "appliances",
+      "learnMore": "https://www.ceb.lk/energy-saving-tips/en"
+    }
+  ]
 }
 
-Rules: 
-1. Provide 5 distinct tips highly tailored to the exact 'appliances' and usage trends in the Data.
-2. Explicitly mention the specific appliances listed in the data (e.g. if the user has a 'phone' or 'pc', give tips about those exact items).
-3. DO NOT give generic tips like "Upgrade to LED" unless no appliance data is provided.
-4. Keep all string values short. Provide realistic savings.
+Rules:
+- Exactly 5 unique tips sorted by priority: High first, then Medium, then Low
+- expectedSavings must be realistic based on the billing data averages provided
+- priority must be exactly: High, Medium, or Low
+- category must be exactly: lighting, appliances, cooling, cooking, or general`;
 
-Data: ${JSON.stringify(summary)}
-`.trim();
+  const result = await generateJSON(prompt, { maxTokens: 4000, temperature: 0.4 });
 
-  const result = await generateJSON(prompt, {
-    maxOutputTokens: 2500,
-    temperature: 0.3,
-  });
-
-  const tips = Array.isArray(result)
-    ? result
-    : Array.isArray(result?.tips)
-      ? result.tips
+  // Groq JSON mode returns object — unwrap tips array
+  const tips = Array.isArray(result) ? result
+    : Array.isArray(result?.tips) ? result.tips
       : [];
 
   const valid = tips.filter(validateTip).slice(0, 5);
-  if (valid.length === 0) {
-    throw new Error("Gemini returned no valid energy tips. Please try again.");
-  }
+
+  if (valid.length === 0) throw new Error("AI returned no valid energy tips. Please try again.");
+  if (valid.length < 3) throw new Error(`AI only returned ${valid.length} valid tip(s). Please try again.`);
 
   return valid;
 }
@@ -300,7 +295,6 @@ export async function getCostStrategiesFromGemini(billHistory, applianceUsage) {
   if (!Array.isArray(applianceUsage)) applianceUsage = [];
 
   const validBills = billHistory.filter((b) => b.totalUnits > 0);
-
   if (validBills.length === 0 && applianceUsage.length === 0) {
     throw new Error(
       "No usage data available. Please add billing records with actual usage (> 0 units) or appliances first."
@@ -309,51 +303,55 @@ export async function getCostStrategiesFromGemini(billHistory, applianceUsage) {
 
   const summary = buildSummary(validBills, applianceUsage);
 
-  const prompt = `
-You are an energy cost advisor for Sri Lanka (LKR).
-Return ONLY a single JSON object. No extra text. Keep ALL string values very short.
+  const prompt = `You are a senior energy cost reduction advisor for Sri Lanka (LKR, Ceylon Electricity Board).
 
+Household data:
+${JSON.stringify(summary, null, 2)}
+
+${summary.appliances.length > 0
+      ? `Target these specific appliances: ${JSON.stringify(summary.appliances)}. Do NOT give generic advice.`
+      : "No appliance data. Give a general but highly actionable cost reduction strategy."
+    }
+
+Return a JSON object with this exact structure:
 {
-  "title": "<40 chars",
-  "summary": "<100 chars>",
-  "details": ["<50 chars>", "<50 chars>", "<50 chars>"],
-  "expectedSavings": { "unitsPerMonth": <int>, "costLKR": <int> },
-  "timeframe": "<15 chars>",
-  "difficulty": "Easy"|"Medium"|"Hard",
-  "priority": "High"|"Medium"|"Low",
-  "learnMore": "https://www.ceb.lk/energy-saving-tips/en"
+  "strategy": {
+    "title": "action-oriented title under 45 chars",
+    "summary": "core strategy in one sentence under 110 chars",
+    "details": [
+      "action step 1 under 55 chars",
+      "action step 2 under 55 chars",
+      "action step 3 under 55 chars",
+      "action step 4 under 55 chars"
+    ],
+    "expectedSavings": { "unitsPerMonth": 20, "costLKR": 600 },
+    "timeframe": "2-4 weeks",
+    "difficulty": "Medium",
+    "priority": "High",
+    "learnMore": "https://www.ceb.lk/energy-saving-tips/en"
+  }
 }
 
 Rules:
-- The strategy MUST directly target the active appliances ("phone", "pc", "fan", etc.) provided in the JSON Data if available.
-- Avoid generic advice unless no appliances are present. Provide exact optimization methods for the user's specific devices.
+- details must have exactly 4 concrete action steps
+- expectedSavings must be realistic based on billing averages
+- difficulty: exactly Easy, Medium, or Hard
+- priority: exactly High, Medium, or Low`;
 
-Data: ${JSON.stringify(summary)}
-`.trim();
+  const result = await generateJSON(prompt, { maxTokens: 1500, temperature: 0.3 });
 
-  const result = await generateJSON(prompt, {
-    maxOutputTokens: 2500,  // was 1200 — too low, causes truncation every time
-    temperature: 0.3,
-  });
+  // Unwrap nested strategy key if present
+  const parsedObject = result?.strategy || (Array.isArray(result) ? result[0] : result);
 
-  // FIX: unwrap array if Gemini accidentally wraps the object
-  let parsedObject = Array.isArray(result) && result.length > 0
-    ? result[0]
-    : result;
-
-  // FIX: validate the top-level object directly first, then check nested wrappers
-  // Previously it only checked nested keys and always fell through to null
-  const strategy = validateStrategy(parsedObject)
-    ? parsedObject
-    : validateStrategy(parsedObject?.strategy)
-      ? parsedObject.strategy
-      : validateStrategy(parsedObject?.costStrategy)
-        ? parsedObject.costStrategy
-        : null;
+  const strategy =
+    validateStrategy(parsedObject) ? parsedObject :
+      validateStrategy(parsedObject?.strategy) ? parsedObject.strategy :
+        validateStrategy(parsedObject?.costStrategy) ? parsedObject.costStrategy :
+          null;
 
   if (!strategy) {
-    console.error("❌ Invalid strategy object from Gemini:", JSON.stringify(parsedObject, null, 2));
-    throw new Error("Gemini returned an invalid cost strategy. Please try again.");
+    console.error("❌ Invalid strategy:", JSON.stringify(result, null, 2));
+    throw new Error("AI returned an invalid cost strategy. Please try again.");
   }
 
   return strategy;
@@ -366,92 +364,84 @@ export async function getPredictionFromGemini(billHistory) {
   if (!Array.isArray(billHistory)) billHistory = [];
 
   const validBills = billHistory.filter((b) => b.totalUnits > 0);
-
   if (validBills.length === 0) {
     throw new Error(
       "We need at least one month of actual electricity usage (> 0 units) to generate a realistic prediction."
     );
   }
 
-  const sorted = [...validBills].sort((a, b) => {
-    if (a.year !== b.year) return a.year - b.year;
-    return a.month - b.month;
-  });
+  const sorted = [...validBills].sort((a, b) =>
+    a.year !== b.year ? a.year - b.year : a.month - b.month
+  );
 
   const recent = sorted.slice(-12);
   const last = recent[recent.length - 1] || {};
   const baseYear = Number(last?.year) || new Date().getFullYear();
   const baseMonth = Number(last?.month) || new Date().getMonth() + 1;
-  const baseline = Number(last?.totalUnits ?? last?.consumption ?? 100);
 
-  const last3 = recent
-    .slice(-3)
-    .map((b) => Number(b?.totalUnits ?? b?.consumption ?? 0))
+  const last3 = recent.slice(-3)
+    .map((b) => Number(b?.totalUnits ?? 0))
     .filter((n) => Number.isFinite(n) && n > 0);
+
   const avg3 = last3.length
     ? Math.round(last3.reduce((a, b) => a + b, 0) / last3.length)
-    : baseline;
+    : Number(last?.totalUnits ?? 100);
 
-  const minOk = Math.max(20, Math.round(avg3 * 0.4));
-  const maxOk = Math.round(avg3 * 1.8);
+  const minOk = Math.max(20, Math.round(avg3 * 0.35));
+  const maxOk = Math.round(avg3 * 2.0);
 
   const nextMonths = [];
   for (let i = 1; i <= 12; i++) {
     let mm = baseMonth + i;
     let yy = baseYear;
-    while (mm > 12) {
-      mm -= 12;
-      yy += 1;
-    }
+    while (mm > 12) { mm -= 12; yy += 1; }
     nextMonths.push(`${yy}-${String(mm).padStart(2, "0")}`);
   }
 
-  const prompt = `
-You are an energy usage forecasting model.
-Return ONLY a JSON object. No extra text.
+  const historyForPrompt = recent.map((b) => ({
+    period: `${b.year}-${String(b.month).padStart(2, "0")}`,
+    units: b.totalUnits,
+    costLKR: b.totalCost ?? null,
+  }));
 
+  const prompt = `You are a professional energy usage forecasting model for Sri Lanka.
+
+Historical electricity consumption:
+${JSON.stringify(historyForPrompt, null, 2)}
+
+Generate a 12-month forecast for these months in order: ${nextMonths.join(", ")}
+Each predicted value must be between ${minOk} and ${maxOk} kWh.
+
+Return a JSON object:
 {
   "predictionTable": [
-    {"year":<int>,"month":<int>,"predictedConsumption":<int>}
-    ... exactly 12 entries
+    { "year": 2025, "month": 5, "predictedConsumption": 180 },
+    { "year": 2025, "month": 6, "predictedConsumption": 165 }
   ],
   "insights": [
-    {"title":"<40 chars>","description":"<120 chars>"}
-    ... exactly 4 entries
+    { "title": "title under 45 chars", "description": "description under 130 chars" },
+    { "title": "title under 45 chars", "description": "description under 130 chars" },
+    { "title": "title under 45 chars", "description": "description under 130 chars" },
+    { "title": "title under 45 chars", "description": "description under 130 chars" }
   ],
-  "summary": "<150 chars>"
+  "summary": "overall forecast narrative under 160 chars"
 }
 
 Rules:
-- Exactly 12 prediction rows for months: ${nextMonths.join(", ")}.
-- predictedConsumption between ${minOk} and ${maxOk}.
-- Keep all string values SHORT (see char limits above).
+- predictionTable must have EXACTLY 12 rows for the months listed, in order
+- predictedConsumption must be between ${minOk} and ${maxOk} for every row
+- Apply Sri Lankan seasonal patterns: higher usage March-May (hot season, more fans/AC)
+- insights must have EXACTLY 4 entries, data-driven and specific to this household's data`;
 
-Bill history: ${JSON.stringify(
-    recent.map((b) => ({
-      p: `${b.year}-${String(b.month).padStart(2, "0")}`,
-      u: b.totalUnits,
-    }))
-  )}
-`.trim();
+  const result = await generateJSON(prompt, { maxTokens: 2500, temperature: 0.2 });
 
-  const result = await generateJSON(prompt, {
-    maxOutputTokens: 1800,
-    temperature: 0.2,
-  });
-
-  let predictionTable = Array.isArray(result?.predictionTable)
-    ? result.predictionTable
-    : [];
+  let predictionTable = Array.isArray(result?.predictionTable) ? result.predictionTable : [];
   predictionTable = predictionTable
     .filter(validatePrediction)
     .map((p) => ({
       year: Number(p.year),
       month: Number(p.month),
-      predictedConsumption: Math.min(
-        maxOk,
-        Math.max(minOk, Math.round(p.predictedConsumption))
-      ),
+      predictedConsumption: Math.min(maxOk, Math.max(minOk, Math.round(p.predictedConsumption))),
     }))
     .slice(0, 12);
 
@@ -467,50 +457,35 @@ Bill history: ${JSON.stringify(
     const [yy, mm] = label.split("-").map(Number);
     const v = valueMap.get(label) ?? avg3;
     const costInfo = calculateCost(v, tariff);
-    return {
-      year: yy,
-      month: mm,
-      predictedConsumption: v,
-      predictedCostLKR: costInfo.totalCost,
-    };
+    return { year: yy, month: mm, predictedConsumption: v, predictedCostLKR: costInfo.totalCost };
   });
 
   const insights = Array.isArray(result?.insights)
-    ? result.insights
-      .filter((i) => i?.title && i?.description)
-      .slice(0, 4)
+    ? result.insights.filter((i) => i?.title && i?.description).slice(0, 4)
     : [];
 
   if (insights.length < 2) {
-    throw new Error("Gemini failed to generate enough insights for the prediction.");
+    throw new Error("AI did not return enough prediction insights. Please try again.");
   }
 
   return {
     predictionTable: finalTable,
     insights,
-    summary: result?.summary || "12-month energy usage forecast."
+    summary: result?.summary || "12-month energy usage forecast based on your billing history.",
   };
 }
-
 
 /* ═══════════════════════════════════════════════════════╗
    CHATBOT
 ╚══════════════════════════════════════════════════════ */
 export async function getChatbotResponse(query, userData) {
-  const prompt = `
-You are a helpful energy advisor for EnergyMate, a Sri Lankan electricity management app.
+  const prompt = `You are a helpful energy advisor for EnergyMate, a Sri Lankan electricity management app.
 Answer the user's question concisely using the data provided.
-
-Return ONLY a valid JSON object:
-{ "answer": "your answer here (max 120 words)" }
+Return a JSON object: { "answer": "your answer here under 150 words" }
 
 User data: ${JSON.stringify(userData || {})}
-Question: ${String(query || "")}
-`.trim();
+Question: ${String(query || "")}`;
 
-  const result = await generateJSON(prompt, {
-    maxOutputTokens: 200,
-    temperature: 0.4,
-  });
+  const result = await generateJSON(prompt, { maxTokens: 350, temperature: 0.4 });
   return (typeof result?.answer === "string" ? result.answer : String(result)).trim();
 }

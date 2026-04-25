@@ -163,7 +163,12 @@ export default function LandingPage() {
   useEffect(() => {
     // Fetch News/Posts
     getPosts()
-      .then(({ data }) => setPosts(data || []))
+      .then((res) => {
+        const list = Array.isArray(res.data?.data) ? res.data.data
+          : Array.isArray(res.data) ? res.data
+            : [];
+        setPosts(list);
+      })
       .catch(() => setPosts([]))
       .finally(() => setPostsLoading(false));
 
@@ -357,7 +362,7 @@ export default function LandingPage() {
               font-size: 16px;
             }
           `}</style>
-          
+
           <div className="ticker-text-wrapper">
             {[...Array(2)].map((_, i) => (
               <React.Fragment key={i}>
@@ -399,7 +404,7 @@ export default function LandingPage() {
 
         {/* ══ STATS ════════════════════════════════════ */}
         <section style={{ background: "linear-gradient(135deg,#14532d,#065f46)", padding: "64px 24px", position: "relative", overflow: "hidden" }}>
-          
+
           {/* Highly Visible Animated Image Background */}
           <style>{`
             @keyframes scrollBackground {
@@ -407,7 +412,7 @@ export default function LandingPage() {
               100% { background-position: -100px -100px; }
             }
           `}</style>
-          <div 
+          <div
             style={{
               position: "absolute",
               top: 0, left: 0, right: 0, bottom: 0,
