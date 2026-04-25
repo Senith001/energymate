@@ -8,7 +8,7 @@ function AdminSidebar() {
   const { user } = useAuth();
 
   const menuItems = [
-    { name: "Control Center", path: "/admin/dashboard", icon: "⚙️" },
+    { name: "Admin Home", path: "/admin/dashboard", icon: "🏠" },
     { name: "User Management", path: "/admin/users", icon: "👥" },
     ...(user?.role === "superadmin" ? [{ name: "Admin Management", path: "/admin/management", icon: "🛡️" }] : []),
     { name: "Household Management", path: "/admin/households", icon: "🏠" },
@@ -16,7 +16,7 @@ function AdminSidebar() {
     { name: "Feedback", path: "/admin/feedback", icon: "💬" },
     { name: "Support Tickets", path: "/admin/support", icon: "🎫" },
     { name: "Usage & Billing", path: "/admin/usage-billing", icon: <FiBarChart2 /> },
-    { name: "System Settings", path: "/admin/settings", icon: "🛠️" },
+    { name: "Security Settings", path: "/admin/password", icon: "🔐" },
   ];
 
   return (

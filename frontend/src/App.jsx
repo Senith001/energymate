@@ -37,6 +37,7 @@ import AdminBillingPage from "./pages/bill/AdminBillingPage";
 import AdminTariffPage from "./pages/bill/AdminTariffPage";
 
 import SuperadminSetup from "./pages/admin/SuperadminSetup";
+import AdminPasswordPage from "./pages/admin/AdminPasswordPage";
 
 //User Pages
 import UserProfile from "./pages/user/UserProfile";
@@ -90,6 +91,7 @@ function App() {
           {/* Protected Admin Layout Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="password" element={<AdminPasswordPage />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="management" element={<AdminManagement />} />
             <Route path="households" element={<AdminHouseholdPage />} />

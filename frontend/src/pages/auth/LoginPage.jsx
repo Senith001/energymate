@@ -131,7 +131,7 @@ const LoginPage = () => {
               )}
             </button>
             <div className="mt-4 text-center">
-              <Link to="/forgot-password" className="text-[13px] font-black text-emerald-600 hover:text-emerald-700 hover:underline underline-offset-4 transition-all">
+              <Link to="/forgot-password" state={{ from: "/login" }} className="text-[13px] font-black text-emerald-600 hover:text-emerald-700 hover:underline underline-offset-4 transition-all">
                 Forgot your password?
               </Link>
             </div>

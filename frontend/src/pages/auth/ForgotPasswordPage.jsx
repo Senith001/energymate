@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import api from "../../services/api";
 import { motion } from "framer-motion";
 import { FiMail, FiArrowRight, FiArrowLeft } from "react-icons/fi";
@@ -9,6 +9,8 @@ const ForgotPasswordPage = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = location.state?.from || "/login";
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
@@ -18,7 +20,7 @@ const ForgotPasswordPage = () => {
 
     try {
       await api.post("/users/forgot-password", { email });
-      navigate(`/reset-password?email=${encodeURIComponent(email)}`);
+      navigate(`/reset-password?email=${encodeURIComponent(email)}`, { state: { from: backPath } });
     } catch (err) {
       if (err.response && err.response.data) {
         setError(err.response.data.message || "Failed to send reset code.");
@@ -40,7 +42,7 @@ const ForgotPasswordPage = () => {
         className="max-w-5xl w-full bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.06)] border border-slate-100 overflow-hidden flex flex-col md:flex-row z-10"
       >
         <div className="w-full md:w-1/2 p-10 lg:p-16 flex flex-col justify-center">
-          <Link to="/login" className="self-start mb-8 text-slate-400 hover:text-emerald-600 transition-colors flex items-center gap-2 font-bold text-sm">
+          <Link to={backPath} className="self-start mb-8 text-slate-400 hover:text-emerald-600 transition-colors flex items-center gap-2 font-bold text-sm">
             <FiArrowLeft /> Back to Login
           </Link>
           <div className="mb-10">
