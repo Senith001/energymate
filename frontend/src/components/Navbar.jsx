@@ -31,7 +31,7 @@ function Navbar() {
 
   const handleLogout = () => {
     logout();
-    navigate(isAdmin ? "/admin-portal" : "/login");
+    navigate(isAdmin ? "/admin-portal" : "/");
   };
 
   return (

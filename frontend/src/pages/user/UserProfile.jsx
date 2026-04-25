@@ -236,7 +236,7 @@ const UserProfile = () => {
         
         <div className="max-w-5xl mx-auto pt-8 pb-12">
           <div className="mb-6">
-            <Link to="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-emerald-600 font-black text-[13px] uppercase tracking-widest transition-colors">
+            <Link to="/dashboard" className="inline-flex items-center gap-2 text-slate-400 hover:text-emerald-600 font-black text-[13px] uppercase tracking-widest transition-colors">
               <FiArrowLeft className="w-4 h-4" /> Back to Dashboard
             </Link>
           </div>
@@ -365,7 +365,7 @@ const UserProfile = () => {
                    {['oldPassword', 'newPassword', 'confirmPassword'].map((field, i) => (
                       <div key={i} className="space-y-1.5">
                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                            {field === 'oldPassword' ? 'Current Access' : field === 'newPassword' ? 'Next Key' : 'Verify Key'}
+                            {field === 'oldPassword' ? 'Current Passkey' : field === 'newPassword' ? 'Next Passkey' : 'Verify Passkey'}
                          </label>
                          <input 
                           type="password" name={field} value={passwordData[field]} onChange={handlePasswordChange}

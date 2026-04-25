@@ -67,6 +67,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Auth Routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/home" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -110,8 +111,8 @@ function App() {
 
 
             {/* Protected Main Layout Routes */}
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Dashboard />} />
+            <Route element={<MainLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="households" element={<HouseholdPage />} />
               <Route path="rooms" element={<RoomsPage />} />
               <Route path="appliances" element={<AppliancesPage />} />
