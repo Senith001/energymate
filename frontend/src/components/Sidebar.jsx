@@ -20,7 +20,7 @@ function Sidebar() {
   const { user } = useAuth();
 
   const menuItems = [
-    { name: "Dashboard", path: "/", icon: <FiHome className="w-4 h-4" /> },
+    { name: "Dashboard", path: "/dashboard", icon: <FiHome className="w-4 h-4" /> },
     { name: "Household", path: "/households", icon: "🏠" },
     { name: "Rooms", path: "/rooms", icon: "🚪" },
     { name: "Appliances", path: "/appliances", icon: "📱" },
@@ -58,8 +58,8 @@ function Sidebar() {
   ];
 
   const isActive = (path) =>
-    path === "/"
-      ? location.pathname === "/"
+    path === "/dashboard"
+      ? location.pathname === "/dashboard"
       : location.pathname.startsWith(path);
 
   const linkStyle = (path) => ({
@@ -93,17 +93,19 @@ function Sidebar() {
       }}
     >
       {/* Logo */}
-      <div style={{ marginBottom: "24px", paddingTop: "4px", display: "flex", alignItems: "center", gap: "12px" }}>
-        <img src="/logo.png" alt="EnergyMate" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }} />
-        <div>
-          <h1 style={{ fontSize: "22px", fontWeight: "900", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.1 }}>
-            <span style={{ color: "#0f172a" }}>ENERGY</span><span style={{ color: "#10b981" }}>MATE</span>
-          </h1>
-          <p style={{ color: "#94a3b8", fontSize: "10px", marginTop: "2px", letterSpacing: "1px", margin: 0 }}>
-            ENERGY MANAGEMENT
-          </p>
+      <Link to="/" style={{ textDecoration: "none" }}>
+        <div style={{ marginBottom: "24px", paddingTop: "4px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <img src="/logo.png" alt="EnergyMate" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }} />
+          <div>
+            <h1 style={{ fontSize: "22px", fontWeight: "900", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+              <span style={{ color: "#0f172a" }}>ENERGY</span><span style={{ color: "#10b981" }}>MATE</span>
+            </h1>
+            <p style={{ color: "#94a3b8", fontSize: "10px", marginTop: "2px", letterSpacing: "1px", margin: 0 }}>
+              ENERGY MANAGEMENT
+            </p>
+          </div>
         </div>
-      </div>
+      </Link>
 
       {/* User Card */}
       <div

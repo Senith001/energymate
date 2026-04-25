@@ -200,7 +200,7 @@ export default function LandingPage() {
         >
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             {/* Logo */}
-            <Link to="/home" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
               <img src="/logo.png" alt="EnergyMate Logo" style={{ width: 36, height: 36, borderRadius: 10, boxShadow: "0 4px 16px rgba(22,163,74,.4)", objectFit: "cover" }} />
               <span style={{ fontWeight: 900, fontSize: 18, color: scrolled ? "#111" : "white" }}>Energy<span style={{ color: "#16a34a" }}>Mate</span></span>
             </Link>
@@ -220,7 +220,7 @@ export default function LandingPage() {
             </div>
 
             {/* CTA */}
-            <Link to={user ? "/" : "/register"} className="btn-g" style={{ fontSize: 14, padding: "10px 22px" }}>
+            <Link to={user ? "/dashboard" : "/register"} className="btn-g" style={{ fontSize: 14, padding: "10px 22px" }}>
               {user ? "Dashboard" : "Get Started — Free"}
               <FiArrowRight size={14} />
             </Link>

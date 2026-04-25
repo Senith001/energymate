@@ -1,10 +1,12 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiCheckCircle, FiArrowRight } from "react-icons/fi";
 
 const PasswordChangedPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = location.state?.from || "/login";
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
@@ -24,7 +26,7 @@ const PasswordChangedPage = () => {
           Your password has been successfully reset. You can now use your new password to log in to your account.
         </p>
 
-        <button onClick={() => navigate("/login")} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group">
+        <button onClick={() => navigate(backPath)} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group">
           <span>Back to Login</span>
           <FiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </button>
