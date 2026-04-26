@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import dns from "dns";
 
-// 🔥 Force Node.js to prefer IPv4 (fixes Railway + Gmail issue)
+// 🔥 Force IPv4 (fixes Railway networking issues)
 dns.setDefaultResultOrder("ipv4first");
 
 const requireEnv = (key) => {
@@ -11,54 +11,54 @@ const requireEnv = (key) => {
 };
 
 export const sendEmail = async ({ to, subject, html }) => {
-  // Validate required env vars
-  const host = requireEnv("EMAIL_HOST");
-  const port = Number(requireEnv("EMAIL_PORT"));
+  // Env variables
+  const host = requireEnv("EMAIL_HOST"); // we will ignore "service gmail"
   const user = requireEnv("EMAIL_USER");
   const pass = requireEnv("EMAIL_PASS");
   const from = requireEnv("EMAIL_FROM");
 
-  const secure =
-    process.env.EMAIL_SECURE === "true" || port === 465;
+  // Always use stable Gmail SMTP config for cloud deployments
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // TLS upgrade via STARTTLS
+    auth: {
+      user,
+      pass,
+    },
 
-  const isGmail = host.toLowerCase().includes("gmail");
+    family: 4, // force IPv4
 
-  // ✅ Transporter with IPv4 enforcement
-  const transporter = nodemailer.createTransport(
-    isGmail
-      ? {
-          service: "gmail",
-          auth: { user, pass },
-          family: 4, // 🔥 force IPv4
-        }
-      : {
-          host,
-          port,
-          secure,
-          auth: { user, pass },
-          family: 4, // 🔥 force IPv4
-          tls: {
-            rejectUnauthorized: false,
-          },
-        }
-  );
+    // 🔥 Important for Railway (prevents ETIMEDOUT)
+    connectionTimeout: 20000, // 20s
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
 
-  // 🔍 Verify SMTP connection
-  await transporter.verify();
-
-  // 📧 Send email
-  const info = await transporter.sendMail({
-    from,
-    to,
-    subject,
-    html,
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
 
-  console.log("✅ Email sent:", {
-    to,
-    subject,
-    messageId: info.messageId,
-  });
+  try {
+    // Verify SMTP connection
+    await transporter.verify();
 
-  return info;
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject,
+      html,
+    });
+
+    console.log("✅ Email sent:", {
+      to,
+      subject,
+      messageId: info.messageId,
+    });
+
+    return info;
+  } catch (error) {
+    console.error("❌ Email sending failed:", error);
+    throw error;
+  }
 };
