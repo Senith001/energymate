@@ -26,7 +26,7 @@ function PostForm({ onSubmit, onCancel, loading, initialData }) {
   });
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(
-    initialData?.image ? `${BASE_URL}${initialData.image}` : null
+    initialData?.image ? (initialData.image.startsWith('http') ? initialData.image : `${BASE_URL}${initialData.image}`) : null
   );
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
@@ -146,7 +146,7 @@ function PostCard({ post, onEdit, onDelete }) {
       {/* Image */}
       <div className="h-48 overflow-hidden bg-slate-100 relative">
         <img
-          src={`${BASE_URL}${post.image}`}
+          src={post.image.startsWith('http') ? post.image : `${BASE_URL}${post.image}`}
           alt={post.title}
           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           onError={(e) => { e.target.src = "https://placehold.co/600x400/e2e8f0/94a3b8?text=No+Image"; }}

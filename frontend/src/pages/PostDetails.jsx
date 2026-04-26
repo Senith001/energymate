@@ -95,14 +95,14 @@ export default function PostDetails() {
         {/* Blurred background layer — fills black/white side bars */}
         <div style={{
           position: "absolute", inset: 0,
-          backgroundImage: `url(${BASE_URL}${post.image})`,
+          backgroundImage: `url(${post.image.startsWith('http') ? post.image : BASE_URL + post.image})`,
           backgroundSize: "cover", backgroundPosition: "center",
           filter: "blur(22px) brightness(0.35)",
           transform: "scale(1.12)",
         }} />
         {/* Actual image centered */}
         <img
-          src={`${BASE_URL}${post.image}`}
+          src={post.image.startsWith('http') ? post.image : `${BASE_URL}${post.image}`}
           alt={post.title}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
           onError={e => { e.target.src = "https://placehold.co/1200x460/022c3a/10b981?text=EnergyMate"; }}
@@ -210,7 +210,7 @@ export default function PostDetails() {
                     {/* Thumbnail */}
                     <div style={{ width: 72, height: 72, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: "#f1f5f9" }}>
                       <img
-                        src={`${BASE_URL}${p.image}`}
+                        src={p.image.startsWith('http') ? p.image : `${BASE_URL}${p.image}`}
                         alt={p.title}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         onError={e => { e.target.src = "https://placehold.co/72x72/dcfce7/16a34a?text=E"; }}

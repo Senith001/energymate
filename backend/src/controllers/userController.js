@@ -780,14 +780,9 @@ export const uploadMyAvatar = async (req, res, next) => {
       return res.status(400).json({ message: "avatar file is required" });
     }
 
-    // delete old avatar file if exists
-    if (user.avatar?.filename) {
-      const oldPath = path.join(process.cwd(), "uploads", "user avatars", user.avatar.filename);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
-
-    const filename = req.file.filename;
-    const url = `${req.protocol}://${req.get("host")}/uploads/user avatars/${filename}`;
+    // With Cloudinary, req.file.path is the full URL
+    const url = req.file.path;
+    const filename = req.file.filename; // Cloudinary public_id
 
     user.avatar = { filename, url };
     await user.save();
@@ -808,10 +803,7 @@ export const deleteMyAvatar = async (req, res, next) => {
   try {
     const user = req.user;
 
-    if (user.avatar?.filename) {
-      const filePath = path.join(process.cwd(), "uploads", "user avatars", user.avatar.filename);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
+    // Optional: add logic here to delete from Cloudinary using user.avatar.filename
 
     user.avatar = { filename: "", url: "" };
     await user.save();

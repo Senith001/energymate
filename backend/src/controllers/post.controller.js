@@ -14,7 +14,7 @@ export const createPost = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Image is required" });
     }
 
-    const imagePath = `/uploads/posts/${req.file.filename}`;
+    const imagePath = req.file.path; // Cloudinary URL
 
     const post = await Post.create({
       title,
@@ -75,13 +75,9 @@ export const updatePost = async (req, res, next) => {
     if (summary) post.summary = summary;
     if (content) post.content = content;
 
-    // If a new image was uploaded, delete the old one and update path
+    // If a new image was uploaded, update path
     if (req.file) {
-      const oldImagePath = path.join(process.cwd(), post.image);
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-      post.image = `/uploads/posts/${req.file.filename}`;
+      post.image = req.file.path;
     }
 
     await post.save();
@@ -102,11 +98,6 @@ export const deletePost = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Post not found" });
     }
 
-    // Delete the image file from disk
-    const imagePath = path.join(process.cwd(), post.image);
-    if (fs.existsSync(imagePath)) {
-      fs.unlinkSync(imagePath);
-    }
 
     await Post.findByIdAndDelete(req.params.id);
     res.status(200).json({ success: true, message: "Post deleted successfully" });

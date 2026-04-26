@@ -663,7 +663,7 @@ export default function LandingPage() {
               // Use only real admin posts
               const allPosts = posts.map(p => ({
                 _id: p._id,
-                image: `${IMAGE_BASE_URL}${p.image}`,
+                image: p.image.startsWith('http') ? p.image : `${IMAGE_BASE_URL}${p.image}`,
                 date: new Date(p.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }),
                 tag: "💡 Insights",
                 tagColor: "#eef2ff",
