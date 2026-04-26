@@ -5,6 +5,7 @@ import { cardStyle, colors, formatCurrency, formatMonthYear, getStatusTone, Icon
 // Render the bill history table with period filters and row-level actions.
 function BillingTableCard({
   rows,
+  notice = "",
   onCreate,
   onGenerate,
   generating,
@@ -81,6 +82,21 @@ function BillingTableCard({
           </button>
         </div>
       </div>
+
+      {notice ? (
+        <div
+          style={{
+            marginBottom: "16px",
+            padding: "12px 14px",
+            borderRadius: "12px",
+            background: colors.redSoft,
+            color: colors.red,
+            fontWeight: "600",
+          }}
+        >
+          {notice}
+        </div>
+      ) : null}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "700px", tableLayout: "auto" }}>

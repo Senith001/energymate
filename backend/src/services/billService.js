@@ -13,7 +13,6 @@ async function createUserBill({ householdId, month, year, totalUnits, previousRe
     { householdId, month, year },
     {
       ...billFields,
-      // Recreating a bill replaces the stored bill for that period and reopens it as the current version.
       status: "unpaid", paidAt: null,
     },
     { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
@@ -63,7 +62,8 @@ async function buildBillFields({ month, year, totalUnits, previousReading, curre
  * @param {number} year
  * @returns {Promise<Object>} saved Bill document
  */
-async function generateBill(householdId, month, year) {
+async function generateBill(householdId, month, year, options = {}) {
+  const { overwriteExisting = false } = options;
   // Aggregate total units from usage records + fetch live tariff from DB in parallel
   const [{ totalUnits }, tariff] = await Promise.all([
     getMonthlyTotalUnits(householdId, month, year),
@@ -75,15 +75,28 @@ async function generateBill(householdId, month, year) {
 
   // Due date = 20th of the following month
   const dueDate = new Date(year, month, 20); // month is 0-indexed, so month (1-12) becomes next month
+  const existingBill = await Bill.findOne({ householdId, month, year }).select("_id");
+  const billFields = { totalUnits, energyCharge, fixedCharge, subTotal, sscl, totalCost, breakdown, dueDate, status: "unpaid", paidAt: null };
 
-  const bill = await Bill.findOneAndUpdate(
-    { householdId, month, year },
-    // Regeneration replaces the current stored bill snapshot for the same billing period.
-    { totalUnits, energyCharge, fixedCharge, subTotal, sscl, totalCost, breakdown, dueDate, status: "unpaid", paidAt: null },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-  );
+  if (existingBill && !overwriteExisting) {
+    throw createDuplicateBillError(month, year);
+  }
 
-  return bill;
+  if (existingBill) {
+    return Bill.findOneAndUpdate(
+      { householdId, month, year },
+      // Regeneration replaces the current stored bill snapshot for the same billing period.
+      billFields,
+      { new: true, runValidators: true }
+    );
+  }
+
+  return Bill.create({
+    householdId,
+    month,
+    year,
+    ...billFields,
+  });
 }
 
 // Create the previous month's bill automatically once a new month starts, but only when usage exists and no bill was saved yet.

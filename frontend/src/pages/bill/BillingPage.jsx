@@ -12,13 +12,17 @@ import { getHouseholdDetails, getHouseholds } from "../../utils/usageAPI";
 
 function BillingPage() {
   const { user } = useAuth();
+  const currentPeriod = useMemo(
+    () => ({ month: new Date().getMonth() + 1, year: new Date().getFullYear() }),
+    []
+  );
   // Keep the selected household id locally for billing-related API calls.
   const [householdId, setHouseholdId] = useState(localStorage.getItem("selectedHouseholdId") || localStorage.getItem("householdId") || "");
   const [householdOptions, setHouseholdOptions] = useState([]);
   const [pendingHouseholdId, setPendingHouseholdId] = useState("");
   const [bills, setBills] = useState([]);
   const [comparison, setComparison] = useState(null);
-  const [selectedPeriod, setSelectedPeriod] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
+  const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
@@ -30,6 +34,7 @@ function BillingPage() {
   const [busyBillId, setBusyBillId] = useState("");
   const [payingBillId, setPayingBillId] = useState("");
   const [error, setError] = useState("");
+  const [tableError, setTableError] = useState("");
   const [createDialogError, setCreateDialogError] = useState("");
   const [updateDialogError, setUpdateDialogError] = useState("");
   const [tableMonthFilter, setTableMonthFilter] = useState("all");
@@ -95,9 +100,8 @@ function BillingPage() {
       const billRows = billsPayload.data || [];
       setBills(billRows);
 
-      if (billRows.length) {
-        setSelectedPeriod({ month: billRows[0].month, year: billRows[0].year });
-      } else {
+      setSelectedPeriod((current) => current || currentPeriod);
+      if (!billRows.length) {
         setLoading(false);
       }
     } catch (err) {
@@ -128,7 +132,8 @@ function BillingPage() {
     setHouseholdName(selectedHousehold.name || "Household");
     setHouseholdOptions([]);
     setPendingHouseholdId("");
-    await loadComparison(selectedHousehold._id, selectedPeriod.month, selectedPeriod.year);
+    setSelectedPeriod(currentPeriod);
+    await loadComparison(selectedHousehold._id, currentPeriod.month, currentPeriod.year);
   }
 
   // Borrow the temporary household lookup from usage until the shared household API is exposed centrally.
@@ -165,6 +170,15 @@ function BillingPage() {
     }
   }
 
+  function hasExistingBillForPeriod(month, year, excludeBillId = "") {
+    return bills.some(
+      (bill) =>
+        Number(bill.month) === Number(month) &&
+        Number(bill.year) === Number(year) &&
+        (!excludeBillId || bill._id !== excludeBillId)
+    );
+  }
+
   // Create one manual bill from entered units or meter readings.
   async function handleCreateBill(form) {
     if (!householdId) {
@@ -175,6 +189,7 @@ function BillingPage() {
     try {
       setSubmitting(true);
       setError("");
+      setTableError("");
       setCreateDialogError("");
 
       const payload = {
@@ -182,6 +197,10 @@ function BillingPage() {
         month: Number(form.month),
         year: Number(form.year),
       };
+
+      if (hasExistingBillForPeriod(payload.month, payload.year)) {
+        throw new Error(`A bill already exists for ${payload.month}/${payload.year}. Update or regenerate the existing bill instead.`);
+      }
 
       const validationError = validateBillForm(form);
       if (validationError) {
@@ -217,10 +236,15 @@ function BillingPage() {
     try {
       setSubmitting(true);
       setError("");
+      setTableError("");
       setCreateDialogError("");
 
       const month = Number(form.month);
       const year = Number(form.year);
+
+      if (hasExistingBillForPeriod(month, year)) {
+        throw new Error(`A bill already exists for ${month}/${year}. Update or regenerate the existing bill instead.`);
+      }
 
       if (form.source === "usage") {
         await generateBill(householdId, month, year);
@@ -264,6 +288,12 @@ function BillingPage() {
     try {
       setGenerating(true);
       setError("");
+      setTableError("");
+      if (hasExistingBillForPeriod(selectedPeriod.month, selectedPeriod.year)) {
+        const duplicateMessage = `A bill already exists for ${selectedPeriod.month}/${selectedPeriod.year}. Regenerate that bill if you want to recalculate it.`;
+        setTableError(duplicateMessage);
+        return;
+      }
       await generateBill(householdId, selectedPeriod.month, selectedPeriod.year);
       await loadComparison(householdId, selectedPeriod.month, selectedPeriod.year);
     } catch (err) {
@@ -277,6 +307,7 @@ function BillingPage() {
   async function handleViewBill(row) {
     try {
       setError("");
+      setTableError("");
       const payload = await getBillById(row._id);
       setSelectedBill(payload.data || row);
       setDetailsOpen(true);
@@ -294,6 +325,7 @@ function BillingPage() {
       }
 
       setError("");
+      setTableError("");
       setUpdateDialogError("");
       const payload = await getBillById(row._id);
       setSelectedBill(payload.data || row);
@@ -310,6 +342,7 @@ function BillingPage() {
     try {
       setSubmitting(true);
       setError("");
+      setTableError("");
       setUpdateDialogError("");
       const payload = {
         month: Number(form.month),
@@ -350,6 +383,7 @@ function BillingPage() {
 
       setBusyBillId(row._id);
       setError("");
+      setTableError("");
       await regenerateBill(row._id);
       await loadComparison(householdId, selectedPeriod.month, selectedPeriod.year);
     } catch (err) {
@@ -364,6 +398,7 @@ function BillingPage() {
     try {
       setPayingBillId(row._id);
       setError("");
+      setTableError("");
       await updateBill(row._id, {
         status: "paid",
         paidAt: new Date().toISOString(),
@@ -381,6 +416,7 @@ function BillingPage() {
     try {
       setPayingBillId(row._id);
       setError("");
+      setTableError("");
       await updateBill(row._id, {
         status: "unpaid",
         paidAt: null,
@@ -539,8 +575,10 @@ function BillingPage() {
       <div style={{ marginTop: "26px" }}>
         <BillingTableCard
           rows={tableRows}
+          notice={tableError}
           onCreate={() => {
             setCreateDialogError("");
+            setTableError("");
             setDialogOpen(true);
           }}
           onGenerate={handleGenerateBill}
