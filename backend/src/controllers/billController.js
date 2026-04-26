@@ -25,7 +25,7 @@ async function createBill(req, res) {
     });
     return success(res, bill, "Bill created", 201);
   } catch (err) {
-    return error(res, err.message, 400);
+    return error(res, err.message, err.statusCode || 400);
   }
 }
 
@@ -43,6 +43,9 @@ async function generateBillFromUsage(req, res) {
     const bill = await generateBill(householdId, Number(month), Number(year));
     return success(res, bill, "Bill generated", 201);
   } catch (err) {
+    if (err.statusCode === 409) {
+      return error(res, err.message, 409);
+    }
     return error(res, "Server error", 500, err.message);
   }
 }
@@ -124,6 +127,19 @@ async function updateBill(req, res) {
     const readingsChanged = previousReading !== undefined || currentReading !== undefined;
     const unitsChanged = totalUnits !== undefined && totalUnits !== null;
     const periodChanged = month !== undefined || year !== undefined;
+
+    if (periodChanged) {
+      const duplicateBill = await Bill.findOne({
+        householdId: bill.householdId,
+        month: nextMonth,
+        year: nextYear,
+        _id: { $ne: bill._id },
+      }).select("_id");
+
+      if (duplicateBill) {
+        return error(res, `A bill already exists for ${nextMonth}/${nextYear}. Update that bill instead.`, 409);
+      }
+    }
 
     // Prepare updates
     const updates = {};
@@ -231,7 +247,9 @@ async function regenerateBill(req, res) {
       if (!household) return error(res, "Access denied", 403);
     }
 
-    const updated = await generateBill(bill.householdId.toString(), bill.month, bill.year);
+    const updated = await generateBill(bill.householdId.toString(), bill.month, bill.year, {
+      overwriteExisting: true,
+    });
     return success(res, updated, "Bill regenerated");
   } catch (err) {
     return error(res, "Server error", 500, err.message);
