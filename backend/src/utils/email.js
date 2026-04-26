@@ -1,4 +1,8 @@
 import nodemailer from "nodemailer";
+import dns from "dns";
+
+// 🔥 Force Node.js to prefer IPv4 (fixes Railway + Gmail issue)
+dns.setDefaultResultOrder("ipv4first");
 
 const requireEnv = (key) => {
   const val = process.env[key];
@@ -7,7 +11,7 @@ const requireEnv = (key) => {
 };
 
 export const sendEmail = async ({ to, subject, html }) => {
-  // Validate required env vars (helps you immediately)
+  // Validate required env vars
   const host = requireEnv("EMAIL_HOST");
   const port = Number(requireEnv("EMAIL_PORT"));
   const user = requireEnv("EMAIL_USER");
@@ -15,29 +19,34 @@ export const sendEmail = async ({ to, subject, html }) => {
   const from = requireEnv("EMAIL_FROM");
 
   const secure =
-    process.env.EMAIL_SECURE === "true" || port === 465; // auto-secure for 465
+    process.env.EMAIL_SECURE === "true" || port === 465;
 
-  // Use the native Gmail service mapping to avoid IPv6/port timeout issues on cloud hosts
+  const isGmail = host.toLowerCase().includes("gmail");
+
+  // ✅ Transporter with IPv4 enforcement
   const transporter = nodemailer.createTransport(
-    host.includes("gmail.com")
+    isGmail
       ? {
           service: "gmail",
           auth: { user, pass },
+          family: 4, // 🔥 force IPv4
         }
       : {
           host,
           port,
           secure,
           auth: { user, pass },
+          family: 4, // 🔥 force IPv4
           tls: {
-            rejectUnauthorized: false
-          }
+            rejectUnauthorized: false,
+          },
         }
   );
 
-  // checks SMTP connection
+  // 🔍 Verify SMTP connection
   await transporter.verify();
 
+  // 📧 Send email
   const info = await transporter.sendMail({
     from,
     to,
@@ -45,7 +54,6 @@ export const sendEmail = async ({ to, subject, html }) => {
     html,
   });
 
-  // Helpful for debugging in terminal
   console.log("✅ Email sent:", {
     to,
     subject,
