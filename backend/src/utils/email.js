@@ -1,8 +1,4 @@
 import nodemailer from "nodemailer";
-import dns from "dns";
-
-// 🔥 Force IPv4 (fixes Railway networking issues)
-dns.setDefaultResultOrder("ipv4first");
 
 const requireEnv = (key) => {
   const val = process.env[key];
@@ -11,54 +7,39 @@ const requireEnv = (key) => {
 };
 
 export const sendEmail = async ({ to, subject, html }) => {
-  // Env variables
-  const host = requireEnv("EMAIL_HOST"); // we will ignore "service gmail"
+  // Validate required env vars (helps you immediately)
+  const host = requireEnv("EMAIL_HOST");
+  const port = Number(requireEnv("EMAIL_PORT"));
   const user = requireEnv("EMAIL_USER");
   const pass = requireEnv("EMAIL_PASS");
   const from = requireEnv("EMAIL_FROM");
 
-  // Always use stable Gmail SMTP config for cloud deployments
+  const secure =
+    process.env.EMAIL_SECURE === "true" || port === 465; // auto-secure for 465
+
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // TLS upgrade via STARTTLS
-    auth: {
-      user,
-      pass,
-    },
-
-    family: 4, // force IPv4
-
-    // 🔥 Important for Railway (prevents ETIMEDOUT)
-    connectionTimeout: 20000, // 20s
-    greetingTimeout: 20000,
-    socketTimeout: 30000,
-
-    tls: {
-      rejectUnauthorized: false,
-    },
+    host,
+    port,
+    secure,
+    auth: { user, pass },
   });
 
-  try {
-    // Verify SMTP connection
-    await transporter.verify();
+  // checks SMTP connection
+  await transporter.verify();
 
-    const info = await transporter.sendMail({
-      from,
-      to,
-      subject,
-      html,
-    });
+  const info = await transporter.sendMail({
+    from,
+    to,
+    subject,
+    html,
+  });
 
-    console.log("✅ Email sent:", {
-      to,
-      subject,
-      messageId: info.messageId,
-    });
+  // Helpful for debugging in terminal
+  console.log("✅ Email sent:", {
+    to,
+    subject,
+    messageId: info.messageId,
+  });
 
-    return info;
-  } catch (error) {
-    console.error("❌ Email sending failed:", error);
-    throw error;
-  }
+  return info;
 };
